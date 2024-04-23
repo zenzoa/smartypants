@@ -25,3 +25,19 @@ h1, h2, h3 {
 	border-radius: 8px;
 	background: #eee;
 }
+
+code {
+	display: block;
+}
+
+.word {
+	display: inline-block;
+	width: 36px;
+	min-height: 12px;
+	cursor: pointer;
+}
+
+.word.val {
+	color: hotpink;
+	font-weight: bold;
+}

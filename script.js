@@ -81,18 +81,42 @@ const parseFile = (data) => {
 
 const parseTable = (data) => {
 	const tableDataEl = document.getElementById('table-data')
-
 	const tableContentEl = document.createElement('code')
 
-	let contents = ''
-	for (let i = 0; i < data.byteLength; i++) {
-		const byte = data.getUint8(i).toString(16).toUpperCase().padStart(2, '0')
-		contents = `${contents}${byte}`
-		if (i % 2 === 1) {
-			contents += ' '
-		}
+	for (let i = 0; i < data.byteLength; i += 2) {
+		const value = data.getUint16(i, LITTLE_ENDIAN)
+		const byte1 = data.getUint8(i).toString(16).padStart(2, '0').toUpperCase()
+		const byte2 = data.getUint8(i+1).toString(16).padStart(2, '0').toUpperCase()
+		const hexString = `${byte1}${byte2}`
+		const wordEl = document.createElement('span')
+		wordEl.setAttribute('data-val', value)
+		wordEl.setAttribute('data-txt', TEXT_ENCODING[value])
+		wordEl.setAttribute('data-hex', hexString)
+		wordEl.setAttribute('title', value)
+		wordEl.className = 'hex word'
+		wordEl.addEventListener('click', (event) => {
+			if (event.shiftKey) {
+				const siblingEls = event.target.parentNode.childNodes
+				for (const siblingEl of siblingEls) {
+					toggleWordView(siblingEl)
+				}
+			} else {
+				toggleWordView(event.target)
+			}
+		})
+		wordEl.innerText = hexString
+		tableContentEl.append(wordEl)
 	}
-	tableContentEl.innerText = contents
 
 	tableDataEl.append(tableContentEl)
+}
+
+const toggleWordView = (wordEl) => {
+	if (wordEl.className === 'hex word' && wordEl.getAttribute('data-txt') != 'undefined') {
+		wordEl.className = 'val word'
+		wordEl.innerText = wordEl.getAttribute('data-txt')
+	} else {
+		wordEl.className = 'hex word'
+		wordEl.innerText = wordEl.getAttribute('data-hex')
+	}
 }
