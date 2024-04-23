@@ -1,0 +1,27 @@
+html, body, h1, h2, h3 {
+	margin: 0;
+	padding: 0;
+}
+
+body {
+	padding: 12px 24px;
+	color: #444;
+}
+
+body * + * {
+	margin-top: 1em;
+}
+
+h1 + h2 {
+	margin-top: 0;
+}
+
+h1, h2, h3 {
+	color: #222;
+}
+
+#file-upload-container {
+	padding: 12px 24px;
+	border-radius: 8px;
+	background: #eee;
+}
