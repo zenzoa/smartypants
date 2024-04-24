@@ -96,6 +96,7 @@ const parseFile = (data) => {
 const parseTable = (data) => {
 	const tableDataEl = document.getElementById('table-data')
 	const tableContentEl = document.createElement('code')
+	tableContentEl.innerHTML = `(size: ${data.byteLength} bytes | ${data.byteLength / 2} words)<br><br>`
 
 	for (let i = 0; i < data.byteLength; i += 2) {
 		const value = data.getUint16(i, LITTLE_ENDIAN)
