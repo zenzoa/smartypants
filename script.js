@@ -68,6 +68,7 @@ const parseFile = (data) => {
 	for (let i = 0; i < 20; i++) {
 		const tableHeaderEl = document.createElement('h3')
 		tableHeaderEl.innerText = TABLE_NAMES[i] || `Table ${i + 1}`
+		tableHeaderEl.addEventListener('click', () => tableHeaderEl.classList.toggle('collapse'))
 		tableDataEl.append(tableHeaderEl)
 		if (tableSizes[i] > 0) {
 			const tableData = new DataView(data.buffer, data.byteOffset + tableOffsets[i], tableSizes[i])
@@ -79,11 +80,13 @@ const parseFile = (data) => {
 				parseTamaTable(tableData)
 			} else {
 				parseTable(tableData)
+				tableHeaderEl.className = 'collapse'
 			}
 		} else {
 			const tableContentEl = document.createElement('code')
 			tableContentEl.innerText = 'empty'
 			tableDataEl.append(tableContentEl)
+			tableHeaderEl.className = 'collapse'
 		}
 	}
 }
@@ -142,6 +145,7 @@ const parseDialogTable = (data) => {
 		const flag2 = stringifyWord(data, i + 4)
 		const flag3 = stringifyWord(data, i + 6)
 
+		// null-terminating string
 		let strLength = 0
 		while (data.getUint16(i + 8 + strLength*2) !== 0) {
 			strLength += 1
@@ -191,7 +195,7 @@ const parseItemTable = (data) => {
 const parseTamaTable = (data) => {
 	const tableDataEl = document.getElementById('table-data')
 	const tableEl = document.createElement('table')
-	tableEl.innerHTML = '<thead><tr><th>id</th><th>type</th><th>name</th><th>flags</th><th>pronoun</th><th>statement</th><th>question 1</th><th>question 2</th><th>unparsed</th></tr></thead>'
+	tableEl.innerHTML = '<thead><tr><th>id</th><th>type</th><th>name</th><th>flags</th><th>pronoun</th><th>statement<br><small>{ndesu}<small></th><th>question 1<br><small>{ndesuka}<small></th><th>question 2<br><small>{desuka}<small></th><th>unparsed</th></tr></thead>'
 	const tableBodyEl = document.createElement('tbody')
 
 	let i = 0

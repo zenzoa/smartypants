@@ -8,7 +8,7 @@ body {
 	color: #444;
 }
 
-body * + * {
+body > * + * {
 	margin-top: 1em;
 }
 
@@ -18,6 +18,37 @@ h1 + h2 {
 
 h1, h2, h3 {
 	color: #222;
+}
+
+h3 {
+	margin-top: 2em;
+	margin-bottom: 1em;
+	cursor: pointer;
+	position: relative;
+	color: #444;
+}
+
+h3:not(.collapse) {
+	color: black;
+}
+
+h3:hover {
+	color: hotpink;
+}
+
+h3::before {
+	display: block;
+	position: absolute;
+	left: -16px;
+	content: '⏷ ';
+}
+
+h3.collapse::before {
+	content: '⏵ ';
+}
+
+h3.collapse + * {
+	display: none;
 }
 
 #file-upload-container {
