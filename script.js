@@ -202,7 +202,7 @@ const parseTamaTable = (data) => {
 	while (i + 96 <= data.byteLength) {
 		const tableRowEl = document.createElement('tr')
 
-		const id = stringifyWord(data, i)
+		const id = data.getUint16(i, LITTLE_ENDIAN)
 		const type = data.getUint16(i + 2, LITTLE_ENDIAN)
 		const tamaName = parseString(data, i + 4, 10)
 		const flag1 = stringifyWord(data, i + 24)
@@ -240,7 +240,5 @@ const parseString = (data, offset, length) => {
 }
 
 const stringifyWord = (data, offset) => {
-	const byte1 = data.getUint8(offset).toString(16).padStart(2, '0').toUpperCase()
-	const byte2 = data.getUint8(offset+1).toString(16).padStart(2, '0').toUpperCase()
-	return `${byte1}${byte2}`
+	return data.getUint16(offset, LITTLE_ENDIAN).toString(16).padStart(4, '0').toUpperCase()
 }
