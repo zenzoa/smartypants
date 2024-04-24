@@ -252,7 +252,7 @@ const parseItemTable = (data) => {
 const parseTamaTable = (data) => {
 	const tableDataEl = document.getElementById('table-data')
 	const tableEl = document.createElement('table')
-	tableEl.innerHTML = '<thead><tr><th>id</th><th>type</th><th>name</th><th>flags</th><th>pronoun</th><th>statement<br><small>{ndesu}<small></th><th>question 1<br><small>{ndesuka}<small></th><th>question 2<br><small>{desuka}<small></th><th>unparsed</th></tr></thead>'
+	tableEl.innerHTML = '<thead><tr><th>id</th><th>type</th><th>name</th><th>flags</th><th>pronoun</th><th>statement<br><small>{ndesu}<small></th><th>question 1<br><small>{ndesuka}<small></th><th>question 2<br><small>{desuka}<small></th><th>unparsed</th><th>gender</th></tr></thead>'
 	const tableBodyEl = document.createElement('tbody')
 
 	let i = 0
@@ -272,11 +272,13 @@ const parseTamaTable = (data) => {
 		const question2 = parseString(data, i + 68, 6)
 
 		let otherData = []
-		for (let j = 0; j < 8; j++) {
+		for (let j = 0; j < 7; j++) {
 			otherData.push(stringifyWord(data, i + 80 + j*2))
 		}
 
-		tableRowEl.innerHTML = `<td>${id}</td><td>${type}</td><td>${tamaName}</td><td>${flag1} ${flag2} ${flag3} ${flag4}</td><td>${pronoun}</td><td>${statement}</td><td>${question1}</td><td>${question2}</td><td>${otherData.join(' ')}</td>`
+		const gender = data.getUint16(i + 94, LITTLE_ENDIAN) ? 'M' : 'F'
+
+		tableRowEl.innerHTML = `<td>${id}</td><td>${type}</td><td>${tamaName}</td><td>${flag1} ${flag2} ${flag3} ${flag4}</td><td>${pronoun}</td><td>${statement}</td><td>${question1}</td><td>${question2}</td><td>${otherData.join(' ')}</td><td>${gender}</td>`
 		tableBodyEl.append(tableRowEl)
 
 		i += 96
