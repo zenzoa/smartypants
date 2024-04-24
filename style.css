@@ -41,3 +41,21 @@ code {
 	color: hotpink;
 	font-weight: bold;
 }
+
+table {
+	border-collapse: collapse;
+}
+
+td {
+	border: 1px solid white;
+	padding: 8px 12px;
+	font-family: monospace;
+}
+
+tbody {
+	background: #f9f9f9;
+}
+
+tbody > tr:nth-of-type(even) {
+	background: #eee;
+}

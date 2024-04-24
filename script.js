@@ -67,10 +67,15 @@ const parseFile = (data) => {
 
 	for (let i = 0; i < 20; i++) {
 		const tableHeaderEl = document.createElement('h3')
-		tableHeaderEl.innerText = `Table ${i + 1}`
+		tableHeaderEl.innerText = TABLE_NAMES[i] || `Table ${i + 1}`
 		tableDataEl.append(tableHeaderEl)
 		if (tableSizes[i] > 0) {
-			parseTable(new DataView(data.buffer, data.byteOffset + tableOffsets[i], tableSizes[i]))
+			const tableData = new DataView(data.buffer, data.byteOffset + tableOffsets[i], tableSizes[i])
+			if (i === 10) {
+				parseItemTable(tableData)
+			} else {
+				parseTable(tableData)
+			}
 		} else {
 			const tableContentEl = document.createElement('code')
 			tableContentEl.innerText = 'empty'
@@ -85,9 +90,7 @@ const parseTable = (data) => {
 
 	for (let i = 0; i < data.byteLength; i += 2) {
 		const value = data.getUint16(i, LITTLE_ENDIAN)
-		const byte1 = data.getUint8(i).toString(16).padStart(2, '0').toUpperCase()
-		const byte2 = data.getUint8(i+1).toString(16).padStart(2, '0').toUpperCase()
-		const hexString = `${byte1}${byte2}`
+		const hexString = stringifyWord(data, i)
 		const wordEl = document.createElement('span')
 		wordEl.setAttribute('data-val', value)
 		wordEl.setAttribute('data-txt', TEXT_ENCODING[value])
@@ -119,4 +122,46 @@ const toggleWordView = (wordEl) => {
 		wordEl.className = 'hex word'
 		wordEl.innerText = wordEl.getAttribute('data-hex')
 	}
+}
+
+const parseItemTable = (data) => {
+	const tableDataEl = document.getElementById('table-data')
+	const tableEl = document.createElement('table')
+	tableEl.innerHTML = '<thead><tr><th>id</th><th>type</th><th>string</th><th>remaining unparsed data</th></tr></thead>'
+	const tableBodyEl = document.createElement('tbody')
+
+	let i = 0
+	while (i + 42 <= data.byteLength) {
+		const tableRowEl = document.createElement('tr')
+		const id = stringifyWord(data, i)
+		const typeIndex = data.getUint16(i + 2, LITTLE_ENDIAN)
+		const type = ITEM_TYPES[typeIndex] || typeIndex
+		const value = parseString(data, i + 4, 10)
+		let otherData = []
+		for (let j = 0; j < 9; j++) {
+			otherData.push(stringifyWord(data, i + 24 + j*2))
+		}
+		tableRowEl.innerHTML = `<td>${id}</td><td>${type}</td><td>${value}</td><td>${otherData.join(' ')}</td>`
+		tableBodyEl.append(tableRowEl)
+		i += 42
+	}
+
+	tableEl.append(tableBodyEl)
+	tableDataEl.append(tableEl)
+}
+
+const parseString = (data, offset, length) => {
+	let str = ''
+	for (let i = 0; i < length; i++) {
+		const value = data.getUint16(offset + i*2, LITTLE_ENDIAN)
+		const char = TEXT_ENCODING[value]
+		str = `${str}${char}`
+	}
+	return str
+}
+
+const stringifyWord = (data, offset) => {
+	const byte1 = data.getUint8(offset).toString(16).padStart(2, '0').toUpperCase()
+	const byte2 = data.getUint8(offset+1).toString(16).padStart(2, '0').toUpperCase()
+	return `${byte1}${byte2}`
 }

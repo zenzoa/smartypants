@@ -1,3 +1,21 @@
+const TABLE_NAMES = {
+	6: 'Table 7: Dialog',
+	10: 'Table 11: Items',
+	11: 'Table 12: Characters',
+	19: 'Table 20: Card ID'
+}
+
+const ITEM_TYPES = {
+	0: 'meal',
+	1: 'snack',
+	2: 'item',
+	3: 'accessory (clothing?)',
+	6: 'accessory (balloon?)',
+	7: 'room',
+	8: 'game'
+}
+
+// from Studded's string converter
 const TEXT_ENCODING = {
 	0: "█",
 	1: " ",
