@@ -135,27 +135,27 @@ const toggleWordView = (wordEl) => {
 
 const parseClockFaceTable = (data) => {
 	let clocks = []
-	let segments = []
-	let currentSegment = []
+	let layers = []
+	let currentLayer = []
 	let i = 0
 	while (i + 2 <= data.byteLength) {
 		const word = stringifyWord(data, i)
 		if (word === '1007' || word === '5007' || word === '1047' || word === '1407' || word === '5207') {
-			if (currentSegment.length > 0) {
-				segments.push(currentSegment)
+			if (currentLayer.length > 0) {
+				layers.push(currentLayer)
 			}
-			currentSegment = [word]
+			currentLayer = [word]
 		} else if (word === '0000') {
-			if (currentSegment.length > 0) {
-				segments.push(currentSegment)
+			if (currentLayer.length > 0) {
+				layers.push(currentLayer)
 			}
-			currentSegment = []
-			if (segments.length > 0) {
-				clocks.push(segments)
+			currentLayer = []
+			if (layers.length > 0) {
+				clocks.push(layers)
 			}
-			segments = []
+			layers = []
 		} else {
-			currentSegment.push(word)
+			currentLayer.push(word)
 		}
 		i += 2
 	}
@@ -167,11 +167,11 @@ const parseClockFaceTable = (data) => {
 		tableDataEl.append(headerEl)
 
 		const tableEl = document.createElement('table')
-		tableEl.innerHTML = '<thead><tr><th>segment type</th><th>x</th><th>y</th><th>image set</th><th>?</th></tr></thead>'
+		tableEl.innerHTML = '<thead><tr><th>layer type</th><th>x</th><th>y</th><th>image set</th><th>?</th></tr></thead>'
 		const tableBodyEl = document.createElement('tbody')
-		for (const segment of clocks[i]) {
+		for (const layer of clocks[i]) {
 			const tableRowEl = document.createElement('tr')
-			tableRowEl.innerHTML = `<td>${segment[0] || '-'}</td><td>${segment[1] || '-'}</td><td>${segment[2] || '-'}</td><td>${segment[3] || '-'}</td><td>${segment[4] || '-'}</td>`
+			tableRowEl.innerHTML = `<td>${layer[0] || '-'}</td><td>${layer[1] || '-'}</td><td>${layer[2] || '-'}</td><td>${layer[3] || '-'}</td><td>${layer[4] || '-'}</td>`
 			tableBodyEl.append(tableRowEl)
 		}
 		tableEl.append(tableBodyEl)
