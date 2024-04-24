@@ -165,7 +165,7 @@ const parseDialogTable = (data) => {
 const parseItemTable = (data) => {
 	const tableDataEl = document.getElementById('table-data')
 	const tableEl = document.createElement('table')
-	tableEl.innerHTML = '<thead><tr><th>id</th><th>type</th><th>name</th><th>unparsed</th></tr></thead>'
+	tableEl.innerHTML = '<thead><tr><th>id</th><th>type</th><th>name</th><th>image set</th><th>image set<br><small>worn</small></th><th>image set<br><small>close-up</small></th><th>unparsed</th><th>unlocked<br>character</th></tr></thead>'
 	const tableBodyEl = document.createElement('tbody')
 
 	let i = 0
@@ -176,13 +176,18 @@ const parseItemTable = (data) => {
 		const typeIndex = data.getUint16(i + 2, LITTLE_ENDIAN)
 		const type = ITEM_TYPES[typeIndex] || typeIndex
 		const itemName = parseString(data, i + 4, 10)
+		const imageSet = stringifyWord(data, i + 24)
+		const imageSetWorn = (data.getUint16(i + 26, LITTLE_ENDIAN) && stringifyWord(data, i + 26)) || '-'
+		const imageSetCloseUp = (data.getUint16(i + 28, LITTLE_ENDIAN) && stringifyWord(data, i + 28)) || '-'
 
 		let otherData = []
-		for (let j = 0; j < 9; j++) {
-			otherData.push(stringifyWord(data, i + 24 + j*2))
+		for (let j = 0; j < 5; j++) {
+			otherData.push(stringifyWord(data, i + 30 + j*2))
 		}
 
-		tableRowEl.innerHTML = `<td>${id}</td><td>${type}</td><td>${itemName}</td><td>${otherData.join(' ')}</td>`
+		const unlockedCharacter = data.getUint16(i + 40, LITTLE_ENDIAN) || '-'
+
+		tableRowEl.innerHTML = `<td>${id}</td><td>${type}</td><td>${itemName}</td><td>${imageSet}</td><td>${imageSetWorn}</td><td>${imageSetCloseUp}</td><td>${otherData.join(' ')}</td><td>${unlockedCharacter}</td>`
 		tableBodyEl.append(tableRowEl)
 
 		i += 42
@@ -202,7 +207,7 @@ const parseTamaTable = (data) => {
 	while (i + 96 <= data.byteLength) {
 		const tableRowEl = document.createElement('tr')
 
-		const id = data.getUint16(i, LITTLE_ENDIAN)
+		const id = stringifyWord(data, i)
 		const type = data.getUint16(i + 2, LITTLE_ENDIAN)
 		const tamaName = parseString(data, i + 4, 10)
 		const flag1 = stringifyWord(data, i + 24)
