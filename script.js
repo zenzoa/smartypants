@@ -71,7 +71,9 @@ const parseFile = (data) => {
 		tableDataEl.append(tableHeaderEl)
 		if (tableSizes[i] > 0) {
 			const tableData = new DataView(data.buffer, data.byteOffset + tableOffsets[i], tableSizes[i])
-			if (i === 10) {
+			if (i === 6) {
+				parseDialogTable(tableData)
+			} else if (i === 10) {
 				parseItemTable(tableData)
 			} else if (i === 11) {
 				parseTamaTable(tableData)
@@ -124,6 +126,36 @@ const toggleWordView = (wordEl) => {
 		wordEl.className = 'hex word'
 		wordEl.innerText = wordEl.getAttribute('data-hex')
 	}
+}
+
+const parseDialogTable = (data) => {
+	const tableDataEl = document.getElementById('table-data')
+	const tableEl = document.createElement('table')
+	tableEl.innerHTML = '<thead><tr><th>id</th><th>flags</th><th>string</th></tr></thead>'
+	const tableBodyEl = document.createElement('tbody')
+	let i = 0
+	while (i + 10 <= data.byteLength) {
+		const tableRowEl = document.createElement('tr')
+
+		const id = stringifyWord(data, i)
+		const flag1 = stringifyWord(data, i + 2)
+		const flag2 = stringifyWord(data, i + 4)
+		const flag3 = stringifyWord(data, i + 6)
+
+		let strLength = 0
+		while (data.getUint16(i + 8 + strLength*2) !== 0) {
+			strLength += 1
+		}
+		const dialogStr = parseString(data, i + 8, strLength)
+
+		tableRowEl.innerHTML = `<td>${id}</td><td>${flag1} ${flag2} ${flag3}</td><td>${dialogStr}</td>`
+		tableBodyEl.append(tableRowEl)
+
+		i += 10 + (strLength*2)
+	}
+
+	tableEl.append(tableBodyEl)
+	tableDataEl.append(tableEl)
 }
 
 const parseItemTable = (data) => {
