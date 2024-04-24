@@ -161,10 +161,13 @@ const parseClockFaceTable = (data) => {
 	}
 
 	const tableDataEl = document.getElementById('table-data')
+	const clockDiv = document.createElement('div')
+	tableDataEl.append(clockDiv)
+
 	for (i = 0; i < clocks.length; i++) {
 		const headerEl = document.createElement('h4')
 		headerEl.innerText = `Clock Face ${i+1}`
-		tableDataEl.append(headerEl)
+		clockDiv.append(headerEl)
 
 		const tableEl = document.createElement('table')
 		tableEl.innerHTML = '<thead><tr><th>layer type</th><th>x</th><th>y</th><th>image set</th><th>?</th></tr></thead>'
@@ -175,7 +178,7 @@ const parseClockFaceTable = (data) => {
 			tableBodyEl.append(tableRowEl)
 		}
 		tableEl.append(tableBodyEl)
-		tableDataEl.append(tableEl)
+		clockDiv.append(tableEl)
 	}
 }
 
