@@ -73,6 +73,8 @@ const parseFile = (data) => {
 			const tableData = new DataView(data.buffer, data.byteOffset + tableOffsets[i], tableSizes[i])
 			if (i === 10) {
 				parseItemTable(tableData)
+			} else if (i === 11) {
+				parseTamaTable(tableData)
 			} else {
 				parseTable(tableData)
 			}
@@ -127,23 +129,64 @@ const toggleWordView = (wordEl) => {
 const parseItemTable = (data) => {
 	const tableDataEl = document.getElementById('table-data')
 	const tableEl = document.createElement('table')
-	tableEl.innerHTML = '<thead><tr><th>id</th><th>type</th><th>string</th><th>remaining unparsed data</th></tr></thead>'
+	tableEl.innerHTML = '<thead><tr><th>id</th><th>type</th><th>name</th><th>unparsed</th></tr></thead>'
 	const tableBodyEl = document.createElement('tbody')
 
 	let i = 0
 	while (i + 42 <= data.byteLength) {
 		const tableRowEl = document.createElement('tr')
+
 		const id = stringifyWord(data, i)
 		const typeIndex = data.getUint16(i + 2, LITTLE_ENDIAN)
 		const type = ITEM_TYPES[typeIndex] || typeIndex
-		const value = parseString(data, i + 4, 10)
+		const itemName = parseString(data, i + 4, 10)
+
 		let otherData = []
 		for (let j = 0; j < 9; j++) {
 			otherData.push(stringifyWord(data, i + 24 + j*2))
 		}
-		tableRowEl.innerHTML = `<td>${id}</td><td>${type}</td><td>${value}</td><td>${otherData.join(' ')}</td>`
+
+		tableRowEl.innerHTML = `<td>${id}</td><td>${type}</td><td>${itemName}</td><td>${otherData.join(' ')}</td>`
 		tableBodyEl.append(tableRowEl)
+
 		i += 42
+	}
+
+	tableEl.append(tableBodyEl)
+	tableDataEl.append(tableEl)
+}
+
+const parseTamaTable = (data) => {
+	const tableDataEl = document.getElementById('table-data')
+	const tableEl = document.createElement('table')
+	tableEl.innerHTML = '<thead><tr><th>id</th><th>type</th><th>name</th><th>flags</th><th>pronoun</th><th>statement</th><th>question 1</th><th>question 2</th><th>unparsed</th></tr></thead>'
+	const tableBodyEl = document.createElement('tbody')
+
+	let i = 0
+	while (i + 96 <= data.byteLength) {
+		const tableRowEl = document.createElement('tr')
+
+		const id = stringifyWord(data, i)
+		const type = data.getUint16(i + 2, LITTLE_ENDIAN)
+		const tamaName = parseString(data, i + 4, 10)
+		const flag1 = stringifyWord(data, i + 24)
+		const flag2 = stringifyWord(data, i + 26)
+		const flag3 = stringifyWord(data, i + 28)
+		const flag4 = stringifyWord(data, i + 30)
+		const pronoun = parseString(data, i + 32, 6)
+		const statement = parseString(data, i + 44, 6)
+		const question1 = parseString(data, i + 56, 6)
+		const question2 = parseString(data, i + 68, 6)
+
+		let otherData = []
+		for (let j = 0; j < 8; j++) {
+			otherData.push(stringifyWord(data, i + 80 + j*2))
+		}
+
+		tableRowEl.innerHTML = `<td>${id}</td><td>${type}</td><td>${tamaName}</td><td>${flag1} ${flag2} ${flag3} ${flag4}</td><td>${pronoun}</td><td>${statement}</td><td>${question1}</td><td>${question2}</td><td>${otherData.join(' ')}</td>`
+		tableBodyEl.append(tableRowEl)
+
+		i += 96
 	}
 
 	tableEl.append(tableBodyEl)
@@ -154,7 +197,7 @@ const parseString = (data, offset, length) => {
 	let str = ''
 	for (let i = 0; i < length; i++) {
 		const value = data.getUint16(offset + i*2, LITTLE_ENDIAN)
-		const char = TEXT_ENCODING[value]
+		const char = TEXT_ENCODING[value] || `[${stringifyWord(data, offset + i*2)}]`
 		str = `${str}${char}`
 	}
 	return str

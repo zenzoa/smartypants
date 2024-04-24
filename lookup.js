@@ -9,8 +9,10 @@ const ITEM_TYPES = {
 	0: 'meal',
 	1: 'snack',
 	2: 'item',
-	3: 'accessory (clothing?)',
-	6: 'accessory (balloon?)',
+	3: 'accessory A',
+	4: 'accessory B',
+	5: 'accessory C',
+	6: 'accessory D',
 	7: 'room',
 	8: 'game'
 }
