@@ -1,4 +1,5 @@
 const TABLE_NAMES = {
+	5: 'Table 6: Clock Faces',
 	6: 'Table 7: Dialog',
 	10: 'Table 11: Items',
 	11: 'Table 12: Characters',

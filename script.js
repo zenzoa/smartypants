@@ -72,7 +72,9 @@ const parseFile = (data) => {
 		tableDataEl.append(tableHeaderEl)
 		if (tableSizes[i] > 0) {
 			const tableData = new DataView(data.buffer, data.byteOffset + tableOffsets[i], tableSizes[i])
-			if (i === 6) {
+			if (i === 5) {
+				parseClockFaceTable(tableData)
+			} else if (i === 6) {
 				parseDialogTable(tableData)
 			} else if (i === 10) {
 				parseItemTable(tableData)
@@ -97,7 +99,7 @@ const parseTable = (data) => {
 
 	for (let i = 0; i < data.byteLength; i += 2) {
 		const value = data.getUint16(i, LITTLE_ENDIAN)
-		const hexString = stringifyWord(data, i)
+		const hexString = stringifyWord(data, i) + ' '
 		const wordEl = document.createElement('span')
 		wordEl.setAttribute('data-val', value)
 		wordEl.setAttribute('data-txt', TEXT_ENCODING[value])
@@ -131,11 +133,58 @@ const toggleWordView = (wordEl) => {
 	}
 }
 
+const parseClockFaceTable = (data) => {
+	let clocks = []
+	let segments = []
+	let currentSegment = []
+	let i = 0
+	while (i + 2 <= data.byteLength) {
+		const word = stringifyWord(data, i)
+		if (word === '1007' || word === '5007' || word === '1047' || word === '1407' || word === '5207') {
+			if (currentSegment.length > 0) {
+				segments.push(currentSegment)
+			}
+			currentSegment = [word]
+		} else if (word === '0000') {
+			if (currentSegment.length > 0) {
+				segments.push(currentSegment)
+			}
+			currentSegment = []
+			if (segments.length > 0) {
+				clocks.push(segments)
+			}
+			segments = []
+		} else {
+			currentSegment.push(word)
+		}
+		i += 2
+	}
+
+	const tableDataEl = document.getElementById('table-data')
+	for (i = 0; i < clocks.length; i++) {
+		const headerEl = document.createElement('h4')
+		headerEl.innerText = `Clock Face ${i+1}`
+		tableDataEl.append(headerEl)
+
+		const tableEl = document.createElement('table')
+		tableEl.innerHTML = '<thead><tr><th>segment type</th><th>x</th><th>y</th><th>image set</th><th>?</th></tr></thead>'
+		const tableBodyEl = document.createElement('tbody')
+		for (const segment of clocks[i]) {
+			const tableRowEl = document.createElement('tr')
+			tableRowEl.innerHTML = `<td>${segment[0] || '-'}</td><td>${segment[1] || '-'}</td><td>${segment[2] || '-'}</td><td>${segment[3] || '-'}</td><td>${segment[4] || '-'}</td>`
+			tableBodyEl.append(tableRowEl)
+		}
+		tableEl.append(tableBodyEl)
+		tableDataEl.append(tableEl)
+	}
+}
+
 const parseDialogTable = (data) => {
 	const tableDataEl = document.getElementById('table-data')
 	const tableEl = document.createElement('table')
 	tableEl.innerHTML = '<thead><tr><th>id</th><th>flags</th><th>string</th></tr></thead>'
 	const tableBodyEl = document.createElement('tbody')
+
 	let i = 0
 	while (i + 10 <= data.byteLength) {
 		const tableRowEl = document.createElement('tr')
