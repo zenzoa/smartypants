@@ -1,6 +1,11 @@
 const TABLE_NAMES = {
-	5: 'Table 6: Clock Faces',
+	3: 'Table 4: Clock Face Offsets',
+	4: 'Table 5: Clock Face Layer Offsets',
+	5: 'Table 6: Clock Face Layer Descriptions',
 	6: 'Table 7: Dialog',
+	7: 'Table 8: Dialog Offsets',
+	8: 'Table 9: Offsets for Table 10',
+	9: 'Table 10: ???',
 	10: 'Table 11: Items',
 	11: 'Table 12: Characters',
 	19: 'Table 20: Card ID'

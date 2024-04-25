@@ -1,5 +1,8 @@
 const LITTLE_ENDIAN = true
 
+let clockFaceOffsets = []
+let table10Offsets = []
+
 window.onload = () => {
 	const fileInput = document.getElementById('file-uploader')
 	fileInput.addEventListener('change', handleFileUpload, false)
@@ -67,33 +70,44 @@ const parseFile = (data) => {
 
 	for (let i = 0; i < 20; i++) {
 		const tableHeaderEl = document.createElement('h3')
+		tableHeaderEl.className = 'collapse'
 		tableHeaderEl.innerText = TABLE_NAMES[i] || `Table ${i + 1}`
 		tableHeaderEl.addEventListener('click', () => tableHeaderEl.classList.toggle('collapse'))
 		tableDataEl.append(tableHeaderEl)
+
 		if (tableSizes[i] > 0) {
 			const tableData = new DataView(data.buffer, data.byteOffset + tableOffsets[i], tableSizes[i])
-			if (i === 5) {
+
+			if (i === 3) {
+				parseOffsetTable(tableData, 4)
+			} else if (i === 4) {
+				parseClockFaceOffsetTable(tableData)
+			} else if (i === 5) {
 				parseClockFaceTable(tableData)
 			} else if (i === 6) {
 				parseDialogTable(tableData)
+			} else if (i === 7) {
+				parseOffsetTable(tableData, 6)
+			} else if (i === 8) {
+				parseOffsetTable(tableData, 9)
 			} else if (i === 10) {
 				parseItemTable(tableData)
 			} else if (i === 11) {
 				parseTamaTable(tableData)
 			} else {
-				parseTable(tableData)
+				parseTable(tableData, i)
 				tableHeaderEl.className = 'collapse'
 			}
+
 		} else {
 			const tableContentEl = document.createElement('code')
 			tableContentEl.innerText = 'empty'
 			tableDataEl.append(tableContentEl)
-			tableHeaderEl.className = 'collapse'
 		}
 	}
 }
 
-const parseTable = (data) => {
+const parseTable = (data, tableIndex) => {
 	const tableDataEl = document.getElementById('table-data')
 	const tableContentEl = document.createElement('code')
 	tableContentEl.innerHTML = `(size: ${data.byteLength} bytes | ${data.byteLength / 2} words)<br><br>`
@@ -119,6 +133,11 @@ const parseTable = (data) => {
 		})
 		wordEl.innerText = hexString
 		tableContentEl.append(wordEl)
+
+		if (tableIndex === 9 && table10Offsets.includes((i/2)+1)) {
+			tableContentEl.append(document.createElement('br'))
+			tableContentEl.append(document.createElement('br'))
+		}
 	}
 
 	tableDataEl.append(tableContentEl)
@@ -128,24 +147,76 @@ const toggleWordView = (wordEl) => {
 	if (wordEl.className === 'hex word' && wordEl.getAttribute('data-txt') != 'undefined') {
 		wordEl.className = 'val word'
 		wordEl.innerText = wordEl.getAttribute('data-txt')
-	} else {
+	} else if (wordEl.getAttribute) {
 		wordEl.className = 'hex word'
 		wordEl.innerText = wordEl.getAttribute('data-hex')
 	}
+}
+
+const parseOffsetTable = (data, targetTable) => {
+	const tableDataEl = document.getElementById('table-data')
+	const tableContentEl = document.createElement('code')
+
+	let offsetList = []
+	for (let i = 0; i < data.byteLength; i += 2) {
+		let offset = data.getUint16(i, LITTLE_ENDIAN)
+		offsetList.push(offset)
+		const wordEl = document.createElement('span')
+		wordEl.innerText = `${offset} `
+		tableContentEl.append(wordEl)
+	}
+
+	if (targetTable === 4) {
+		clockFaceOffsets = offsetList
+	} else if (targetTable === 9) {
+		table10Offsets = offsetList
+	}
+
+	tableDataEl.append(tableContentEl)
+}
+
+const parseClockFaceOffsetTable = (data) => {
+	const tableDataEl = document.getElementById('table-data')
+	const tableEl = document.createElement('table')
+	tableEl.innerHTML = '<thead><tr><th>offset</th><th>layer offsets</th></tr></thead>'
+	const tableBodyEl = document.createElement('tbody')
+
+	let clockFaces = []
+	let currentClockFace = []
+	for (let i = 0; i < data.byteLength; i += 2) {
+		if (clockFaceOffsets.includes(i/2)) {
+			if (currentClockFace.length > 0) {
+				clockFaces.push(currentClockFace)
+			}
+			currentClockFace = []
+		}
+		let offset = data.getUint16(i, LITTLE_ENDIAN)
+		currentClockFace.push(offset)
+	}
+	clockFaces.push(currentClockFace)
+
+	for (let i = 0; i < clockFaces.length; i++) {
+		const tableRowEl = document.createElement('tr')
+		tableRowEl.innerHTML = `<td>${clockFaceOffsets[i]}</td><td>${clockFaces[i].join(' ')}</td>`
+		tableBodyEl.append(tableRowEl)
+	}
+
+	tableEl.append(tableBodyEl)
+	tableDataEl.append(tableEl)
 }
 
 const parseClockFaceTable = (data) => {
 	let clocks = []
 	let layers = []
 	let currentLayer = []
-	let i = 0
-	while (i + 2 <= data.byteLength) {
+
+	for (let i = 0; i < data.byteLength; i += 2) {
 		const word = stringifyWord(data, i)
 		if (word === '1007' || word === '5007' || word === '1047' || word === '1407' || word === '5207') {
 			if (currentLayer.length > 0) {
 				layers.push(currentLayer)
 			}
-			currentLayer = [word]
+			currentLayer = [(i / 2), word]
 		} else if (word === '0000') {
 			if (currentLayer.length > 0) {
 				layers.push(currentLayer)
@@ -158,7 +229,6 @@ const parseClockFaceTable = (data) => {
 		} else {
 			currentLayer.push(word)
 		}
-		i += 2
 	}
 
 	const tableDataEl = document.getElementById('table-data')
@@ -171,11 +241,11 @@ const parseClockFaceTable = (data) => {
 		clockDiv.append(headerEl)
 
 		const tableEl = document.createElement('table')
-		tableEl.innerHTML = '<thead><tr><th>layer type</th><th>x</th><th>y</th><th>image set</th><th>?</th></tr></thead>'
+		tableEl.innerHTML = '<thead><tr><th>offset</th><th>layer type</th><th>x</th><th>y</th><th>image set</th><th>?</th></tr></thead>'
 		const tableBodyEl = document.createElement('tbody')
 		for (const layer of clocks[i]) {
 			const tableRowEl = document.createElement('tr')
-			tableRowEl.innerHTML = `<td>${layer[0] || '-'}</td><td>${layer[1] || '-'}</td><td>${layer[2] || '-'}</td><td>${layer[3] || '-'}</td><td>${layer[4] || '-'}</td>`
+			tableRowEl.innerHTML = `<td>${layer[0]}</td><td>${layer[1] || '-'}</td><td>${layer[2] || '-'}</td><td>${layer[3] || '-'}</td><td>${layer[4] || '-'}</td><td>${layer[5] || '-'}</td>`
 			tableBodyEl.append(tableRowEl)
 		}
 		tableEl.append(tableBodyEl)
@@ -186,7 +256,7 @@ const parseClockFaceTable = (data) => {
 const parseDialogTable = (data) => {
 	const tableDataEl = document.getElementById('table-data')
 	const tableEl = document.createElement('table')
-	tableEl.innerHTML = '<thead><tr><th>id</th><th>flags</th><th>string</th></tr></thead>'
+	tableEl.innerHTML = '<thead><tr><th>offset</th><th>id</th><th>flags</th><th>string</th></tr></thead>'
 	const tableBodyEl = document.createElement('tbody')
 
 	let i = 0
@@ -205,7 +275,7 @@ const parseDialogTable = (data) => {
 		}
 		const dialogStr = parseString(data, i + 8, strLength)
 
-		tableRowEl.innerHTML = `<td>${id}</td><td>${flag1} ${flag2} ${flag3}</td><td>${dialogStr}</td>`
+		tableRowEl.innerHTML = `<td>${i / 2}</td><td>${id}</td><td>${flag1} ${flag2} ${flag3}</td><td>${dialogStr}</td>`
 		tableBodyEl.append(tableRowEl)
 
 		i += 10 + (strLength*2)
@@ -215,10 +285,14 @@ const parseDialogTable = (data) => {
 	tableDataEl.append(tableEl)
 }
 
+const parseTable10 = (data) => {
+
+}
+
 const parseItemTable = (data) => {
 	const tableDataEl = document.getElementById('table-data')
 	const tableEl = document.createElement('table')
-	tableEl.innerHTML = '<thead><tr><th>id</th><th>type</th><th>name</th><th>image set</th><th>image set<br><small>worn</small></th><th>image set<br><small>close-up</small></th><th>unparsed</th><th>unlocked<br>character</th></tr></thead>'
+	tableEl.innerHTML = '<thead><tr><th>offset</th><th>id</th><th>type</th><th>name</th><th>image set</th><th>image set<br><small>worn</small></th><th>image set<br><small>close-up</small></th><th>unparsed</th><th>unlocked<br>character</th></tr></thead>'
 	const tableBodyEl = document.createElement('tbody')
 
 	let i = 0
@@ -240,7 +314,7 @@ const parseItemTable = (data) => {
 
 		const unlockedCharacter = data.getUint16(i + 40, LITTLE_ENDIAN) || '-'
 
-		tableRowEl.innerHTML = `<td>${id}</td><td>${type}</td><td>${itemName}</td><td>${imageSet}</td><td>${imageSetWorn}</td><td>${imageSetCloseUp}</td><td>${otherData.join(' ')}</td><td>${unlockedCharacter}</td>`
+		tableRowEl.innerHTML = `<td>${i / 2}</td><td>${id}</td><td>${type}</td><td>${itemName}</td><td>${imageSet}</td><td>${imageSetWorn}</td><td>${imageSetCloseUp}</td><td>${otherData.join(' ')}</td><td>${unlockedCharacter}</td>`
 		tableBodyEl.append(tableRowEl)
 
 		i += 42
@@ -253,7 +327,7 @@ const parseItemTable = (data) => {
 const parseTamaTable = (data) => {
 	const tableDataEl = document.getElementById('table-data')
 	const tableEl = document.createElement('table')
-	tableEl.innerHTML = '<thead><tr><th>id</th><th>type</th><th>name</th><th>flags</th><th>pronoun</th><th>statement<br><small>{ndesu}<small></th><th>question 1<br><small>{ndesuka}<small></th><th>question 2<br><small>{desuka}<small></th><th>unparsed</th><th>gender</th></tr></thead>'
+	tableEl.innerHTML = '<thead><tr><th>offset</th><th>id</th><th>type</th><th>name</th><th>flags</th><th>pronoun</th><th>statement<br><small>{ndesu}<small></th><th>question 1<br><small>{ndesuka}<small></th><th>question 2<br><small>{desuka}<small></th><th>unparsed</th><th>gender</th></tr></thead>'
 	const tableBodyEl = document.createElement('tbody')
 
 	let i = 0
@@ -279,7 +353,7 @@ const parseTamaTable = (data) => {
 
 		const gender = data.getUint16(i + 94, LITTLE_ENDIAN) ? 'M' : 'F'
 
-		tableRowEl.innerHTML = `<td>${id}</td><td>${type}</td><td>${tamaName}</td><td>${flag1} ${flag2} ${flag3} ${flag4}</td><td>${pronoun}</td><td>${statement}</td><td>${question1}</td><td>${question2}</td><td>${otherData.join(' ')}</td><td>${gender}</td>`
+		tableRowEl.innerHTML = `<td>${i / 2}</td><td>${id}</td><td>${type}</td><td>${tamaName}</td><td>${flag1} ${flag2} ${flag3} ${flag4}</td><td>${pronoun}</td><td>${statement}</td><td>${question1}</td><td>${question2}</td><td>${otherData.join(' ')}</td><td>${gender}</td>`
 		tableBodyEl.append(tableRowEl)
 
 		i += 96
