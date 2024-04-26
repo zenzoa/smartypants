@@ -3,7 +3,7 @@ const LITTLE_ENDIAN = true
 let clockFaceOffsets = []
 let clockFaceLayerOffsets = []
 let table10Offsets = []
-let table15Offsets = []
+let animOffsets = []
 let table16Offsets = []
 
 window.onload = () => {
@@ -104,7 +104,7 @@ const parseDataDefs = (data) => {
 			} else if (i === 13) {
 				parseOffsetTable(tableData, 14)
 			} else if (i === 14) {
-				parseTable15(tableData)
+				parseAnimationTable(tableData)
 			} else if (i === 15) {
 				parseTable17(new DataView(data.buffer, data.byteOffset + tableOffsets[16], tableSizes[16]), false)
 				parseTable16(tableData)
@@ -148,16 +148,10 @@ const parseOffsetTable = (data, targetTable) => {
 	const tableContentEl = document.createElement('code')
 	tableDataEl.append(tableContentEl)
 	tableContentEl.innerHTML = `(size: ${data.byteLength} bytes | ${data.byteLength / 2} words)<br><br>`
-	if (targetTable === 14) {
-		tableContentEl.innerHTML += `(values have been doubled to get reasonable offsets)<br><br>`
-	}
 
 	let offsetList = []
 	for (let i = 0; i < data.byteLength; i += 2) {
 		let offset = data.getUint16(i, LITTLE_ENDIAN)
-		if (targetTable === 14) {
-			offset = offset * 2
-		}
 		offsetList.push(offset)
 
 		const wordEl = document.createElement('span')
@@ -170,7 +164,7 @@ const parseOffsetTable = (data, targetTable) => {
 	} else if (targetTable === 9) {
 		table10Offsets = offsetList
 	} else if (targetTable === 14) {
-		table15Offsets = offsetList
+		animOffsets = offsetList
 	}
 }
 
@@ -341,7 +335,8 @@ const parseItemTable = (data) => {
 		const flag4 = stringifyWord(data, i + 36)
 		const flag5 = stringifyWord(data, i + 38)
 
-		const unlockedCharacter = data.getUint16(i + 40, LITTLE_ENDIAN)
+		let unlockedCharacter = data.getUint16(i + 40, LITTLE_ENDIAN)
+		let gameType = i === 0 ? GAME_TYPES[unlockedCharacter] : ''
 
 		const tableRowEl = document.createElement('tr')
 		tableBodyEl.append(tableRowEl)
@@ -353,12 +348,12 @@ const parseItemTable = (data) => {
 			<td>${imageSet ? `<a href="#image-set-${imageSet}">${imageSet}</a>` : '-'}</td>
 			<td>${imageSetWorn ? `<a href="#image-set-${imageSetWorn}">${imageSetWorn}</a>` : '-'}</td>
 			<td>${imageSetCloseUp ? `<a href="#image-set-${imageSetCloseUp}">${imageSetCloseUp}</a>` : '-'}</td>
-			<td>${animId || '-'}</td>
+			<td>${animId ? `<a href="#anim-${animId}">${animId}</a>` : '-'}</td>
 			<td>${flag2}</td>
 			<td>${flag3}</td>
 			<td>${flag4}</td>
 			<td>${flag5}</td>
-			<td>${unlockedCharacter ? `<a href="#tama-${unlockedCharacter}">${unlockedCharacter}</a>` : '-'}</td>`
+			<td>${i === 0 ? gameType : (unlockedCharacter ? `<a href="#tama-${unlockedCharacter}">${unlockedCharacter}</a>` : '-')}</td>`
 
 		i += 42
 	}
@@ -448,22 +443,45 @@ const parseTamaTable = (data) => {
 	}
 }
 
-const parseTable15 = (data) => {
+const parseAnimationTable = (data) => {
 	const tableDataEl = document.getElementById('table-data')
 
-	const tableContentEl = document.createElement('code')
-	tableDataEl.append(tableContentEl)
-	tableContentEl.innerHTML = `(size: ${data.byteLength} bytes | ${data.byteLength / 2} words)<br><br>`
+	const tableEl = document.createElement('table')
+	tableDataEl.append(tableEl)
+	tableEl.innerHTML = `
+		<thead><tr>
+			<th>offset</th>
+			<th>id</th>
+			<th>data</th>
+		</tr></thead>`
 
-	for (let i = 0; i < data.byteLength; i += 2) {
-		const wordEl = document.createElement('span')
-		tableContentEl.append(wordEl)
-		wordEl.innerText = stringifyWord(data, i) + ' '
+	const tableBodyEl = document.createElement('tbody')
+	tableEl.append(tableBodyEl)
 
-		if (table15Offsets.includes((i/2)+1)) {
-			tableContentEl.append(document.createElement('br'))
-			tableContentEl.append(document.createElement('br'))
+	let sequences = []
+
+	for (let i = 0; i < animOffsets.length; i++) {
+		let sequence = []
+		const offset = animOffsets[i] * 2
+		if (i + 1 < animOffsets.length) {
+			const nextOffset = animOffsets[i + 1] * 2
+			const bytesInSequence = nextOffset - offset
+			for (let j = 0; j < bytesInSequence; j += 2) {
+				const word = stringifyWord(data, offset + j)
+				sequence.push(word)
+			}
+			sequences.push(sequence)
 		}
+	}
+
+	for (let i = 0; i < sequences.length; i++) {
+		const tableRowEl = document.createElement('tr')
+		tableBodyEl.append(tableRowEl)
+		tableRowEl.id = `anim-${i}`
+		tableRowEl.innerHTML = `
+			<td>${animOffsets[i]}</td>
+			<td>${i}</td>
+			<td>${sequences[i].join(' ')}</td>`
 	}
 }
 

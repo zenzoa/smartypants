@@ -13,7 +13,7 @@ const TABLE_NAMES = {
 	11: 'Table 12: Characters',
 	12: 'Table 13: Buncha Zeros',
 	13: 'Table 14: Offsets for Table 15',
-	14: 'Table 15: ???',
+	14: 'Table 15: Animations?',
 	15: 'Table 16: ???',
 	16: 'Table 17: Offsets for Table 16',
 	17: 'Table 18: Even More Zeros',
@@ -24,13 +24,22 @@ const TABLE_NAMES = {
 const ITEM_TYPES = {
 	0: 'meal',
 	1: 'snack',
-	2: 'item',
+	2: 'toy',
 	3: 'accessory A',
 	4: 'accessory B',
 	5: 'accessory C',
 	6: 'accessory D',
 	7: 'room',
 	8: 'game'
+}
+
+const GAME_TYPES = {
+	10: 'guessing game',
+	11: 'timing game',
+	12: 'memory game',
+	13: 'dodging game',
+	14: 'shaking game',
+	15: 'swiping game'
 }
 
 const BITS_PER_PIXEL = {
