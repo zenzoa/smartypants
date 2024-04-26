@@ -1,6 +1,7 @@
 const TABLE_NAMES = {
 	0: 'Table 1 (always empty)',
 	1: 'Table 2 (always empty)',
+	2: 'Table 3: ???',
 	3: 'Table 4: Clock Face Offsets',
 	4: 'Table 5: Clock Face Layer Offsets',
 	5: 'Table 6: Clock Face Layer Descriptions',
@@ -10,7 +11,13 @@ const TABLE_NAMES = {
 	9: 'Table 10: ???',
 	10: 'Table 11: Items',
 	11: 'Table 12: Characters',
-	13: 'Table 14: Offsets for ???',
+	12: 'Table 13: Buncha Zeros',
+	13: 'Table 14: Offsets for Table 15',
+	14: 'Table 15: ???',
+	15: 'Table 16: ???',
+	16: 'Table 17: Offsets for Table 16',
+	17: 'Table 18: Even More Zeros',
+	18: 'Table 19: ???',
 	19: 'Table 20: Card ID'
 }
 
@@ -38,6 +45,43 @@ const CHAR_SIZES = {
 	1: 16,
 	2: 32,
 	3: 64
+}
+
+// from Cyanic
+const KEYFRAME_OPS = {
+	0: 'NOP',
+	1: 'SET_SPRITE', // resource id and value1 as subimg index
+	2: 'SET_SUBIMG_INDEX', // value1
+	3: 'SET_PALETTE_SET_INDEX', // value1
+	4: 'ANIM_X', // ease mode, value1 to value2, duration
+	5: 'ANIM_Y', // ease mode, value1 to value2, duration
+	6: 'ANIM_TO_POS', // ease mode, current to (value1, value2), duration
+	7: 'ANIM_SCALE', // ease mode, value1 as fixnum_8_8_t, duration
+	8: 'ANIM_ROTATION', // ease mode, value1 as fixnum_4_12_t, duration
+	9: 'ANIM_SCALE_ROT', // ease mode, current scale to value1 as fixnum_4_12_t, current scale to value2 as fixnum_4_12_t, duration
+	10: 'ANIM_ALPHA', // ease mode, value1 as fixnum_4_12_t, duration
+	11: 'ANIM_PALETTE_BLEND', // ease mode, value1 as fixnum_4_12_t, duration
+	12: 'ANIM_ALPHA_PALETTE_BLEND', // ease mode, current alpha to value1 as fixnum_4_12_t, current palette blend to value2 as fixnum_4_12_t, duration
+	13: 'SET_HVFLIP', // value1
+	14: 'PLAY_SOUND', // resource id, value1 as volume out of 100
+	15: 'ADD_PARTICLE_EMITTER', // resource id, value1 as x, value2 as x, duration as emitter lifetime, mode as priority
+	16: 'ADD_CHILD', // resource id, value1 as x, value2 as y, mode as priority
+	17: 'SET_PARENT_OPTIONS', // value1: & 1 = use parent alpha, & 2 = use parent palette blend, & 4 = use parent transform matrix
+	18: 'COVER', // value1 as in time, value2 as hold time, duration as out time, mode as palette set index
+	19: 'SHAKE', // value1 as x range, value2 as y range, duration, mode as decay
+	20: 'SET_ENABLED', // value1
+	21: 'RESERVED1', // sets value1 as something on node manager, not supported on tama
+	22: 'SET_DEPTH', // value1
+	23: 'SET_ROTATION_MODE', // value1, possibly zoom as well (not supported on Sonix)
+	24: 'MIDI_CTRL', // value1: 0 = resume, 1 = pause, 2 = stop, 3 = play (value2 as id, mode as volume, duration as repeat)
+	25: 'SET_TEXT', // resource id, value1 as TEXT index, value2 as rotation mode, mode as size
+	26: 'INVOKE_CALLBACK',
+	27: 'SET_LOOP_START',
+	28: 'SET_COMPOSITE', // resource id, value1 as subgroup index, value2 as mode1 image id
+	29: 'COMPOSITE_SET_SUBGROUP_INDEX', // value1
+	30: 'COMPOSITE_SET_MODE1_IMG', // resource id
+	31: 'COMPOSITE_SET_SWITCH', // resource id, value1 as switch value
+	32: 'CLEAR_CHILDREN'
 }
 
 // from Studded's string converter
