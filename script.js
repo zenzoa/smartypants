@@ -77,10 +77,10 @@ const parseDataDefs = (data) => {
 
 	for (let i = 0; i < 20; i++) {
 		const tableHeaderEl = document.createElement('h3')
+		tableDataEl.append(tableHeaderEl)
 		tableHeaderEl.className = 'collapse'
 		tableHeaderEl.innerText = TABLE_NAMES[i] || `Table ${i + 1}`
 		tableHeaderEl.addEventListener('click', () => tableHeaderEl.classList.toggle('collapse'))
-		tableDataEl.append(tableHeaderEl)
 
 		if (tableSizes[i] > 0) {
 			const tableData = new DataView(data.buffer, data.byteOffset + tableOffsets[i], tableSizes[i])
@@ -117,34 +117,36 @@ const parseDataDefs = (data) => {
 
 		} else {
 			const tableContentEl = document.createElement('code')
-			tableContentEl.innerText = 'empty'
 			tableDataEl.append(tableContentEl)
+			tableContentEl.innerText = 'empty'
 		}
 	}
 }
 
 const parseTable = (data, tableIndex) => {
 	const tableDataEl = document.getElementById('table-data')
+
 	const tableContentEl = document.createElement('code')
+	tableDataEl.append(tableContentEl)
 	tableContentEl.innerHTML = `(size: ${data.byteLength} bytes | ${data.byteLength / 2} words)<br><br>`
 
 	for (let i = 0; i < data.byteLength; i += 2) {
 		const wordEl = document.createElement('span')
-		wordEl.innerText = stringifyWord(data, i) + ' '
 		tableContentEl.append(wordEl)
+		wordEl.innerText = stringifyWord(data, i) + ' '
 
 		if (tableIndex === 9 && table10Offsets.includes((i/2)+1)) {
 			tableContentEl.append(document.createElement('br'))
 			tableContentEl.append(document.createElement('br'))
 		}
 	}
-
-	tableDataEl.append(tableContentEl)
 }
 
 const parseOffsetTable = (data, targetTable) => {
 	const tableDataEl = document.getElementById('table-data')
+
 	const tableContentEl = document.createElement('code')
+	tableDataEl.append(tableContentEl)
 	tableContentEl.innerHTML = `(size: ${data.byteLength} bytes | ${data.byteLength / 2} words)<br><br>`
 	if (targetTable === 14) {
 		tableContentEl.innerHTML += `(values have been doubled to get reasonable offsets)<br><br>`
@@ -157,9 +159,10 @@ const parseOffsetTable = (data, targetTable) => {
 			offset = offset * 2
 		}
 		offsetList.push(offset)
+
 		const wordEl = document.createElement('span')
-		wordEl.innerText = `${offset} `
 		tableContentEl.append(wordEl)
+		wordEl.innerText = `${offset} `
 	}
 
 	if (targetTable === 4) {
@@ -169,15 +172,17 @@ const parseOffsetTable = (data, targetTable) => {
 	} else if (targetTable === 14) {
 		table15Offsets = offsetList
 	}
-
-	tableDataEl.append(tableContentEl)
 }
 
 const parseClockFaceOffsetTable = (data) => {
 	const tableDataEl = document.getElementById('table-data')
+
 	const tableEl = document.createElement('table')
+	tableDataEl.append(tableEl)
 	tableEl.innerHTML = '<thead><tr><th>offset</th><th>layer offsets</th></tr></thead>'
+
 	const tableBodyEl = document.createElement('tbody')
+	tableEl.append(tableBodyEl)
 
 	let clockFaces = []
 	let currentClockFace = []
@@ -195,18 +200,16 @@ const parseClockFaceOffsetTable = (data) => {
 
 	for (let i = 0; i < clockFaces.length; i++) {
 		const tableRowEl = document.createElement('tr')
-		tableRowEl.innerHTML = `<td>${clockFaceOffsets[i]}</td><td>${clockFaces[i].join(' ')}</td>`
 		tableBodyEl.append(tableRowEl)
+		tableRowEl.innerHTML = `<td>${clockFaceOffsets[i]}</td><td>${clockFaces[i].join(' ')}</td>`
 	}
 
 	clockFaceLayerOffsets = clockFaces
-
-	tableEl.append(tableBodyEl)
-	tableDataEl.append(tableEl)
 }
 
 const parseClockFaceTable = (data) => {
 	const tableDataEl = document.getElementById('table-data')
+
 	const clockDiv = document.createElement('div')
 	tableDataEl.append(clockDiv)
 
@@ -214,10 +217,11 @@ const parseClockFaceTable = (data) => {
 		let clock = clockFaceLayerOffsets[i]
 
 		const headerEl = document.createElement('h4')
-		headerEl.innerText = `Clock Face ${i+1}`
 		clockDiv.append(headerEl)
+		headerEl.innerText = `Clock Face ${i+1}`
 
 		const tableEl = document.createElement('table')
+		clockDiv.append(tableEl)
 		tableEl.innerHTML = `
 			<thead><tr>
 				<th>offset</th>
@@ -227,9 +231,9 @@ const parseClockFaceTable = (data) => {
 				<th>image set</th>
 				<th>?</th>
 			</tr></thead>`
+
 		const tableBodyEl = document.createElement('tbody')
 		tableEl.append(tableBodyEl)
-		clockDiv.append(tableEl)
 
 		for (let j = 0; j < clock.length; j++) {
 			const offset = clock[j] * 2
@@ -243,6 +247,7 @@ const parseClockFaceTable = (data) => {
 			}
 
 			const tableRowEl = document.createElement('tr')
+			tableBodyEl.append(tableRowEl)
 			tableRowEl.innerHTML = `
 				<td>${offset / 2}</td>
 				<td>${layerType || '-'}</td>
@@ -250,14 +255,15 @@ const parseClockFaceTable = (data) => {
 				<td>${y || '-'}</td>
 				<td>${imageSet ? `<a href="#image-set-${imageSet}">${imageSet}</a>` : '-'}</td>
 				<td>${flag || '-'}</td>`
-			tableBodyEl.append(tableRowEl)
 		}
 	}
 }
 
 const parseDialogTable = (data) => {
 	const tableDataEl = document.getElementById('table-data')
+
 	const tableEl = document.createElement('table')
+	tableDataEl.append(tableEl)
 	tableEl.innerHTML = `
 		<thead><tr>
 			<th>offset</th>
@@ -265,12 +271,13 @@ const parseDialogTable = (data) => {
 			<th>flags</th>
 			<th>string</th>
 		</tr></thead>`
+
 	const tableBodyEl = document.createElement('tbody')
+	tableEl.append(tableBodyEl)
+
 
 	let i = 0
 	while (i + 10 <= data.byteLength) {
-		const tableRowEl = document.createElement('tr')
-
 		const id = stringifyWord(data, i)
 		const flag1 = stringifyWord(data, i + 2)
 		const flag2 = stringifyWord(data, i + 4)
@@ -283,23 +290,23 @@ const parseDialogTable = (data) => {
 		}
 		const dialogStr = parseString(data, i + 8, strLength)
 
+		const tableRowEl = document.createElement('tr')
+		tableBodyEl.append(tableRowEl)
 		tableRowEl.innerHTML = `
 			<td>${i / 2}</td>
 			<td>${id}</td>
 			<td>${flag1} ${flag2} ${flag3}</td>
 			<td>${dialogStr}</td>`
-		tableBodyEl.append(tableRowEl)
 
 		i += 10 + (strLength*2)
 	}
-
-	tableEl.append(tableBodyEl)
-	tableDataEl.append(tableEl)
 }
 
 const parseItemTable = (data) => {
 	const tableDataEl = document.getElementById('table-data')
+
 	const tableEl = document.createElement('table')
+	tableDataEl.append(tableEl)
 	tableEl.innerHTML = `
 		<thead><tr>
 			<th>offset</th>
@@ -315,12 +322,12 @@ const parseItemTable = (data) => {
 			<th>??</th>
 			<th>unlocked<br>character</th>
 		</tr></thead>`
+
 	const tableBodyEl = document.createElement('tbody')
+	tableEl.append(tableBodyEl)
 
 	let i = 0
 	while (i + 42 <= data.byteLength) {
-		const tableRowEl = document.createElement('tr')
-
 		const id = stringifyWord(data, i)
 		const typeIndex = data.getUint16(i + 2, LITTLE_ENDIAN)
 		const type = ITEM_TYPES[typeIndex] || typeIndex
@@ -336,6 +343,8 @@ const parseItemTable = (data) => {
 
 		const unlockedCharacter = data.getUint16(i + 40, LITTLE_ENDIAN)
 
+		const tableRowEl = document.createElement('tr')
+		tableBodyEl.append(tableRowEl)
 		tableRowEl.innerHTML = `
 			<td>${i / 2}</td>
 			<td>${id}</td>
@@ -350,18 +359,16 @@ const parseItemTable = (data) => {
 			<td>${flag4}</td>
 			<td>${flag5}</td>
 			<td>${unlockedCharacter ? `<a href="#tama-${unlockedCharacter}">${unlockedCharacter}</a>` : '-'}</td>`
-		tableBodyEl.append(tableRowEl)
 
 		i += 42
 	}
-
-	tableEl.append(tableBodyEl)
-	tableDataEl.append(tableEl)
 }
 
 const parseTamaTable = (data) => {
 	const tableDataEl = document.getElementById('table-data')
+
 	const tableEl = document.createElement('table')
+	tableDataEl.append(tableEl)
 	tableEl.innerHTML = `
 		<thead><tr>
 			<th>offset</th>
@@ -385,12 +392,12 @@ const parseTamaTable = (data) => {
 			<th>??</th>
 			<th>gender</th>
 		</tr></thead>`
+
 	const tableBodyEl = document.createElement('tbody')
+	tableEl.append(tableBodyEl)
 
 	let i = 0
 	while (i + 96 <= data.byteLength) {
-		const tableRowEl = document.createElement('tr')
-		tableRowEl.id = `tama-${data.getUint16(i, LITTLE_ENDIAN) & 0xff}`
 
 		const id = stringifyWord(data, i)
 		const type = data.getUint16(i + 2, LITTLE_ENDIAN)
@@ -412,6 +419,9 @@ const parseTamaTable = (data) => {
 		const other7 = stringifyWord(data, i + 92)
 		const gender = data.getUint16(i + 94, LITTLE_ENDIAN) ? 'M' : 'F'
 
+		const tableRowEl = document.createElement('tr')
+		tableBodyEl.append(tableRowEl)
+		tableRowEl.id = `tama-${data.getUint16(i, LITTLE_ENDIAN) & 0xff}`
 		tableRowEl.innerHTML = `
 			<td>${i / 2}</td>
 			<td>${id}</td>
@@ -433,51 +443,47 @@ const parseTamaTable = (data) => {
 			<td>${other6}</td>
 			<td>${other7}</td>
 			<td>${gender}</td>`
-		tableBodyEl.append(tableRowEl)
 
 		i += 96
 	}
-
-	tableEl.append(tableBodyEl)
-	tableDataEl.append(tableEl)
 }
 
 const parseTable15 = (data) => {
 	const tableDataEl = document.getElementById('table-data')
+
 	const tableContentEl = document.createElement('code')
+	tableDataEl.append(tableContentEl)
 	tableContentEl.innerHTML = `(size: ${data.byteLength} bytes | ${data.byteLength / 2} words)<br><br>`
 
 	for (let i = 0; i < data.byteLength; i += 2) {
 		const wordEl = document.createElement('span')
-		wordEl.innerText = stringifyWord(data, i) + ' '
 		tableContentEl.append(wordEl)
+		wordEl.innerText = stringifyWord(data, i) + ' '
 
 		if (table15Offsets.includes((i/2)+1)) {
 			tableContentEl.append(document.createElement('br'))
 			tableContentEl.append(document.createElement('br'))
 		}
 	}
-
-	tableDataEl.append(tableContentEl)
 }
 
 const parseTable16 = (data) => {
 	const tableDataEl = document.getElementById('table-data')
+
 	const tableContentEl = document.createElement('code')
+	tableDataEl.append(tableContentEl)
 	tableContentEl.innerHTML = `(size: ${data.byteLength} bytes | ${data.byteLength / 2} words)<br><br>`
 
 	for (let i = 0; i < data.byteLength; i += 2) {
 		const wordEl = document.createElement('span')
-		wordEl.innerText = stringifyWord(data, i) + ' '
 		tableContentEl.append(wordEl)
+		wordEl.innerText = stringifyWord(data, i) + ' '
 
 		if (table16Offsets.includes((i/2)+1)) {
 			tableContentEl.append(document.createElement('br'))
 			tableContentEl.append(document.createElement('br'))
 		}
 	}
-
-	tableDataEl.append(tableContentEl)
 }
 
 const parseTable17 = (data, appendEl) => {
@@ -486,13 +492,14 @@ const parseTable17 = (data, appendEl) => {
 
 	let offsets = []
 	for (let i = 0; i < data.byteLength; i += 4) {
-		let offset = data.getUint32(i, LITTLE_ENDIAN)
 		const wordEl = document.createElement('span')
+		tableContentEl.append(wordEl)
+
+		let offset = data.getUint32(i, LITTLE_ENDIAN)
 		if (offset > 0) {
 			offsets.push(offset)
 		}
 		wordEl.innerText = `${offset} `
-		tableContentEl.append(wordEl)
 	}
 
 	if (appendEl) {
