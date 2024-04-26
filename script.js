@@ -329,27 +329,27 @@ const parseItemTable = (data) => {
 		const typeIndex = data.getUint16(i + 2, LITTLE_ENDIAN)
 		const type = ITEM_TYPES[typeIndex] || typeIndex
 		const itemName = parseString(data, i + 4, 10)
-		const imageSet = stringifyWord(data, i + 24)
-		const imageSetWorn = (data.getUint16(i + 26, LITTLE_ENDIAN) && stringifyWord(data, i + 26)) || '-'
-		const imageSetCloseUp = (data.getUint16(i + 28, LITTLE_ENDIAN) && stringifyWord(data, i + 28)) || '-'
+		const imageSet = data.getUint16(i + 24, LITTLE_ENDIAN) & 0xff
+		const imageSetWorn = (data.getUint16(i + 26, LITTLE_ENDIAN) & 0xff)
+		const imageSetCloseUp = (data.getUint16(i + 28, LITTLE_ENDIAN) & 0xff)
 
 		let otherData = []
 		for (let j = 0; j < 5; j++) {
 			otherData.push(stringifyWord(data, i + 30 + j*2))
 		}
 
-		const unlockedCharacter = data.getUint16(i + 40, LITTLE_ENDIAN) || '-'
+		const unlockedCharacter = data.getUint16(i + 40, LITTLE_ENDIAN)
 
 		tableRowEl.innerHTML = `
 			<td>${i / 2}</td>
 			<td>${id}</td>
 			<td>${type}</td>
 			<td>${itemName}</td>
-			<td>${imageSet}</td>
-			<td>${imageSetWorn}</td>
-			<td>${imageSetCloseUp}</td>
+			<td>${imageSet ? `<a href="#image-set-${imageSet}">${imageSet}</a>` : '-'}</td>
+			<td>${imageSetWorn ? `<a href="#image-set-${imageSetWorn}">${imageSetWorn}</a>` : '-'}</td>
+			<td>${imageSetCloseUp ? `<a href="#image-set-${imageSetCloseUp}">${imageSetCloseUp}</a>` : '-'}</td>
 			<td>${otherData.join(' ')}</td>
-			<td>${unlockedCharacter}</td>`
+			<td>${unlockedCharacter ? `<a href="#tama-${unlockedCharacter}">${unlockedCharacter}</a>` : '-'}</td>`
 		tableBodyEl.append(tableRowEl)
 
 		i += 42
@@ -370,19 +370,27 @@ const parseTamaTable = (data) => {
 			<th>name</th>
 			<th>memory<br>image</th>
 			<th>icon</th>
-			<th>??</th>
+			<th>id again?</th>
 			<th>??</th>
 			<th>pronoun</th>
 			<th>statement<br><small>{ndesu}<small></th>
 			<th>question 1<br><small>{ndesuka}<small></th>
 			<th>question 2<br><small>{desuka}<small></th>
-			<th>unparsed</th><th>gender</th>
+			<th>??</th>
+			<th>??</th>
+			<th>original<br>card id</th>
+			<th>??</th>
+			<th>??</th>
+			<th>??</th>
+			<th>??</th>
+			<th>gender</th>
 		</tr></thead>`
 	const tableBodyEl = document.createElement('tbody')
 
 	let i = 0
 	while (i + 96 <= data.byteLength) {
 		const tableRowEl = document.createElement('tr')
+		tableRowEl.id = `tama-${data.getUint16(i, LITTLE_ENDIAN) & 0xff}`
 
 		const id = stringifyWord(data, i)
 		const type = data.getUint16(i + 2, LITTLE_ENDIAN)
@@ -395,12 +403,13 @@ const parseTamaTable = (data) => {
 		const statement = parseString(data, i + 44, 6)
 		const question1 = parseString(data, i + 56, 6)
 		const question2 = parseString(data, i + 68, 6)
-
-		let otherData = []
-		for (let j = 0; j < 7; j++) {
-			otherData.push(stringifyWord(data, i + 80 + j*2))
-		}
-
+		const other1 = stringifyWord(data, i + 80)
+		const other2 = stringifyWord(data, i + 82)
+		const originalId = stringifyWord(data, i + 84)
+		const other4 = stringifyWord(data, i + 86)
+		const other5 = stringifyWord(data, i + 88)
+		const other6 = stringifyWord(data, i + 90)
+		const other7 = stringifyWord(data, i + 92)
 		const gender = data.getUint16(i + 94, LITTLE_ENDIAN) ? 'M' : 'F'
 
 		tableRowEl.innerHTML = `
@@ -416,7 +425,13 @@ const parseTamaTable = (data) => {
 			<td>${statement}</td>
 			<td>${question1}</td>
 			<td>${question2}</td>
-			<td>${otherData.join(' ')}</td>
+			<td>${other1}</td>
+			<td>${other2}</td>
+			<td>${originalId}</td>
+			<td>${other4}</td>
+			<td>${other5}</td>
+			<td>${other6}</td>
+			<td>${other7}</td>
 			<td>${gender}</td>`
 		tableBodyEl.append(tableRowEl)
 
