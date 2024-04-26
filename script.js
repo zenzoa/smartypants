@@ -485,13 +485,11 @@ const parseTable17 = (data, appendEl) => {
 	const tableContentEl = document.createElement('code')
 
 	let offsets = []
-	for (let i = 0; i < data.byteLength; i += 2) {
-		let offset = data.getUint16(i, LITTLE_ENDIAN)
+	for (let i = 0; i < data.byteLength; i += 4) {
+		let offset = data.getUint32(i, LITTLE_ENDIAN)
 		const wordEl = document.createElement('span')
 		if (offset > 0) {
 			offsets.push(offset)
-		} else {
-			wordEl.className = 'faded'
 		}
 		wordEl.innerText = `${offset} `
 		tableContentEl.append(wordEl)
