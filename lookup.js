@@ -1,4 +1,6 @@
 const TABLE_NAMES = {
+	0: 'Table 1 (always empty)',
+	1: 'Table 2 (always empty)',
 	3: 'Table 4: Clock Face Offsets',
 	4: 'Table 5: Clock Face Layer Offsets',
 	5: 'Table 6: Clock Face Layer Descriptions',
@@ -8,6 +10,7 @@ const TABLE_NAMES = {
 	9: 'Table 10: ???',
 	10: 'Table 11: Items',
 	11: 'Table 12: Characters',
+	13: 'Table 14: Offsets for ???',
 	19: 'Table 20: Card ID'
 }
 
@@ -21,6 +24,20 @@ const ITEM_TYPES = {
 	6: 'accessory D',
 	7: 'room',
 	8: 'game'
+}
+
+const BITS_PER_PIXEL = {
+	0: 2,
+	1: 4,
+	2: 6,
+	3: 8
+}
+
+const CHAR_SIZES = {
+	0: 8,
+	1: 16,
+	2: 32,
+	3: 64
 }
 
 // from Studded's string converter
