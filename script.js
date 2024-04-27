@@ -1,10 +1,13 @@
 const LITTLE_ENDIAN = true
 
+let cardId = 0
+let cardIdString = ''
+
 let clockFaceOffsets = []
 let clockFaceLayerOffsets = []
 let table10Offsets = []
 let animOffsets = []
-let table16Offsets = []
+let compositionOffsets = []
 
 window.onload = () => {
 	const fileInput = document.getElementById('file-uploader')
@@ -75,6 +78,9 @@ const parseDataDefs = (data) => {
 
 	tableSizes.push(data.byteLength - tableOffsets[19])
 
+	cardId = data.getUint16(tableOffsets[19], LITTLE_ENDIAN)
+	cardIdString = (128 + cardId).toString(16).toUpperCase()
+
 	for (let i = 0; i < 20; i++) {
 		const tableHeaderEl = document.createElement('h3')
 		tableDataEl.append(tableHeaderEl)
@@ -103,13 +109,13 @@ const parseDataDefs = (data) => {
 				parseTamaTable(tableData)
 			} else if (i === 13) {
 				parseOffsetTable(tableData, 14)
-			} else if (i === 14) {
-				parseAnimationTable(tableData)
+			// } else if (i === 14) {
+			// 	parseAnimationTable(tableData)
 			} else if (i === 15) {
-				parseTable17(new DataView(data.buffer, data.byteOffset + tableOffsets[16], tableSizes[16]), false)
-				parseTable16(tableData)
+				parseCompositionOffsetTable(new DataView(data.buffer, data.byteOffset + tableOffsets[16], tableSizes[16]), false)
+				parseCompositionTable(tableData, i)
 			} else if (i === 16) {
-				parseTable17(tableData, true)
+				parseCompositionOffsetTable(tableData, true)
 			} else {
 				parseTable(tableData, i)
 				tableHeaderEl.className = 'collapse'
@@ -133,9 +139,16 @@ const parseTable = (data, tableIndex) => {
 	for (let i = 0; i < data.byteLength; i += 2) {
 		const wordEl = document.createElement('span')
 		tableContentEl.append(wordEl)
-		wordEl.innerText = stringifyWord(data, i) + ' '
 
-		if (tableIndex === 9 && table10Offsets.includes((i/2)+1)) {
+		const word = data.getUint16(i, LITTLE_ENDIAN)
+		const wordString = stringifyWord(data, i)
+		if (wordString.startsWith(cardIdString)) {
+			wordEl.innerHTML = `<a href="#image-set-${word & 0xff}">${wordString}</a> `
+		} else {
+			wordEl.innerText = `${wordString} `
+		}
+
+		if ((tableIndex === 9 && table10Offsets.includes((i/2)+1)) || (tableIndex === 15 && table16Offsets.includes((i/2)+1))) {
 			tableContentEl.append(document.createElement('br'))
 			tableContentEl.append(document.createElement('br'))
 		}
@@ -459,7 +472,6 @@ const parseAnimationTable = (data) => {
 	tableEl.append(tableBodyEl)
 
 	let sequences = []
-
 	for (let i = 0; i < animOffsets.length; i++) {
 		let sequence = []
 		const offset = animOffsets[i] * 2
@@ -485,26 +497,86 @@ const parseAnimationTable = (data) => {
 	}
 }
 
-const parseTable16 = (data) => {
+const parseCompositionTable = (data) => {
+	let sequences = []
+	for (let i = 0; i < compositionOffsets.length; i++) {
+		let sequence = []
+		const offset = compositionOffsets[i] * 2
+		if (i + 1 < compositionOffsets.length) {
+			const nextOffset = compositionOffsets[i + 1] * 2
+			const bytesInSequence = nextOffset - offset
+			for (let j = 0; j < bytesInSequence; j += 2) {
+				const word = data.getUint16(offset + j, LITTLE_ENDIAN)
+				sequence.push(word)
+			}
+			sequences.push(sequence)
+		}
+	}
+
+	let chunks = []
+	let currentChunk = []
+	for (let i = 0; i < sequences.length; i++) {
+		const sequence = sequences[i]
+		const seqType = sequence[0] & 0xff
+		if (seqType === 3) {
+			if (currentChunk.length > 0) {
+				chunks.push(currentChunk)
+			}
+			currentChunk = [sequence]
+		} else {
+			currentChunk.push(sequence)
+		}
+	}
+	if (currentChunk.length > 0) {
+		chunks.push(currentChunk)
+	}
+
 	const tableDataEl = document.getElementById('table-data')
 
-	const tableContentEl = document.createElement('code')
-	tableDataEl.append(tableContentEl)
-	tableContentEl.innerHTML = `(size: ${data.byteLength} bytes | ${data.byteLength / 2} words)<br><br>`
+	const tableEl = document.createElement('table')
+	tableDataEl.append(tableEl)
 
-	for (let i = 0; i < data.byteLength; i += 2) {
-		const wordEl = document.createElement('span')
-		tableContentEl.append(wordEl)
-		wordEl.innerText = stringifyWord(data, i) + ' '
+	const tableBodyEl = document.createElement('tbody')
+	tableEl.append(tableBodyEl)
 
-		if (table16Offsets.includes((i/2)+1)) {
-			tableContentEl.append(document.createElement('br'))
-			tableContentEl.append(document.createElement('br'))
+	for (let i = 0; i < chunks.length; i++) {
+		const chunk = chunks[i]
+
+		const tableRowEl = document.createElement('tr')
+		tableBodyEl.append(tableRowEl)
+
+		const chunkHeaderEl = document.createElement('td')
+		tableRowEl.append(chunkHeaderEl)
+		chunkHeaderEl.innerText = i
+
+		const sequencesEl = document.createElement('td')
+		tableRowEl.append(sequencesEl)
+
+		for (let j = 0; j < chunk.length; j++) {
+			const sequence = chunk[j]
+
+			const sequenceEl = document.createElement('div')
+			sequencesEl.append(sequenceEl)
+
+			for (let k = 0; k < sequence.length; k++) {
+				const word = sequence[k]
+				const wordString = word.toString(16).padStart(4, '0').toUpperCase()
+				if (k === sequence.length - 1) {
+					sequenceEl.innerText += '- '
+				}
+				if (k === 0) {
+					sequenceEl.innerText += `${wordString} - `
+				} else if (wordString.startsWith(cardIdString)) {
+					sequenceEl.innerHTML += `<span><a href="#image-set-${word & 0xff}">${wordString}</a></span> `
+				} else {
+					sequenceEl.innerText += `${wordString} `
+				}
+			}
 		}
 	}
 }
 
-const parseTable17 = (data, appendEl) => {
+const parseCompositionOffsetTable = (data, appendEl) => {
 	const tableDataEl = document.getElementById('table-data')
 	const tableContentEl = document.createElement('code')
 
@@ -514,16 +586,14 @@ const parseTable17 = (data, appendEl) => {
 		tableContentEl.append(wordEl)
 
 		let offset = data.getUint32(i, LITTLE_ENDIAN)
-		if (offset > 0) {
-			offsets.push(offset)
-		}
+		offsets.push(offset)
 		wordEl.innerText = `${offset} `
 	}
 
 	if (appendEl) {
 		tableDataEl.append(tableContentEl)
 	} else {
-		table16Offsets = offsets
+		compositionOffsets = offsets
 	}
 }
 

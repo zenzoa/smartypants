@@ -14,7 +14,7 @@ const TABLE_NAMES = {
 	12: 'Table 13: Buncha Zeros',
 	13: 'Table 14: Offsets for Table 15',
 	14: 'Table 15: Animations?',
-	15: 'Table 16: ???',
+	15: 'Table 16: Character Compositions',
 	16: 'Table 17: Offsets for Table 16',
 	17: 'Table 18: Even More Zeros',
 	18: 'Table 19: ???',
