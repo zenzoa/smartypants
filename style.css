@@ -117,3 +117,7 @@ canvas {
 	border: 1px solid #ddd;
 	background: white;
 }
+
+.fade {
+	color: #ccc;
+}

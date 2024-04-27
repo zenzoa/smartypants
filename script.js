@@ -109,13 +109,15 @@ const parseDataDefs = (data) => {
 				parseTamaTable(tableData)
 			} else if (i === 13) {
 				parseOffsetTable(tableData, 14)
-			// } else if (i === 14) {
-			// 	parseAnimationTable(tableData)
+			} else if (i === 14) {
+				parseAnimationTable(tableData)
 			} else if (i === 15) {
-				parseCompositionOffsetTable(new DataView(data.buffer, data.byteOffset + tableOffsets[16], tableSizes[16]), false)
+				parseCompositionOffsetTable(new DataView(data.buffer, data.byteOffset + tableOffsets[16], tableSizes[16]), true)
 				parseCompositionTable(tableData, i)
 			} else if (i === 16) {
-				parseCompositionOffsetTable(tableData, true)
+				parseCompositionOffsetTable(tableData)
+			} else if (i === 18) {
+				parseTable19(tableData)
 			} else {
 				parseTable(tableData, i)
 				tableHeaderEl.className = 'collapse'
@@ -148,7 +150,7 @@ const parseTable = (data, tableIndex) => {
 			wordEl.innerText = `${wordString} `
 		}
 
-		if ((tableIndex === 9 && table10Offsets.includes((i/2)+1)) || (tableIndex === 15 && table16Offsets.includes((i/2)+1))) {
+		if ((tableIndex === 9 && table10Offsets.includes(i+2)) || (tableIndex === 18 && (i+2) % 4 === 0)) {
 			tableContentEl.append(document.createElement('br'))
 			tableContentEl.append(document.createElement('br'))
 		}
@@ -173,11 +175,11 @@ const parseOffsetTable = (data, targetTable) => {
 	}
 
 	if (targetTable === 4) {
-		clockFaceOffsets = offsetList
+		clockFaceOffsets = offsetList.map(o => o * 2)
 	} else if (targetTable === 9) {
-		table10Offsets = offsetList
+		table10Offsets = offsetList.map(o => o * 2)
 	} else if (targetTable === 14) {
-		animOffsets = offsetList
+		animOffsets = offsetList.map(o => o * 4)
 	}
 }
 
@@ -194,7 +196,7 @@ const parseClockFaceOffsetTable = (data) => {
 	let clockFaces = []
 	let currentClockFace = []
 	for (let i = 0; i < data.byteLength; i += 2) {
-		if (clockFaceOffsets.includes(i/2)) {
+		if (clockFaceOffsets.includes(i)) {
 			if (currentClockFace.length > 0) {
 				clockFaces.push(currentClockFace)
 			}
@@ -208,7 +210,7 @@ const parseClockFaceOffsetTable = (data) => {
 	for (let i = 0; i < clockFaces.length; i++) {
 		const tableRowEl = document.createElement('tr')
 		tableBodyEl.append(tableRowEl)
-		tableRowEl.innerHTML = `<td>${clockFaceOffsets[i]}</td><td>${clockFaces[i].join(' ')}</td>`
+		tableRowEl.innerHTML = `<td>${clockFaceOffsets[i] / 2}</td><td>${clockFaces[i].join(' ')}</td>`
 	}
 
 	clockFaceLayerOffsets = clockFaces
@@ -322,7 +324,7 @@ const parseItemTable = (data) => {
 			<th>name</th><th>image set</th>
 			<th>image set<br><small>worn</small></th>
 			<th>image set<br><small>close-up</small></th>
-			<th>animation<br>id (?)</th>
+			<th>??</th>
 			<th>??</th>
 			<th>??</th>
 			<th>??</th>
@@ -361,7 +363,7 @@ const parseItemTable = (data) => {
 			<td>${imageSet ? `<a href="#image-set-${imageSet}">${imageSet}</a>` : '-'}</td>
 			<td>${imageSetWorn ? `<a href="#image-set-${imageSetWorn}">${imageSetWorn}</a>` : '-'}</td>
 			<td>${imageSetCloseUp ? `<a href="#image-set-${imageSetCloseUp}">${imageSetCloseUp}</a>` : '-'}</td>
-			<td>${animId ? `<a href="#anim-${animId}">${animId}</a>` : '-'}</td>
+			<td>${animId || '-'}</td>
 			<td>${flag2}</td>
 			<td>${flag3}</td>
 			<td>${flag4}</td>
@@ -406,7 +408,6 @@ const parseTamaTable = (data) => {
 
 	let i = 0
 	while (i + 96 <= data.byteLength) {
-
 		const id = stringifyWord(data, i)
 		const type = data.getUint16(i + 2, LITTLE_ENDIAN)
 		const tamaName = parseString(data, i + 4, 10)
@@ -418,13 +419,13 @@ const parseTamaTable = (data) => {
 		const statement = parseString(data, i + 44, 6)
 		const question1 = parseString(data, i + 56, 6)
 		const question2 = parseString(data, i + 68, 6)
-		const other1 = stringifyWord(data, i + 80)
+		const other1 = data.getUint16(i + 80, LITTLE_ENDIAN)
 		const other2 = stringifyWord(data, i + 82)
 		const originalId = stringifyWord(data, i + 84)
-		const other4 = stringifyWord(data, i + 86)
-		const other5 = stringifyWord(data, i + 88)
+		const other4 = data.getUint16(i + 86, LITTLE_ENDIAN)
+		const other5 = data.getUint16(i + 88, LITTLE_ENDIAN)
 		const other6 = stringifyWord(data, i + 90)
-		const other7 = stringifyWord(data, i + 92)
+		const other7 = data.getUint16(i + 92, LITTLE_ENDIAN)
 		const gender = data.getUint16(i + 94, LITTLE_ENDIAN) ? 'M' : 'F'
 
 		const tableRowEl = document.createElement('tr')
@@ -463,7 +464,7 @@ const parseAnimationTable = (data) => {
 	tableDataEl.append(tableEl)
 	tableEl.innerHTML = `
 		<thead><tr>
-			<th>offset</th>
+			<th>offset<br>x2</th>
 			<th>id</th>
 			<th>data</th>
 		</tr></thead>`
@@ -474,13 +475,18 @@ const parseAnimationTable = (data) => {
 	let sequences = []
 	for (let i = 0; i < animOffsets.length; i++) {
 		let sequence = []
-		const offset = animOffsets[i] * 2
+		const offset = animOffsets[i]
 		if (i + 1 < animOffsets.length) {
-			const nextOffset = animOffsets[i + 1] * 2
+			const nextOffset = animOffsets[i + 1]
 			const bytesInSequence = nextOffset - offset
 			for (let j = 0; j < bytesInSequence; j += 2) {
-				const word = stringifyWord(data, offset + j)
-				sequence.push(word)
+				const word = data.getUint16(offset + j, LITTLE_ENDIAN)
+				const wordString = stringifyWord(data, offset + j)
+				if (wordString.startsWith(cardIdString)) {
+					sequence.push(`<a href="#image-set-${word & 0xff}">${wordString}</a>`)
+				} else {
+					sequence.push(`${wordString}`)
+				}
 			}
 			sequences.push(sequence)
 		}
@@ -491,7 +497,7 @@ const parseAnimationTable = (data) => {
 		tableBodyEl.append(tableRowEl)
 		tableRowEl.id = `anim-${i}`
 		tableRowEl.innerHTML = `
-			<td>${animOffsets[i]}</td>
+			<td>${animOffsets[i] / 2}</td>
 			<td>${i}</td>
 			<td>${sequences[i].join(' ')}</td>`
 	}
@@ -501,9 +507,9 @@ const parseCompositionTable = (data) => {
 	let sequences = []
 	for (let i = 0; i < compositionOffsets.length; i++) {
 		let sequence = []
-		const offset = compositionOffsets[i] * 2
+		const offset = compositionOffsets[i]
 		if (i + 1 < compositionOffsets.length) {
-			const nextOffset = compositionOffsets[i + 1] * 2
+			const nextOffset = compositionOffsets[i + 1]
 			const bytesInSequence = nextOffset - offset
 			for (let j = 0; j < bytesInSequence; j += 2) {
 				const word = data.getUint16(offset + j, LITTLE_ENDIAN)
@@ -531,54 +537,87 @@ const parseCompositionTable = (data) => {
 		chunks.push(currentChunk)
 	}
 
+	let characters = []
+	let currentCharacter = []
+	for (let i = 0; i < chunks.length; i++) {
+		// if (i === 0) {
+		// 	characters.push([chunks[i]])
+		// } else if (currentCharacter.length === 130) {
+		// 	characters.push(currentCharacter)
+		// 	currentCharacter = [chunks[i]]
+		// } else {
+			currentCharacter.push(chunks[i])
+		// }
+	}
+	if (currentCharacter.length > 0) {
+		characters.push(currentCharacter)
+	}
+
 	const tableDataEl = document.getElementById('table-data')
 
-	const tableEl = document.createElement('table')
-	tableDataEl.append(tableEl)
+	const compEl = document.createElement('div')
+	tableDataEl.append(compEl)
 
-	const tableBodyEl = document.createElement('tbody')
-	tableEl.append(tableBodyEl)
+	for (let l = 0; l < characters.length; l++) {
+		// const charHeaderEl = document.createElement('h4')
+		// compEl.append(charHeaderEl)
+		// charHeaderEl.innerText = `Character ${l}`
 
-	for (let i = 0; i < chunks.length; i++) {
-		const chunk = chunks[i]
+		const tableEl = document.createElement('table')
+		compEl.append(tableEl)
 
-		const tableRowEl = document.createElement('tr')
-		tableBodyEl.append(tableRowEl)
+		const tableHeaderEl = document.createElement('thead')
+		tableEl.append(tableHeaderEl)
+		tableHeaderEl.innerHTML = '<tr><th>chunk index</th><th>sequence bytes</th></tr>'
 
-		const chunkHeaderEl = document.createElement('td')
-		tableRowEl.append(chunkHeaderEl)
-		chunkHeaderEl.innerText = i
+		const tableBodyEl = document.createElement('tbody')
+		tableEl.append(tableBodyEl)
 
-		const sequencesEl = document.createElement('td')
-		tableRowEl.append(sequencesEl)
+		const chunks = characters[l]
+		for (let i = 0; i < chunks.length; i++) {
+			const chunk = chunks[i]
 
-		for (let j = 0; j < chunk.length; j++) {
-			const sequence = chunk[j]
+			const tableRowEl = document.createElement('tr')
+			tableBodyEl.append(tableRowEl)
 
-			const sequenceEl = document.createElement('div')
-			sequencesEl.append(sequenceEl)
+			const chunkHeaderEl = document.createElement('td')
+			tableRowEl.append(chunkHeaderEl)
+			chunkHeaderEl.innerText = i
 
-			for (let k = 0; k < sequence.length; k++) {
-				const word = sequence[k]
-				const wordString = word.toString(16).padStart(4, '0').toUpperCase()
-				if (k === sequence.length - 1) {
-					sequenceEl.innerText += '- '
-				}
-				if (k === 0) {
-					sequenceEl.innerText += `${wordString} - `
-				} else if (wordString.startsWith(cardIdString)) {
-					sequenceEl.innerHTML += `<span><a href="#image-set-${word & 0xff}">${wordString}</a></span> `
-				} else {
-					sequenceEl.innerText += `${wordString} `
+			const sequencesEl = document.createElement('td')
+			tableRowEl.append(sequencesEl)
+
+			for (let j = 0; j < chunk.length; j++) {
+				const sequence = chunk[j]
+
+				const sequenceEl = document.createElement('div')
+				sequencesEl.append(sequenceEl)
+
+				for (let k = 0; k < sequence.length; k++) {
+					const word = sequence[k]
+					const wordString = word.toString(16).padStart(4, '0').toUpperCase()
+					if (k === sequence.length - 1) {
+						sequenceEl.innerText += '- '
+					}
+					if (k === 0) {
+						sequenceEl.innerText += `${wordString} - `
+					} else if (wordString.startsWith(cardIdString)) {
+						sequenceEl.innerHTML += `<a href="#image-set-${word & 0xff}">${word & 0xff}</a> `
+					} else {
+						sequenceEl.innerText += `${wordString} `
+					}
 				}
 			}
 		}
 	}
 }
 
-const parseCompositionOffsetTable = (data, appendEl) => {
+const parseCompositionOffsetTable = (data, hidden) => {
 	const tableDataEl = document.getElementById('table-data')
 	const tableContentEl = document.createElement('code')
+	if (!hidden) {
+		tableDataEl.append(tableContentEl)
+	}
 
 	let offsets = []
 	for (let i = 0; i < data.byteLength; i += 4) {
@@ -590,10 +629,33 @@ const parseCompositionOffsetTable = (data, appendEl) => {
 		wordEl.innerText = `${offset} `
 	}
 
-	if (appendEl) {
-		tableDataEl.append(tableContentEl)
-	} else {
-		compositionOffsets = offsets
+	compositionOffsets = offsets.map(o => o * 2)
+}
+
+const parseTable19 = (data, tableIndex) => {
+	const tableDataEl = document.getElementById('table-data')
+
+	const tableEl = document.createElement('table')
+	tableDataEl.append(tableEl)
+
+	const tableHeaderEl = document.createElement('thead')
+	tableEl.append(tableHeaderEl)
+	tableHeaderEl.innerHTML = '<tr><th>offset</th><th>word 1</th><th>word 2</th></tr>'
+
+	const tableBodyEl = document.createElement('tbody')
+	tableEl.append(tableBodyEl)
+
+	for (let i = 0; i < data.byteLength; i += 4) {
+		const word1 = data.getUint16(i, LITTLE_ENDIAN)
+		const word2 = data.getUint16(i + 2, LITTLE_ENDIAN)
+
+		const tableRowEl = document.createElement('tr')
+		tableBodyEl.append(tableRowEl)
+		if (word1 === 0xffff) {
+			tableRowEl.innerHTML = `<td class="fade">${i / 2}</td><td class="fade">FFFF</td><td class="fade">${word2}</td>`
+		} else {
+			tableRowEl.innerHTML = `<td>${i / 2}</td><td>${word1}</td><td>${word2}</td>`
+		}
 	}
 }
 
