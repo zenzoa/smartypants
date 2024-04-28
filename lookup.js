@@ -25,10 +25,10 @@ const ITEM_TYPES = {
 	0: 'meal',
 	1: 'snack',
 	2: 'toy',
-	3: 'accessory A',
-	4: 'accessory B',
-	5: 'accessory C',
-	6: 'accessory D',
+	3: 'accessory (hat)',
+	4: 'accessory (face)',
+	5: 'accessory (two-handed)',
+	6: 'accessory (one-handed)',
 	7: 'room',
 	8: 'game'
 }
