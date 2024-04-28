@@ -277,7 +277,9 @@ const parseDialogTable = (data) => {
 		<thead><tr>
 			<th>offset</th>
 			<th>id</th>
-			<th>flags</th>
+			<th>??</th>
+			<th>??</th>
+			<th>??</th>
 			<th>string</th>
 		</tr></thead>`
 
@@ -287,10 +289,10 @@ const parseDialogTable = (data) => {
 
 	let i = 0
 	while (i + 10 <= data.byteLength) {
-		const id = stringifyWord(data, i)
-		const flag1 = stringifyWord(data, i + 2)
-		const flag2 = stringifyWord(data, i + 4)
-		const flag3 = stringifyWord(data, i + 6)
+		const id = data.getUint16(i, LITTLE_ENDIAN) & 0xff
+		const flag1 = data.getUint16(i + 2, LITTLE_ENDIAN) ? stringifyWord(data, i + 2) : '-'
+		const flag2 = data.getUint16(i + 4, LITTLE_ENDIAN) || '-'
+		const flag3 = data.getUint16(i + 6, LITTLE_ENDIAN) || '-'
 
 		// null-terminating string
 		let strLength = 0
@@ -304,7 +306,9 @@ const parseDialogTable = (data) => {
 		tableRowEl.innerHTML = `
 			<td>${i / 2}</td>
 			<td>${id}</td>
-			<td>${flag1} ${flag2} ${flag3}</td>
+			<td>${flag1}</td>
+			<td>${flag2}</td>
+			<td>${flag3}</td>
 			<td>${dialogStr}</td>`
 
 		i += 10 + (strLength*2)
@@ -337,18 +341,18 @@ const parseItemTable = (data) => {
 
 	let i = 0
 	while (i + 42 <= data.byteLength) {
-		const id = stringifyWord(data, i)
+		const id = data.getUint16(i, LITTLE_ENDIAN) & 0xff
 		const typeIndex = data.getUint16(i + 2, LITTLE_ENDIAN)
 		const type = ITEM_TYPES[typeIndex] || typeIndex
 		const itemName = parseString(data, i + 4, 10)
 		const imageSet = data.getUint16(i + 24, LITTLE_ENDIAN) & 0xff
 		const imageSetWorn = data.getUint16(i + 26, LITTLE_ENDIAN) & 0xff
 		const imageSetCloseUp = data.getUint16(i + 28, LITTLE_ENDIAN) & 0xff
-		const animId = data.getUint16(i + 30, LITTLE_ENDIAN) & 0xff
-		const flag2 = stringifyWord(data, i + 32)
-		const flag3 = stringifyWord(data, i + 34)
-		const flag4 = stringifyWord(data, i + 36)
-		const flag5 = stringifyWord(data, i + 38)
+		const animId = (data.getUint16(i + 30, LITTLE_ENDIAN) & 0xff) || '-'
+		const flag2 = data.getUint16(i + 32, LITTLE_ENDIAN) || '-'
+		const flag3 = data.getUint16(i + 34, LITTLE_ENDIAN) || '-'
+		const flag4 = data.getUint16(i + 36, LITTLE_ENDIAN) || '-'
+		const flag5 = data.getUint16(i + 38, LITTLE_ENDIAN) ? stringifyWord(data, i + 38) : '-'
 
 		let unlockedCharacter = data.getUint16(i + 40, LITTLE_ENDIAN)
 		let gameType = i === 0 ? GAME_TYPES[unlockedCharacter] : ''
@@ -363,7 +367,7 @@ const parseItemTable = (data) => {
 			<td>${imageSet ? `<a href="#image-set-${imageSet}">${imageSet}</a>` : '-'}</td>
 			<td>${imageSetWorn ? `<a href="#image-set-${imageSetWorn}">${imageSetWorn}</a>` : '-'}</td>
 			<td>${imageSetCloseUp ? `<a href="#image-set-${imageSetCloseUp}">${imageSetCloseUp}</a>` : '-'}</td>
-			<td>${animId || '-'}</td>
+			<td>${animId}</td>
 			<td>${flag2}</td>
 			<td>${flag3}</td>
 			<td>${flag4}</td>
@@ -408,13 +412,14 @@ const parseTamaTable = (data) => {
 
 	let i = 0
 	while (i + 96 <= data.byteLength) {
-		const id = stringifyWord(data, i)
+		const id = data.getUint16(i, LITTLE_ENDIAN) & 0xff
+		const idString = stringifyWord(data, i)
 		const type = data.getUint16(i + 2, LITTLE_ENDIAN)
 		const tamaName = parseString(data, i + 4, 10)
 		const memoryIndex = data.getUint16(i + 24, LITTLE_ENDIAN) & 0xff
 		const iconIndex = data.getUint16(i + 26, LITTLE_ENDIAN) & 0xff
-		const flag3 = stringifyWord(data, i + 28)
-		const flag4 = stringifyWord(data, i + 30)
+		const idAgain = stringifyWord(data, i + 28)
+		const flag4 = data.getUint16(i + 30, LITTLE_ENDIAN) ? stringifyWord(data, i + 30) : '-'
 		const pronoun = parseString(data, i + 32, 6)
 		const statement = parseString(data, i + 44, 6)
 		const question1 = parseString(data, i + 56, 6)
@@ -438,7 +443,7 @@ const parseTamaTable = (data) => {
 			<td>${tamaName}</td>
 			<td>${memoryIndex ? `<a href="#image-set-${memoryIndex}">${memoryIndex}</a>` : '-'}</td>
 			<td>${iconIndex ? `<a href="#image-set-${iconIndex}">${iconIndex}</a>` : '-'}</td>
-			<td>${flag3}</td>
+			<td ${idString === idAgain ? 'class="fade"' : ''}>${idAgain}</td>
 			<td>${flag4}</td>
 			<td>${pronoun}</td>
 			<td>${statement}</td>
