@@ -235,7 +235,6 @@ const parseClockFaceTable = (data) => {
 		clockDiv.append(tableEl)
 		tableEl.innerHTML = `
 			<thead><tr>
-				<th>offset</th>
 				<th>layer<br>type (?)</th>
 				<th>x</th>
 				<th>y</th>
@@ -260,7 +259,6 @@ const parseClockFaceTable = (data) => {
 			const tableRowEl = document.createElement('tr')
 			tableBodyEl.append(tableRowEl)
 			tableRowEl.innerHTML = `
-				<td>${offset / 2}</td>
 				<td>${layerType || '-'}</td>
 				<td>${x || '-'}</td>
 				<td>${y || '-'}</td>
@@ -277,7 +275,6 @@ const parseDialogTable = (data) => {
 	tableDataEl.append(tableEl)
 	tableEl.innerHTML = `
 		<thead><tr>
-			<th>offset</th>
 			<th>id</th>
 			<th>??</th>
 			<th>??</th>
@@ -306,7 +303,6 @@ const parseDialogTable = (data) => {
 		const tableRowEl = document.createElement('tr')
 		tableBodyEl.append(tableRowEl)
 		tableRowEl.innerHTML = `
-			<td>${i / 2}</td>
 			<td>${id}</td>
 			<td>${flag1}</td>
 			<td>${flag2}</td>
@@ -324,7 +320,6 @@ const parseItemTable = (data) => {
 	tableDataEl.append(tableEl)
 	tableEl.innerHTML = `
 		<thead><tr>
-			<th>offset</th>
 			<th>id</th>
 			<th>type</th>
 			<th>name</th><th>image set</th>
@@ -362,7 +357,6 @@ const parseItemTable = (data) => {
 		const tableRowEl = document.createElement('tr')
 		tableBodyEl.append(tableRowEl)
 		tableRowEl.innerHTML = `
-			<td>${i / 2}</td>
 			<td>${id}</td>
 			<td>${type}</td>
 			<td>${itemName}</td>
@@ -387,7 +381,6 @@ const parseTamaTable = (data) => {
 	tableDataEl.append(tableEl)
 	tableEl.innerHTML = `
 		<thead><tr>
-			<th>offset</th>
 			<th>id</th>
 			<th>type</th>
 			<th>name</th>
@@ -439,7 +432,6 @@ const parseTamaTable = (data) => {
 		tableBodyEl.append(tableRowEl)
 		tableRowEl.id = `tama-${data.getUint16(i, LITTLE_ENDIAN) & 0xff}`
 		tableRowEl.innerHTML = `
-			<td>${i / 2}</td>
 			<td>${id}</td>
 			<td>${type}</td>
 			<td>${tamaName}</td>
@@ -608,7 +600,7 @@ const parseCompGroupInfo = (data, hidden) => {
 
 	const tableHeaderEl = document.createElement('thead')
 	if (!hidden) tableEl.append(tableHeaderEl)
-	tableHeaderEl.innerHTML = '<tr><th>offset</th><th>sequence id</th><th>sequence length</th></tr>'
+	tableHeaderEl.innerHTML = '<tr><th>sequence id</th><th>sequence length</th></tr>'
 
 	const tableBodyEl = document.createElement('tbody')
 	if (!hidden) tableEl.append(tableBodyEl)
@@ -623,9 +615,9 @@ const parseCompGroupInfo = (data, hidden) => {
 
 		if (seqId !== 0xffff) {
 			compGroupInfo.push({seqId, seqLength})
-			if (!hidden) tableRowEl.innerHTML = `<td>${i / 2}</td><td>${seqId}</td><td>${seqLength}</td>`
+			if (!hidden) tableRowEl.innerHTML = `<td>${seqId}</td><td>${seqLength}</td>`
 		} else {
-			if (!hidden) tableRowEl.innerHTML = `<td class="fade">${i / 2}</td><td class="fade">FFFF</td><td class="fade">${seqLength}</td>`
+			if (!hidden) tableRowEl.innerHTML = `<td class="fade">FFFF</td><td class="fade">${seqLength}</td>`
 		}
 	}
 }
