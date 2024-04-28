@@ -7,7 +7,8 @@ let clockFaceOffsets = []
 let clockFaceLayerOffsets = []
 let table10Offsets = []
 let animOffsets = []
-let compositionOffsets = []
+let compSeqOffsets = []
+let compGroupInfo = []
 
 window.onload = () => {
 	const fileInput = document.getElementById('file-uploader')
@@ -112,12 +113,13 @@ const parseDataDefs = (data) => {
 			} else if (i === 14) {
 				parseAnimationTable(tableData)
 			} else if (i === 15) {
-				parseCompositionOffsetTable(new DataView(data.buffer, data.byteOffset + tableOffsets[16], tableSizes[16]), true)
+				parseCompSeqOffsets(new DataView(data.buffer, data.byteOffset + tableOffsets[16], tableSizes[16]), true)
+				parseCompGroupInfo(new DataView(data.buffer, data.byteOffset + tableOffsets[18], tableSizes[18]), true)
 				parseCompositionTable(tableData, i)
 			} else if (i === 16) {
-				parseCompositionOffsetTable(tableData)
+				parseCompSeqOffsets(tableData)
 			} else if (i === 18) {
-				parseTable19(tableData)
+				parseCompGroupInfo(tableData)
 			} else {
 				parseTable(tableData, i)
 				tableHeaderEl.className = 'collapse'
@@ -510,11 +512,11 @@ const parseAnimationTable = (data) => {
 
 const parseCompositionTable = (data) => {
 	let sequences = []
-	for (let i = 0; i < compositionOffsets.length; i++) {
+	for (let i = 0; i < compSeqOffsets.length; i++) {
 		let sequence = []
-		const offset = compositionOffsets[i]
-		if (i + 1 < compositionOffsets.length) {
-			const nextOffset = compositionOffsets[i + 1]
+		const offset = compSeqOffsets[i]
+		if (i + 1 < compSeqOffsets.length) {
+			const nextOffset = compSeqOffsets[i + 1]
 			const bytesInSequence = nextOffset - offset
 			for (let j = 0; j < bytesInSequence; j += 2) {
 				const word = data.getUint16(offset + j, LITTLE_ENDIAN)
@@ -524,100 +526,61 @@ const parseCompositionTable = (data) => {
 		}
 	}
 
-	let chunks = []
-	let currentChunk = []
-	for (let i = 0; i < sequences.length; i++) {
-		const sequence = sequences[i]
-		const seqType = sequence[0] & 0xff
-		if (seqType === 3) {
-			if (currentChunk.length > 0) {
-				chunks.push(currentChunk)
-			}
-			currentChunk = [sequence]
-		} else {
-			currentChunk.push(sequence)
-		}
-	}
-	if (currentChunk.length > 0) {
-		chunks.push(currentChunk)
-	}
-
-	let characters = []
-	let currentCharacter = []
-	for (let i = 0; i < chunks.length; i++) {
-		// if (i === 0) {
-		// 	characters.push([chunks[i]])
-		// } else if (currentCharacter.length === 130) {
-		// 	characters.push(currentCharacter)
-		// 	currentCharacter = [chunks[i]]
-		// } else {
-			currentCharacter.push(chunks[i])
-		// }
-	}
-	if (currentCharacter.length > 0) {
-		characters.push(currentCharacter)
+	let groups = []
+	for (let i = 0; i < compGroupInfo.length; i++) {
+		const { seqId, seqLength } = compGroupInfo[i]
+		groups.push(sequences.slice(seqId, seqId + seqLength))
 	}
 
 	const tableDataEl = document.getElementById('table-data')
 
-	const compEl = document.createElement('div')
-	tableDataEl.append(compEl)
+	const tableEl = document.createElement('table')
+	tableDataEl.append(tableEl)
 
-	for (let l = 0; l < characters.length; l++) {
-		// const charHeaderEl = document.createElement('h4')
-		// compEl.append(charHeaderEl)
-		// charHeaderEl.innerText = `Character ${l}`
+	const tableHeaderEl = document.createElement('thead')
+	tableEl.append(tableHeaderEl)
+	tableHeaderEl.innerHTML = '<tr><th>group id</th><th>sequence id</th><th>sequence data</th></tr>'
 
-		const tableEl = document.createElement('table')
-		compEl.append(tableEl)
+	const tableBodyEl = document.createElement('tbody')
+	tableEl.append(tableBodyEl)
 
-		const tableHeaderEl = document.createElement('thead')
-		tableEl.append(tableHeaderEl)
-		tableHeaderEl.innerHTML = '<tr><th>chunk index</th><th>sequence bytes</th></tr>'
-
-		const tableBodyEl = document.createElement('tbody')
-		tableEl.append(tableBodyEl)
-
-		const chunks = characters[l]
-		for (let i = 0; i < chunks.length; i++) {
-			const chunk = chunks[i]
+	let seqId = 0
+	for (let i = 0; i < groups.length; i++) {
+		const group = groups[i]
+		for (let j = 0; j < group.length; j++) {
+			const sequence = group[j]
 
 			const tableRowEl = document.createElement('tr')
 			tableBodyEl.append(tableRowEl)
 
-			const chunkHeaderEl = document.createElement('td')
-			tableRowEl.append(chunkHeaderEl)
-			chunkHeaderEl.innerText = i
+			if (j === 0) {
+				tableRowEl.innerHTML += `<td rowspan=${group.length}>${i}</td>`
+			}
 
-			const sequencesEl = document.createElement('td')
-			tableRowEl.append(sequencesEl)
-
-			for (let j = 0; j < chunk.length; j++) {
-				const sequence = chunk[j]
-
-				const sequenceEl = document.createElement('div')
-				sequencesEl.append(sequenceEl)
-
-				for (let k = 0; k < sequence.length; k++) {
-					const word = sequence[k]
-					const wordString = word.toString(16).padStart(4, '0').toUpperCase()
-					if (k === sequence.length - 1) {
-						sequenceEl.innerText += '- '
-					}
-					if (k === 0) {
-						sequenceEl.innerText += `${wordString} - `
-					} else if (wordString.startsWith(cardIdString)) {
-						sequenceEl.innerHTML += `<a href="#image-set-${word & 0xff}">${word & 0xff}</a> `
-					} else {
-						sequenceEl.innerText += `${wordString} `
-					}
+			let seqData = ''
+			for (let k = 0; k < sequence.length; k++) {
+				const word = sequence[k]
+				const wordString = word.toString(16).padStart(4, '0').toUpperCase()
+				if (k === sequence.length - 1) {
+					seqData += '- '
+				}
+				if (k === 0) {
+					seqData += `${wordString} - `
+				} else if (wordString.startsWith(cardIdString)) {
+					seqData += `<a href="#image-set-${word & 0xff}">${word & 0xff}</a> `
+				} else {
+					seqData += `${wordString} `
 				}
 			}
+
+			tableRowEl.innerHTML += `<td>${seqId}</td><td>${seqData}</td>`
+
+			seqId++
 		}
 	}
 }
 
-const parseCompositionOffsetTable = (data, hidden) => {
+const parseCompSeqOffsets = (data, hidden) => {
 	const tableDataEl = document.getElementById('table-data')
 	const tableContentEl = document.createElement('code')
 	if (!hidden) {
@@ -634,32 +597,35 @@ const parseCompositionOffsetTable = (data, hidden) => {
 		wordEl.innerText = `${offset} `
 	}
 
-	compositionOffsets = offsets.map(o => o * 2)
+	compSeqOffsets = offsets.map(o => o * 2)
 }
 
-const parseTable19 = (data, tableIndex) => {
+const parseCompGroupInfo = (data, hidden) => {
 	const tableDataEl = document.getElementById('table-data')
 
 	const tableEl = document.createElement('table')
-	tableDataEl.append(tableEl)
+	if (!hidden) tableDataEl.append(tableEl)
 
 	const tableHeaderEl = document.createElement('thead')
-	tableEl.append(tableHeaderEl)
-	tableHeaderEl.innerHTML = '<tr><th>offset</th><th>word 1</th><th>word 2</th></tr>'
+	if (!hidden) tableEl.append(tableHeaderEl)
+	tableHeaderEl.innerHTML = '<tr><th>offset</th><th>sequence id</th><th>sequence length</th></tr>'
 
 	const tableBodyEl = document.createElement('tbody')
-	tableEl.append(tableBodyEl)
+	if (!hidden) tableEl.append(tableBodyEl)
 
+	compGroupInfo = []
 	for (let i = 0; i < data.byteLength; i += 4) {
-		const word1 = data.getUint16(i, LITTLE_ENDIAN)
-		const word2 = data.getUint16(i + 2, LITTLE_ENDIAN)
-
 		const tableRowEl = document.createElement('tr')
-		tableBodyEl.append(tableRowEl)
-		if (word1 === 0xffff) {
-			tableRowEl.innerHTML = `<td class="fade">${i / 2}</td><td class="fade">FFFF</td><td class="fade">${word2}</td>`
+		if (!hidden) tableBodyEl.append(tableRowEl)
+
+		const seqId = data.getUint16(i, LITTLE_ENDIAN)
+		const seqLength = data.getUint16(i + 2, LITTLE_ENDIAN)
+
+		if (seqId !== 0xffff) {
+			compGroupInfo.push({seqId, seqLength})
+			if (!hidden) tableRowEl.innerHTML = `<td>${i / 2}</td><td>${seqId}</td><td>${seqLength}</td>`
 		} else {
-			tableRowEl.innerHTML = `<td>${i / 2}</td><td>${word1}</td><td>${word2}</td>`
+			if (!hidden) tableRowEl.innerHTML = `<td class="fade">${i / 2}</td><td class="fade">FFFF</td><td class="fade">${seqLength}</td>`
 		}
 	}
 }

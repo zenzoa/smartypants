@@ -12,12 +12,12 @@ const TABLE_NAMES = {
 	10: 'Table 11: Items',
 	11: 'Table 12: Characters',
 	12: 'Table 13: Buncha Zeros',
-	13: 'Table 14: Offsets for Table 15',
-	14: 'Table 15: Animations?',
+	13: 'Table 14: Animation Offsets',
+	14: 'Table 15: Animations',
 	15: 'Table 16: Character Compositions',
 	16: 'Table 17: Character Composition Offsets',
 	17: 'Table 18: Even More Zeros',
-	18: 'Table 19: ???',
+	18: 'Table 19: Character Composition Groups',
 	19: 'Table 20: Card ID'
 }
 
