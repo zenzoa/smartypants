@@ -92,7 +92,9 @@ const parseDataDefs = (data) => {
 		if (tableSizes[i] > 0) {
 			const tableData = new DataView(data.buffer, data.byteOffset + tableOffsets[i], tableSizes[i])
 
-			if (i === 3) {
+			if (i === 2) {
+				parseTableThree(tableData)
+			} else if (i === 3) {
 				parseOffsetTable(tableData, 4)
 			} else if (i === 4) {
 				parseClockFaceOffsetTable(tableData)
@@ -182,6 +184,36 @@ const parseOffsetTable = (data, targetTable) => {
 		table10Offsets = offsetList.map(o => o * 2)
 	} else if (targetTable === 14) {
 		animOffsets = offsetList.map(o => o * 4)
+	}
+}
+
+const parseTableThree = (data) => {
+	const tableDataEl = document.getElementById('table-data')
+
+	const tableEl = document.createElement('table')
+	tableDataEl.append(tableEl)
+
+	const tableBodyEl = document.createElement('tbody')
+	tableEl.append(tableBodyEl)
+
+	const rowCount = data.byteLength / 66
+
+	for (let i = 0; i < rowCount; i ++) {
+		const tableRowEl = document.createElement('tr')
+		tableBodyEl.append(tableRowEl)
+
+		const tableCellEl = document.createElement('td')
+		tableRowEl.append(tableCellEl)
+
+		for (let j = 0; j < 66; j += 2) {
+			const word = data.getUint16(i*66 + j, LITTLE_ENDIAN)
+			const wordString = stringifyWord(data, i*66 + j)
+			if (wordString.startsWith(cardIdString)) {
+				tableCellEl.innerHTML += `<a href="#image-set-${word & 0xff}">${wordString}</a> `
+			} else {
+				tableCellEl.innerHTML += `${wordString} `
+			}
+		}
 	}
 }
 
