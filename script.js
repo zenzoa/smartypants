@@ -209,7 +209,7 @@ const parseTableThree = (data) => {
 			const word = data.getUint16(i*66 + j, LITTLE_ENDIAN)
 			const wordString = stringifyWord(data, i*66 + j)
 			if (wordString.startsWith(cardIdString)) {
-				tableCellEl.innerHTML += `<a href="#image-set-${word & 0xff}">${wordString}</a> `
+				tableCellEl.innerHTML += `<a href="#image-set-${word & 0xff}">${word & 0xff}</a> `
 			} else {
 				tableCellEl.innerHTML += `${wordString} `
 			}
@@ -563,7 +563,17 @@ const parseCompositionTable = (data) => {
 
 	const tableHeaderEl = document.createElement('thead')
 	tableEl.append(tableHeaderEl)
-	tableHeaderEl.innerHTML = '<tr><th>group id</th><th>sequence id</th><th>sequence data</th></tr>'
+	tableHeaderEl.innerHTML = `
+		<tr>
+			<th>group id</th>
+			<th>sequence id</th>
+			<th>sequence type</th>
+			<th>??</th>
+			<th>??</th>
+			<th>??</th>
+			<th>??</th>
+			<th>image set</th>
+		</tr>`
 
 	const tableBodyEl = document.createElement('tbody')
 	tableEl.append(tableBodyEl)
@@ -581,23 +591,21 @@ const parseCompositionTable = (data) => {
 				tableRowEl.innerHTML += `<td rowspan=${group.length}>${i}</td>`
 			}
 
-			let seqData = ''
-			for (let k = 0; k < sequence.length; k++) {
-				const word = sequence[k]
-				const wordString = word.toString(16).padStart(4, '0').toUpperCase()
-				if (k === sequence.length - 1) {
-					seqData += '- '
-				}
-				if (k === 0) {
-					seqData += `${wordString} - `
-				} else if (wordString.startsWith(cardIdString)) {
-					seqData += `<a href="#image-set-${word & 0xff}">${word & 0xff}</a> `
-				} else {
-					seqData += `${wordString} `
-				}
-			}
+			const seqType = sequence[0]
+			const flag1 = sequence[1]
+			const flag2 = sequence[2]
+			const flag3 = sequence[3]
+			const flag4 = (sequence.length === 5) ? '-' : sequence[4]
+			const imageSet = (sequence.length === 5) ? sequence[4] : sequence[5]
 
-			tableRowEl.innerHTML += `<td>${seqId}</td><td>${seqData}</td>`
+			tableRowEl.innerHTML += `
+				<td>${seqId}</td>
+				<td>${seqType.toString(16).padStart(4, '0').toUpperCase()}</td>
+				<td>${flag1 > 255 ? `(${255 - (flag1 & 0xff)})` : flag1}</td>
+				<td>${flag2.toString(16).padStart(4, '0').toUpperCase()}</td>
+				<td>${flag3}</td>
+				<td>${flag4}</td>
+				<td><a href="#image-set-${imageSet & 0xff}">${imageSet & 0xff}</a></td>`
 
 			seqId++
 		}
@@ -679,6 +687,7 @@ const parseSprites = (data) => {
 	const charactersOffset = data.getUint32(12, LITTLE_ENDIAN)
 
 	imageDefs = parseImageDefs(new DataView(data.buffer, data.byteOffset + imageDefsOffset, spriteDefsOffset - imageDefsOffset))
+	console.log(imageDefs.length)
 	spriteDefs = parseSpriteDefs(new DataView(data.buffer, data.byteOffset + spriteDefsOffset, palettesOffset - spriteDefsOffset))
 	palettes = parsePalettes(new DataView(data.buffer, data.byteOffset + palettesOffset, charactersOffset - palettesOffset))
 
