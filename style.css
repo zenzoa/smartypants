@@ -61,6 +61,10 @@ code {
 	display: block;
 }
 
+code + * {
+	margin-top: 18px;
+}
+
 .word {
 	display: inline-block;
 	width: 36px;
@@ -77,10 +81,16 @@ table {
 	border-collapse: collapse;
 }
 
-td {
+td, tbody th {
 	border: 1px solid white;
 	padding: 8px 12px;
 	font-family: monospace;
+}
+
+tbody th {
+	background: white;
+	color: #ccc;
+	font-weight: normal;
 }
 
 tbody {
@@ -120,4 +130,14 @@ canvas {
 
 .fade {
 	color: #ccc;
+}
+
+a, a:visited, a:active {
+	color: hotpink;
+	font-weight: bold;
+	text-decoration: none;
+}
+
+a:hover {
+	text-decoration: underline;
 }
