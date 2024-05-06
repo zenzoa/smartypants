@@ -1,5 +1,5 @@
-let clockfaceOffsets = []
-let clockfaceLayerOffsets = []
+let sceneOffsets = []
+let sceneLayerOffsets = []
 let table9Offsets = []
 let gfxNodeOffsets = []
 let compOffsets = []
@@ -37,9 +37,9 @@ const parseDataPack = (data) => {
 				case 0: parseGenericTable(containerEl, tableData); break;
 				case 1: parseGenericTable(containerEl, tableData); break;
 				case 2: parseParticleEmitterDefs(containerEl, tableData); break;
-				case 3: parseClockfaceOffsets(containerEl, tableData); break;
-				case 4: parseClockfaceLayerOffsets(containerEl, tableData); break;
-				case 5: parseClockfaceDefs(containerEl, tableData); break;
+				case 3: parseSceneOffsets(containerEl, tableData); break;
+				case 4: parseSceneLayerOffsets(containerEl, tableData); break;
+				case 5: parseSceneDefs(containerEl, tableData); break;
 				case 6: parseStringDefs(containerEl, tableData); break;
 				case 7: parseStringOffsets(containerEl, tableData); break;
 				case 8: parseTable8(containerEl, tableData); break;
@@ -156,47 +156,47 @@ const parseParticleEmitterDefs = (parentEl, data) => {
 	displayTable(parentEl, headers, rows)
 }
 
-const parseClockfaceOffsets = (parentEl, data) => {
-	clockfaceOffsets = []
+const parseSceneOffsets = (parentEl, data) => {
+	sceneOffsets = []
 
 	const el = document.createElement('code')
 	parentEl.append(el)
 
 	for (let i = 0; i < data.byteLength; i += 2) {
 		const offset = data.getUint16(i, LITTLE_ENDIAN)
-		clockfaceOffsets.push(offset * 2)
+		sceneOffsets.push(offset * 2)
 		el.innerText += `${offset} `
 	}
 }
 
-const parseClockfaceLayerOffsets = (parentEl, data) => {
+const parseSceneLayerOffsets = (parentEl, data) => {
 	const headers = ['clock offset', 'layer offsets']
 	let rows = []
 
-	clockfaceLayerOffsets = []
-	let currentClockface = []
+	sceneLayerOffsets = []
+	let currentScene = []
 	for (let i = 0; i < data.byteLength; i += 2) {
-		if (clockfaceOffsets.includes(i)) {
-			if (currentClockface.length > 0) {
-				clockfaceLayerOffsets.push(currentClockface)
+		if (sceneOffsets.includes(i)) {
+			if (currentScene.length > 0) {
+				sceneLayerOffsets.push(currentScene)
 			}
-			currentClockface = []
+			currentScene = []
 		}
 		let offset = data.getUint16(i, LITTLE_ENDIAN)
-		currentClockface.push(offset)
+		currentScene.push(offset)
 	}
-	clockfaceLayerOffsets.push(currentClockface)
+	sceneLayerOffsets.push(currentScene)
 
-	for (let i = 0; i < clockfaceLayerOffsets.length; i++) {
-		rows.push([clockfaceOffsets[i] / 2, clockfaceLayerOffsets[i].join(' ')])
+	for (let i = 0; i < sceneLayerOffsets.length; i++) {
+		rows.push([sceneOffsets[i] / 2, sceneLayerOffsets[i].join(' ')])
 	}
 
 	displayTable(parentEl, headers, rows)
 }
 
-const parseClockfaceDefs = (parentEl, data) => {
-	for (let i = 0; i < clockfaceLayerOffsets.length; i++) {
-		let clockface = clockfaceLayerOffsets[i]
+const parseSceneDefs = (parentEl, data) => {
+	for (let i = 0; i < sceneLayerOffsets.length; i++) {
+		let scene = sceneLayerOffsets[i]
 
 		const headerEl = document.createElement('h4')
 		parentEl.append(headerEl)
@@ -205,14 +205,14 @@ const parseClockfaceDefs = (parentEl, data) => {
 		const headers = ['offset', 'layer<br>type?', 'x', 'y', 'image set', '?']
 		let rows = []
 
-		for (let j = 0; j < clockface.length; j++) {
-			const offset = clockface[j] * 2
+		for (let j = 0; j < scene.length; j++) {
+			const offset = scene[j] * 2
 			const layerType = stringifyWord(data, offset) || '-'
 			const x = data.getInt16(offset + 2, LITTLE_ENDIAN) || '-'
 			const y = data.getInt16(offset + 4, LITTLE_ENDIAN) || '-'
 			const imageSet = data.getUint16(offset + 6, LITTLE_ENDIAN)
 			let flag = 0
-			if (j+1 < clockface.length && clockface[j+1] > clockface[j] + 4) {
+			if (j+1 < scene.length && scene[j+1] > scene[j] + 4) {
 				flag = stringifyWord(data, offset + 8)
 			}
 
@@ -228,22 +228,23 @@ const parseStringDefs = (parentEl, data) => {
 	let rows = []
 
 	let i = 0
-	while (i + 10 <= data.byteLength) {
-		const id = data.getUint16(i, LITTLE_ENDIAN) & 0xff
+	while (i + 10 < data.byteLength) {
+		const id = stringifyWord(data, i)
 		const flag1 = data.getUint16(i + 2, LITTLE_ENDIAN) ? stringifyWord(data, i + 2) : '-'
 		const flag2 = data.getUint16(i + 4, LITTLE_ENDIAN) || '-'
 		const flag3 = data.getUint16(i + 6, LITTLE_ENDIAN) || '-'
 
 		// null-terminating string
 		let strLength = 0
-		while (data.getUint16(i + 8 + strLength*2) !== 0) {
+		while ((i + 8 + strLength*2) < data.byteLength && data.getUint16(i + 8 + strLength*2) !== 0) {
 			strLength += 1
 		}
+
 		const str = parseString(data, i + 8, strLength)
 
 		rows.push([i, id, flag1, flag2, flag3, str])
 
-		i += 10 + (strLength*2)
+		i += (10 + strLength*2)
 	}
 
 	displayTable(parentEl, headers, rows)
@@ -302,7 +303,7 @@ const parseItemDefs = (parentEl, data) => {
 		'image set<br><small>worn</small>',
 		'image set<br><small>close-up</small>',
 		'?',
-		'?',
+		'price',
 		'?',
 		'?',
 		'?',
@@ -320,7 +321,7 @@ const parseItemDefs = (parentEl, data) => {
 		const imageSetWorn = data.getUint16(i + 26, LITTLE_ENDIAN)
 		const imageSetCloseUp = data.getUint16(i + 28, LITTLE_ENDIAN)
 		const flag1 = data.getUint16(i + 30, LITTLE_ENDIAN) ? stringifyWord(data, i + 30) : '-'
-		const flag2 = data.getUint16(i + 32, LITTLE_ENDIAN) || '-'
+		const price = data.getUint16(i + 32, LITTLE_ENDIAN)
 		const flag3 = data.getUint16(i + 34, LITTLE_ENDIAN) || '-'
 		const flag4 = data.getUint16(i + 36, LITTLE_ENDIAN) || '-'
 		const flag5 = data.getUint16(i + 38, LITTLE_ENDIAN) ? stringifyWord(data, i + 38) : '-'
@@ -338,7 +339,7 @@ const parseItemDefs = (parentEl, data) => {
 			formatImageLink(imageSetWorn),
 			formatImageLink(imageSetCloseUp),
 			flag1,
-			flag2,
+			price,
 			flag3,
 			flag4,
 			flag5,
@@ -359,19 +360,19 @@ const parseTamaDefs = (parentEl, data) => {
 		'name',
 		'memory<br>image',
 		'icon',
-		'id again?',
-		'??',
+		'id again',
+		'?',
 		'pronoun',
 		'statement<br><small>{ndesu}<small>',
 		'question 1<br><small>{ndesuka}<small>',
 		'question 2<br><small>{desuka}<small>',
-		'??',
-		'??',
+		'?',
+		'?',
 		'original<br>card id',
-		'??',
-		'??',
-		'??',
-		'??',
+		'mins per<br>fullness loss',
+		'mins per<br>happiness loss',
+		'?',
+		'?',
 		'gender'
 	]
 	let rows = []
@@ -380,7 +381,6 @@ const parseTamaDefs = (parentEl, data) => {
 	let i = 0
 	while (i + 96 <= data.byteLength) {
 		const id = data.getUint16(i, LITTLE_ENDIAN) & 0xff
-		const idString = stringifyWord(data, i)
 		const type = data.getUint16(i + 2, LITTLE_ENDIAN)
 		const tamaName = parseString(data, i + 4, 10)
 		const memoryIndex = data.getUint16(i + 24, LITTLE_ENDIAN)
@@ -461,7 +461,8 @@ const parseGfxNodeDefs = (parentEl, data) => {
 			const bytesInSequence = nextOffset - offset
 			for (let j = 0; j < bytesInSequence; j += 2) {
 				const word = data.getUint16(offset + j, LITTLE_ENDIAN)
-				sequence.push(formatImageLink(word))
+				sequence.push(stringifyWord(data, offset + j))
+				// sequence.push(formatImageLink(word))
 			}
 			sequences.push(sequence)
 		}
@@ -520,7 +521,7 @@ const parseCompDefs = (parentEl, data) => {
 			const flag1 = comp[2].toString(16).padStart(4, '0').toUpperCase() // > 255 ? `(${255 - (comp[1] & 0xff)})` : comp[1]
 			const flag2 = comp[3].toString(16).padStart(4, '0').toUpperCase()
 			const flag3 = comp[4]
-			const flag4 = (comp.length === 6) ? '-' : comp[5]
+			const flag4 = (comp.length === 6) ? 0 : comp[5]
 			const imageSet = (comp.length === 6) ? comp[5] : comp[6]
 
 			rows.push([

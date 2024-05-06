@@ -24,6 +24,37 @@ const handleFileUpload = () => {
 }
 
 const parseBin = (data) => {
+	if (parseASCII(data, 0, 14) === 'GP-SPIF-HEADER') {
+		parseFirmware(data)
+	} else {
+		parseCard(data)
+	}
+}
+
+const parseCardHeader = (data) => {
+	const packageSum = data.getUint16(2, LITTLE_ENDIAN)
+	const deviceIds = [
+		data.getUint32(4, LITTLE_ENDIAN),
+		data.getUint32(8, LITTLE_ENDIAN),
+		data.getUint32(12, LITTLE_ENDIAN)
+	]
+	const headerString = parseASCII(data, 16, 32)
+	const cardId = data.getUint16(50, LITTLE_ENDIAN)
+	const date = {
+		year: data.getUint16(54, LITTLE_ENDIAN),
+		month: data.getUint16(56, LITTLE_ENDIAN),
+		day: data.getUint16(58, LITTLE_ENDIAN)
+	}
+	let md5 = ''
+	for (i = 0; i < 16; i++) {
+		md5 += data.getUint8(64 + i).toString(16).padStart(2, '0')
+	}
+	console.log({ md5, packageSum, deviceIds, headerString, cardId, date })
+}
+
+const parseCard = (data) => {
+	parseCardHeader(data)
+
 	let prevWordIsEmpty = false
 	for (let i = 0; i < data.byteLength; i += 2) {
 		if (data.getUint16(i) === 0x0000 || data.getUint16(i) === 0xFFFF) {
@@ -34,6 +65,18 @@ const parseBin = (data) => {
 		} else {
 			prevWordIsEmpty = false
 		}
+	}
+}
+
+const parseFirmware = (data) => {
+	if (data.getUint16(0x6CA9AC) === 0x2800) {
+		const tableDataEl = document.getElementById('table-data')
+		tableDataEl.innerHTML = '<code>This seems to be the Niziu firmware, and it has some issues with offsets and does not decode properly. Sorry!</code>'
+	} else {
+		const dataPack = new DataView(data.buffer, 0x6CE000, 0x730000 - 0x6CE000)
+		parseDataPack(dataPack)
+		const spritePack = new DataView(data.buffer, 0x730000)
+		parseSpritePack(spritePack)
 	}
 }
 
@@ -53,4 +96,13 @@ const parseArchive = (data) => {
 			}
 		}
 	}
+}
+
+parseASCII = (data, offset, length) => {
+	let result = ''
+	for (i = 0; i < length; i++) {
+		nextChar = data.getUint8(offset + i)
+		result += String.fromCharCode(nextChar)
+	}
+	return result
 }
