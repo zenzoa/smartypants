@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+
+<html lang="en">
+
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>Smarty Pants</title>
+		<link rel="stylesheet" href="./style/style.css">
+
+		<script src="./script/main.js"></script>
+		<script src="./script/about-dialog.js"></script>
+	</head>
+
+	<body>
+		<main>
+
+			<div id="toolbar">
+				<button class="icon" id="open-bin-button" onclick="openBin()" title="Open">
+					<img src="icons/open.svg" alt="Open">
+				</button>
+				<span class="vertical-divider"></span>
+				<button class="icon" id="export-data-button" onclick="exportData()" title="Export Data">
+					<img src="icons/export.svg" alt="Export Data">
+				</button>
+				<button class="icon" id="export-images-button" onclick="exportImages()" title="Export Images">
+					<img src="icons/export_image.svg" alt="Export Images">
+				</button>
+			</div>
+
+			<div id="main">
+			</div>
+
+			<div id="about-dialog" class="dialog">
+				<div class="dialog-content">
+					<div class="dialog-header">
+						<span class="dialog-title">
+							About Smarty Pants
+						</span>
+						<button id="about-close-button" class="dialog-close-button icon" title="Close Dialog">
+							<img src="icons/cancel.svg" alt="Close Dialog">
+						</button>
+					</div>
+					<div class="dialog-body about-dialog">
+						<img src="icon.png" width="128" height="128">
+						<p><strong>Smarty Pants <span id="about-version">x.x.x<span></strong></p>
+						<p>
+							A tool for working with Tamagotchi Smart firmware and Tama Sma card data.
+							<br>
+							<em>https://github.com/zenzoa/smartypants</em>
+						</p>
+						<div class="dialog-actions">
+							<button id="about-ok-button" class="text" title="Ok">
+								Ok
+							</button>
+						</div>
+					</div>
+				</div>
+			</div>
+
+			<div id="spinner" class="spinner">
+				<div class="spinner-animation">
+				</div>
+			</div>
+
+		</main>
+
+	</body>
+</html>

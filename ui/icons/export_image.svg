@@ -1,0 +1,12 @@
+<svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+<mask id="mask0_12_29" style="mask-type:alpha" maskUnits="userSpaceOnUse" x="14" y="18" width="32" height="32">
+<rect x="14" y="18" width="32" height="32" rx="2" fill="black"/>
+</mask>
+<g mask="url(#mask0_12_29)">
+<path d="M31.556 34.5068L13.2428 53.6162C12.0241 54.8879 12.9254 57 14.6868 57H51.3132C53.0746 57 53.9759 54.8879 52.7572 53.6162L34.444 34.5068C33.6566 33.6852 32.3434 33.6852 31.556 34.5068Z" fill="black"/>
+<circle cx="24" cy="29" r="4" fill="black"/>
+</g>
+<path d="M38.5 25.5L50.5 13.5" stroke="black" stroke-width="6" stroke-linecap="round"/>
+<path d="M37 12H50C51.1046 12 52 12.8954 52 14V27" stroke="black" stroke-width="6" stroke-linecap="round"/>
+<path fill-rule="evenodd" clip-rule="evenodd" d="M17 23C17 21.8954 17.8954 21 19 21H28C29.1046 21 30 20.1046 30 19V17C30 15.8954 29.1046 15 28 15H16C13.2386 15 11 17.2386 11 20V48C11 50.7614 13.2386 53 16 53H44C46.7614 53 49 50.7614 49 48V36C49 34.8954 48.1046 34 47 34H45C43.8954 34 43 34.8954 43 36V45C43 46.1046 42.1046 47 41 47H19C17.8954 47 17 46.1046 17 45V23Z" fill="black"/>
+</svg>

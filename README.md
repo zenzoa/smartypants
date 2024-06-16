@@ -1,5 +1,12 @@
-# SmartyPants TamaSma Card Parser
-Currently just a way to explore the TamaSma card format and learn its structure... and its secrets.
+# Smarty Pants
+A tool for working with Tamagotchi Smart firmware and Tama Sma card data.
+
+## Libraries
+* [Tauri](https://tauri.app/)
 
 ## Credits
-- Many thanks to Cyanic, Konky, and Studded for their work on parsing the Smart file formats, and for their patience in helping me!
+* Thanks to Cyanic, Konky, and Studded for their previous work on decoding the Smart
+* Thanks to the many fine folks on Nugget Team #7 for all their love and support
+
+## License
+[Creative Commons BY-NC-SA 4.0]( https://creativecommons.org/licenses/by-nc-sa/4.0/)

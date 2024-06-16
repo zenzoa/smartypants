@@ -1,0 +1,93 @@
+{
+	"productName": "Smarty Pants",
+	"version": "0.1.0",
+	"identifier": "thing.zenzoa.smartypants",
+	"app": {
+		"withGlobalTauri": true,
+		"security": {
+			"csp": "default-src 'self'; img-src 'self' getimage: https://getimage.localhost",
+			"assetProtocol": {
+				"enable": false,
+				"scope": []
+			},
+			"dangerousDisableAssetCspModification": false,
+			"freezePrototype": false,
+			"pattern": {
+				"use": "brownfield"
+			}
+		},
+		"macOSPrivateApi": false,
+		"windows": [
+			{
+				"title": "Smarty Pants",
+				"width": 800,
+				"height": 600,
+				"fullscreen": false,
+				"resizable": true
+			}
+		]
+	},
+	"build": {
+		"frontendDist": "../ui"
+	},
+	"bundle": {
+		"active": true,
+		"category": "Utility",
+		"longDescription": "",
+		"shortDescription": "",
+		"icon": [
+			"icons/32x32.png",
+			"icons/128x128.png",
+			"icons/128x128@2x.png",
+			"icons/icon.icns",
+			"icons/icon.ico"
+		],
+		"targets": "all",
+		"windows": {
+			"allowDowngrades": true,
+			"certificateThumbprint": null,
+			"digestAlgorithm": null,
+			"nsis": null,
+			"timestampUrl": null,
+			"tsp": false,
+			"webviewFixedRuntimePath": null,
+			"webviewInstallMode": {
+				"silent": true,
+				"type": "downloadBootstrapper"
+				},
+			"wix": null
+		},
+		"macOS": {
+			"dmg": {
+				"appPosition": {
+					"x": 180,
+					"y": 170
+				},
+				"applicationFolderPosition": {
+					"x": 480,
+					"y": 170
+				},
+				"windowSize": {
+					"width": 800,
+					"height": 600
+				}
+			},
+			"files": {},
+			"minimumSystemVersion": "10.13"
+		},
+		"linux": {
+			"appimage": {
+				"bundleMediaFramework": false,
+				"files": {}
+			},
+			"deb": {
+				"files": {}
+			},
+			"rpm": {
+				"epoch": 0,
+				"files": {},
+				"release": "1"
+			}
+		}
+	}
+  }
