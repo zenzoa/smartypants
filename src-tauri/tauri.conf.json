@@ -1,11 +1,15 @@
 {
 	"productName": "Smarty Pants",
-	"version": "0.1.0",
+	"version": "0.1.2",
 	"identifier": "thing.zenzoa.smartypants",
 	"app": {
 		"withGlobalTauri": true,
 		"security": {
-			"csp": "default-src 'self'; img-src 'self' getimage: https://getimage.localhost",
+			"csp": {
+				"default-src": "'self'",
+				"img-src": "'self' getimage: https://getimage.localhost",
+				"connect-src": "ipc: http://ipc.localhost"
+			},
 			"assetProtocol": {
 				"enable": false,
 				"scope": []

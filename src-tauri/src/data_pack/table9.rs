@@ -8,11 +8,12 @@ pub fn get_entity_offsets(data: &DataView) -> (Vec<usize>, Vec<usize>) {
 	}
 
 	let mut sizes = Vec::new();
-	for i in 0..(offsets.len() - 1) {
-		sizes.push(offsets[i+1] - offsets[i]);
+	if offsets.len() > 0 {
+		for i in 0..(offsets.len() - 1) {
+			sizes.push(offsets[i+1] - offsets[i]);
+		}
+		let _ = offsets.pop();
 	}
-
-	let _ = offsets.pop();
 
 	(offsets, sizes)
 }

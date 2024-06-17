@@ -6,24 +6,32 @@ use std::error::Error;
 use std::path::PathBuf;
 use std::sync::Mutex;
 use std::io::Cursor;
+
 use tauri::{ Builder, AppHandle, Manager, State };
 use tauri::menu::{ Menu, Submenu, MenuItem, PredefinedMenuItem, MenuId };
 use tauri::async_runtime::spawn;
+
 use rfd::{ MessageLevel, MessageButtons, MessageDialog, FileDialog };
+
 use regex::Regex;
 
+mod smacard;
+mod firmware;
 mod data_view;
 mod data_pack;
 mod sprite_pack;
 mod export;
 
+use smacard::read_card;
+use firmware::read_firmware;
 use data_view::DataView;
-use data_pack::{ DataPack, get_data_pack };
-use sprite_pack::{ SpritePack, get_sprite_pack, get_image_data };
-use export::export_data_to;
-use export::export_images_to;
+use data_pack::DataPack;
+use sprite_pack::{ SpritePack, get_image_data };
+use export::export_data;
+use export::export_images;
 
 pub struct DataState {
+	pub bin_type: Mutex<Option<BinType>>,
 	pub base_path: Mutex<Option<PathBuf>>,
 	pub data_pack: Mutex<Option<DataPack>>,
 	pub sprite_pack: Mutex<Option<SpritePack>>
@@ -32,6 +40,7 @@ pub struct DataState {
 impl DataState {
 	pub fn new() -> DataState {
 		DataState{
+			bin_type: Mutex::new(None),
 			base_path: Mutex::new(None),
 			data_pack: Mutex::new(None),
 			sprite_pack: Mutex::new(None)
@@ -49,35 +58,9 @@ impl ImageState {
 	}
 }
 
-#[derive(Clone, serde::Serialize)]
-pub struct CardHeader {
-	sector_count: u16,
-	checksum: u16,
-	device_ids: [u32; 3],
-	vendor_id: String,
-	product_id: String,
-	card_type: CardType,
-	card_id: u16,
-	year: u16,
-	month: u16,
-	day: u16,
-	revision: u16,
-	md5: String
-}
-
-#[derive(Clone, serde::Serialize)]
-pub enum CardType {
-	TamaSmaCard,
-	PromoTreasure,
-	PromoItem,
-	Unknown
-}
-
-#[derive(Clone, serde::Serialize)]
-pub struct TamaSmaCard {
-	pub header: CardHeader,
-	pub data_pack: DataPack,
-	pub sprite_pack: SpritePack
+pub enum BinType {
+	SmaCard,
+	Firmware
 }
 
 fn main() {
@@ -183,177 +166,52 @@ fn open_bin(handle: AppHandle) {
 
 		if let Some(path) = file_dialog.pick_file() {
 			show_spinner(&handle);
+
 			let raw_data = fs::read(&path).unwrap();
 			let data = DataView::new(&raw_data);
-			match read_card(&data) {
-				Ok(card) => {
-					*data_state.base_path.lock().unwrap() = Some(path.parent().unwrap().to_path_buf());
-					*data_state.data_pack.lock().unwrap() = Some(card.data_pack.clone());
-					*data_state.sprite_pack.lock().unwrap() = Some(card.sprite_pack.clone());
-					if let Ok(image_data) = get_image_data(&card.sprite_pack.clone()) {
-						*image_state.images.lock().unwrap() = image_data;
+
+			let bin_type = if &raw_data[0..14] == b"GP-SPIF-HEADER" {
+				BinType::Firmware
+			} else {
+				BinType::SmaCard
+			};
+
+			match &bin_type {
+				BinType::SmaCard => {
+					match read_card(&data) {
+						Ok(card) => {
+							*data_state.data_pack.lock().unwrap() = Some(card.data_pack.clone());
+							*data_state.sprite_pack.lock().unwrap() = Some(card.sprite_pack.clone());
+							if let Ok(image_data) = get_image_data(&card.sprite_pack.clone()) {
+								*image_state.images.lock().unwrap() = image_data;
+							}
+							handle.emit("show_card", card).unwrap();
+						},
+						Err(why) => show_error_message(why)
 					}
-					handle.emit("show_card", card).unwrap();
 				},
-				Err(why) => show_error_message(why)
+
+				BinType::Firmware => {
+					match read_firmware(&data) {
+						Ok(firmware) => {
+							*data_state.data_pack.lock().unwrap() = Some(firmware.data_pack.clone());
+							*data_state.sprite_pack.lock().unwrap() = Some(firmware.sprite_pack.clone());
+							if let Ok(image_data) = get_image_data(&firmware.sprite_pack.clone()) {
+								*image_state.images.lock().unwrap() = image_data;
+							}
+							handle.emit("show_firmware", firmware).unwrap();
+						},
+						Err(why) => show_error_message(why)
+					}
+				}
 			}
+
+			*data_state.bin_type.lock().unwrap() = Some(bin_type);
+			*data_state.base_path.lock().unwrap() = Some(path.parent().unwrap().to_path_buf());
+
 			hide_spinner(&handle);
 		}
 	});
-}
-
-#[tauri::command]
-fn export_data(handle: AppHandle) {
-	spawn(async move {
-		let data_state: State<DataState> = handle.state();
-
-		let no_data = if let None = *data_state.data_pack.lock().unwrap() { true } else { false };
-		if no_data {
-			show_error_message("No data to export".into());
-
-		} else {
-			let mut file_dialog = FileDialog::new()
-				.add_filter("JSON", &["json"]);
-
-			if let Some(base_path) = data_state.base_path.lock().unwrap().clone() {
-				file_dialog = file_dialog.set_directory(base_path);
-			}
-
-			let file_result = file_dialog.save_file();
-
-			if let Some(path) = file_result {
-				show_spinner(&handle);
-				if let Err(why) = export_data_to(&data_state, &path) {
-					show_error_message(why);
-				}
-				hide_spinner(&handle);
-			}
-		}
-	});
-}
-
-#[tauri::command]
-fn export_images(handle: AppHandle) {
-	spawn(async move {
-		let data_state: State<DataState> = handle.state();
-		let image_state: State<ImageState> = handle.state();
-
-		if image_state.images.lock().unwrap().len() == 0 || image_state.images.lock().unwrap()[0].len() == 0 {
-			show_error_message("No images to export".into());
-
-		} else {
-			let mut file_dialog = FileDialog::new()
-				.add_filter("PNG image", &["png"]);
-			if let Some(base_path) = data_state.base_path.lock().unwrap().clone() {
-				file_dialog = file_dialog.set_directory(base_path);
-			}
-			let file_result = file_dialog.save_file();
-
-			if let Some(path) = file_result {
-				show_spinner(&handle);
-				if let Err(why) = export_images_to(&image_state, &path) {
-					show_error_message(why);
-				}
-				hide_spinner(&handle);
-			}
-		}
-
-	});
-}
-
-fn read_card(data: &DataView) -> Result<TamaSmaCard, Box<dyn Error>> {
-	let header = read_card_header(&data)?;
-	let (data_pack, sprite_pack) = read_card_packs(&data.chunk(0x1000, data.len() - 0x1000))?;
-	Ok(TamaSmaCard { header, data_pack, sprite_pack })
-}
-
-fn read_card_header(data: &DataView) -> Result<CardHeader, Box<dyn Error>> {
-	if data.len() < 80 {
-		return Err("Unable to read card data: too short for header".into());
-	}
-
-	let sector_count = data.get_u16(0);
-
-	let checksum = data.get_u16(2);
-
-	let device_ids = [
-		data.get_u32(4),
-		data.get_u32(8),
-		data.get_u32(12)
-	];
-
-	let mut vendor_id = String::new();
-	for i in 0..16 {
-		vendor_id.push(data.get_u8(i+16).into());
-	}
-
-	let mut product_id = String::new();
-	for i in 0..16 {
-		product_id.push(data.get_u8(i+32).into());
-	}
-
-	let card_type = match data.get_u16(48) {
-		0 => CardType::TamaSmaCard,
-		1 => CardType::PromoTreasure,
-		2 => CardType::PromoItem,
-		_ => CardType::Unknown
-	};
-
-	let card_id = data.get_u16(50);
-
-	let year = data.get_u16(54);
-	let month = data.get_u16(56);
-	let day = data.get_u16(58);
-	let revision = data.get_u16(60);
-
-	let mut md5 = String::new();
-	for i in 0..16 {
-		md5.push_str(&format!("{:02x}", data.get_u8(i+64)));
-	}
-
-	Ok(CardHeader { sector_count, checksum, device_ids, vendor_id, product_id, card_type, card_id, year, month, day, revision, md5 })
-}
-
-fn read_card_packs(data: &DataView) -> Result<(DataPack, SpritePack), Box<dyn Error>> {
-	if data.len() < 66 {
-		return Err("Unable to read card data: too short for pack info".into());
-	}
-
-	let pack_count = data.get_u16(2) as usize;
-	if pack_count < 2 {
-		return Err("Unable to read card data: too few packs".into());
-	}
-
-	let mut data_pack_opt: Option<DataPack> = None;
-	let mut sprite_pack_opt: Option<SpritePack> = None;
-
-	for i in 0..pack_count {
-		let pack_offset = data.get_u32(i*16+8) as usize;
-		let pack_size = data.get_u32(i*16+16) as usize;
-
-		if pack_offset > 0 && pack_size > 0 {
-			let pack_data = data.chunk(pack_offset, pack_size);
-			match i {
-				0 => {
-					data_pack_opt = Some(get_data_pack(&pack_data)?);
-				},
-				1 => {
-					sprite_pack_opt = Some(get_sprite_pack(&pack_data)?);
-				},
-				_ => {}
-			}
-		}
-	}
-
-	if let Some(data_pack) = data_pack_opt {
-		if let Some(sprite_pack) = sprite_pack_opt {
-			Ok((data_pack, sprite_pack))
-		} else {
-			Err("Unable to read card data: sprite pack not found".into())
-		}
-	} else {
-		Err("Unable to read card data: sata pack not found".into())
-	}
 }
 
 pub fn show_error_message(why: Box<dyn Error>) {

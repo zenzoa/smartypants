@@ -13,6 +13,10 @@ let sections = {}
 window.addEventListener('load', () => {
 	setupDialogs()
 
+	document.getElementById('open-bin-button').addEventListener('click', openBin)
+	document.getElementById('export-data-button').addEventListener('click', exportData)
+	document.getElementById('export-images-button').addEventListener('click', exportImages)
+
 	tauri_listen('show_card', event => {
 		cardData = event.payload
 
@@ -22,7 +26,7 @@ window.addEventListener('load', () => {
 		main.innerHTML = ''
 
 		sections = {
-			header: setupHeader(),
+			header: setupCardHeader(),
 			particleEmitters: setupParticleEmitters(),
 			scenes: setupScenes(),
 			strings: setupStrings(),
@@ -35,25 +39,25 @@ window.addEventListener('load', () => {
 		}
 
 		const nav = div({id: 'sidebar'}, [
-			button({id: 'view-header-button', onclick: 'viewHeader()'},
+			button({id: 'view-header-button', onclick: viewCardHeader},
 				'Header'),
-			button({id: 'view-particle-emitters-button', onclick: 'viewParticleEmitters()'},
+			button({id: 'view-particle-emitters-button', onclick: viewParticleEmitters},
 				`Particle Emitters <span class="tag">${cardData.data_pack.particle_emitters.length}</span>`),
-			button({id: 'view-scenes-button', onclick: 'viewScenes()'},
+			button({id: 'view-scenes-button', onclick: viewScenes},
 				`Scenes <span class="tag">${cardData.data_pack.scenes.length}</span>`),
-			button({id: 'view-strings-button', onclick: 'viewStrings()'},
+			button({id: 'view-strings-button', onclick: viewStrings},
 				`Strings <span class="tag">${cardData.data_pack.strings.length}</span>`),
-			button({id: 'view-table9-button', onclick: 'viewTable9()'},
+			button({id: 'view-table9-button', onclick: viewTable9},
 				`Unknown <span class="tag">${cardData.data_pack.table9.length}</span>`),
-			button({id: 'view-items-button', onclick: 'viewItems()'},
+			button({id: 'view-items-button', onclick: viewItems},
 				`Items <span class="tag">${cardData.data_pack.items.length}</span>`),
-			button({id: 'view-characters-button', onclick: 'viewCharacters()'},
+			button({id: 'view-characters-button', onclick: viewCharacters},
 				`Characters <span class="tag">${cardData.data_pack.characters.length}</span>`),
-			button({id: 'view-animations-button', onclick: 'viewAnimations()'},
+			button({id: 'view-animations-button', onclick: viewAnimations},
 				`Animations <span class="tag">${cardData.data_pack.graphics_nodes.length}</span>`),
-			button({id: 'view-frames-button', onclick: 'viewFrames()'},
+			button({id: 'view-frames-button', onclick: viewFrames},
 				`Frames <span class="tag">${cardData.data_pack.frame_groups.length}</span>`),
-			button({id: 'view-sprites-button', onclick: 'viewSprites()'},
+			button({id: 'view-sprites-button', onclick: viewSprites},
 				`Images <span class="tag">${cardData.sprite_pack.image_defs.length}</span>`),
 		])
 
@@ -62,7 +66,59 @@ window.addEventListener('load', () => {
 		main.append(nav)
 		main.append(contents)
 
-		viewHeader()
+		viewCardHeader()
+	})
+
+	tauri_listen('show_firmware', event => {
+		cardData = event.payload
+
+		timestamp = Date.now()
+
+		const main = document.getElementById('main')
+		main.innerHTML = ''
+
+		sections = {
+			header: setupFirmwareHeader(),
+			particleEmitters: setupParticleEmitters(),
+			scenes: setupScenes(),
+			strings: setupStrings(),
+			table9: setupTable9(),
+			items: setupItems(),
+			characters: setupCharacters(),
+			animations: setupAnimations(),
+			frames: setupFrames(),
+			sprites: setupSprites()
+		}
+
+		const nav = div({id: 'sidebar'}, [
+			button({id: 'view-header-button', onclick: viewFirmwareHeader},
+				'Header'),
+			button({id: 'view-particle-emitters-button', onclick: viewParticleEmitters},
+				`Particle Emitters <span class="tag">${cardData.data_pack.particle_emitters.length}</span>`),
+			button({id: 'view-scenes-button', onclick: viewScenes},
+				`Scenes <span class="tag">${cardData.data_pack.scenes.length}</span>`),
+			button({id: 'view-strings-button', onclick: viewStrings},
+				`Strings <span class="tag">${cardData.data_pack.strings.length}</span>`),
+			button({id: 'view-table9-button', onclick: viewTable9},
+				`Unknown <span class="tag">${cardData.data_pack.table9.length}</span>`),
+			button({id: 'view-items-button', onclick: viewItems},
+				`Items <span class="tag">${cardData.data_pack.items.length}</span>`),
+			button({id: 'view-characters-button', onclick: viewCharacters},
+				`Characters <span class="tag">${cardData.data_pack.characters.length}</span>`),
+			button({id: 'view-animations-button', onclick: viewAnimations},
+				`Animations <span class="tag">${cardData.data_pack.graphics_nodes.length}</span>`),
+			button({id: 'view-frames-button', onclick: viewFrames},
+				`Frames <span class="tag">${cardData.data_pack.frame_groups.length}</span>`),
+			button({id: 'view-sprites-button', onclick: viewSprites},
+				`Images <span class="tag">${cardData.sprite_pack.image_defs.length}</span>`),
+		])
+
+		contents = div({id: 'contents'})
+
+		main.append(nav)
+		main.append(contents)
+
+		viewFirmwareHeader()
 	})
 
 	tauri_listen('show_spinner', () => {
@@ -123,7 +179,7 @@ const selectSection = (sectionId) => {
 	contents.scrollTo(0, 0)
 }
 
-const setupHeader = () => {
+const setupCardHeader = () => {
 	const header = cardData.header
 	return table([
 		tbody([
@@ -139,7 +195,15 @@ const setupHeader = () => {
 		])
 	])
 }
-const viewHeader = () => {
+const viewCardHeader = () => {
+	selectSection('view-header-button')
+	contents.append(sections.header)
+}
+
+const setupFirmwareHeader = () => {
+	return div('Tamagotchi Smart Firmware')
+}
+const viewFirmwareHeader = () => {
 	selectSection('view-header-button')
 	contents.append(sections.header)
 }
@@ -401,7 +465,11 @@ const el = (type, props, contents) => {
 
 	if (typeof props === 'object' && props.length == null) {
 		for (const propName in props) {
-			element.setAttribute(propName, props[propName])
+			if (propName === 'onclick') {
+				element.addEventListener('click', props[propName])
+			} else {
+				element.setAttribute(propName, props[propName])
+			}
 		}
 	} else if (contents == null) {
 		contents = props
@@ -437,16 +505,20 @@ const formatHexCode = (byte) => {
 }
 
 const linkToCharacter = (characterIndex) => {
-	const characterName = cardData.data_pack.characters[characterIndex].name
-	const link = button(characterName)
-	link.addEventListener('click', () => {
-		viewCharacters()
-		const characterEl = document.getElementById(`character-${characterIndex}`)
-		if (characterEl != null) {
-			characterEl.scrollIntoView()
-		}
-	})
-	return [link]
+	if (cardData.data_pack.characters[characterIndex] != null) {
+		const characterName = cardData.data_pack.characters[characterIndex].name
+		const link = button(characterName)
+		link.addEventListener('click', () => {
+			viewCharacters()
+			const characterEl = document.getElementById(`character-${characterIndex}`)
+			if (characterEl != null) {
+				characterEl.scrollIntoView()
+			}
+		})
+		return [link]
+	} else {
+		return [div('-')]
+	}
 }
 
 const linkToFrame = (frameId) => {
@@ -505,7 +577,7 @@ const displayImage = (imageId, subimageIndex, showTooltip) => {
 }
 
 const displayImageWithLink = (imageId, subimageIndex) => {
-	if (imageId != null && subimageIndex != null && imageId.card_id == cardData.header.card_id) {
+	if (imageId != null && subimageIndex != null && (!cardData.header || imageId.card_id == cardData.header.card_id)) {
 		const img = displayImage(imageId.entity_id, subimageIndex)
 		const link = button([img])
 		link.addEventListener('click', () => {

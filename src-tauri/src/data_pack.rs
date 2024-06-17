@@ -88,7 +88,7 @@ pub fn get_data_pack(data: &DataView) -> Result<DataPack, Box<dyn Error>> {
 
 fn get_table_offsets(data: &DataView) -> Result<(Vec<usize>, Vec<usize>), Box<dyn Error>> {
 	if data.len() < 80 {
-		return Err("too short".into());
+		return Err("Unable to read data table offsets: too short".into());
 	}
 
 	let mut table_offsets = Vec::new();
@@ -100,8 +100,14 @@ fn get_table_offsets(data: &DataView) -> Result<(Vec<usize>, Vec<usize>), Box<dy
 
 	for i in 0..20 {
 		if i < 19 {
+			if table_offsets[i+1] < table_offsets[i] {
+				return Err("Unable to read data table offsets: invalid offsets".into());
+			}
 			table_sizes.push(table_offsets[i+1] - table_offsets[i]);
 		} else {
+			if data.len() < table_offsets[i] {
+				return Err("Unable to read data table offsets: invalid offsets".into());
+			}
 			table_sizes.push(data.len() - table_offsets[i]);
 		}
 	}
