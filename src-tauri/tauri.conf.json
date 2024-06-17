@@ -7,7 +7,7 @@
 		"security": {
 			"csp": {
 				"default-src": "'self'",
-				"img-src": "'self' getimage: https://getimage.localhost",
+				"img-src": "'self' getimage: http://getimage.localhost",
 				"connect-src": "ipc: http://ipc.localhost"
 			},
 			"assetProtocol": {
