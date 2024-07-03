@@ -1,7 +1,6 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-use std::fs;
 use std::error::Error;
 use std::path::PathBuf;
 use std::sync::Mutex;
@@ -9,9 +8,8 @@ use std::io::Cursor;
 
 use tauri::{ Builder, AppHandle, Manager, State };
 use tauri::menu::{ Menu, Submenu, MenuItem, PredefinedMenuItem, MenuId };
-use tauri::async_runtime::spawn;
 
-use rfd::{ MessageLevel, MessageButtons, MessageDialog, FileDialog };
+use rfd::{ MessageLevel, MessageButtons, MessageDialog };
 
 use regex::Regex;
 
@@ -20,30 +18,37 @@ mod firmware;
 mod data_view;
 mod data_pack;
 mod sprite_pack;
+mod file;
 mod export;
+mod import;
 
-use smacard::read_card;
-use firmware::read_firmware;
 use data_view::DataView;
 use data_pack::DataPack;
-use sprite_pack::{ SpritePack, get_image_data };
-use export::export_data;
-use export::export_images;
+use sprite_pack::SpritePack;
+use file::{ open_bin, save_bin, save_bin_as };
+use export::{ export_data, export_images };
+use import::import_strings;
 
 pub struct DataState {
+	pub is_modified: Mutex<bool>,
 	pub bin_type: Mutex<Option<BinType>>,
+	pub file_path: Mutex<Option<PathBuf>>,
 	pub base_path: Mutex<Option<PathBuf>>,
 	pub data_pack: Mutex<Option<DataPack>>,
-	pub sprite_pack: Mutex<Option<SpritePack>>
+	pub sprite_pack: Mutex<Option<SpritePack>>,
+	pub original_data: Mutex<Option<Vec<u8>>>
 }
 
 impl DataState {
 	pub fn new() -> DataState {
 		DataState{
+			is_modified: Mutex::new(false),
 			bin_type: Mutex::new(None),
+			file_path: Mutex::new(None),
 			base_path: Mutex::new(None),
 			data_pack: Mutex::new(None),
-			sprite_pack: Mutex::new(None)
+			sprite_pack: Mutex::new(None),
+			original_data: Mutex::new(None)
 		}
 	}
 }
@@ -67,8 +72,11 @@ fn main() {
 	Builder::default()
 		.invoke_handler(tauri::generate_handler![
 			open_bin,
+			save_bin,
+			save_bin_as,
 			export_data,
 			export_images,
+			import_strings,
 			try_quit
 		])
 
@@ -80,12 +88,21 @@ fn main() {
 				&Submenu::with_id_and_items(handle, "file", "File", true, &[
 					&MenuItem::with_id(handle, "open", "Open", true, Some("CmdOrCtrl+O"))?,
 					&PredefinedMenuItem::separator(handle)?,
-					&MenuItem::with_id(handle, "quit", "Quit", true, Some("CmdOrCtrl+Q"))?,
-				])?,
+					&MenuItem::with_id(handle, "save", "Save", true, Some("CmdOrCtrl+S"))?,
+					&MenuItem::with_id(handle, "save_as", "Save As...", true, Some("CmdOrCtrl+Shift+S"))?,
+					&PredefinedMenuItem::separator(handle)?,
 
-				&Submenu::with_id_and_items(handle, "export", "Export", true, &[
-					&MenuItem::with_id(handle, "export_data", "Export Data", true, None::<&str>)?,
-					&MenuItem::with_id(handle, "export_images", "Export Images", true, None::<&str>)?,
+					&Submenu::with_id_and_items(handle, "export", "Export", true, &[
+						&MenuItem::with_id(handle, "export_data", "Export Data", true, None::<&str>)?,
+						&MenuItem::with_id(handle, "export_images", "Export Images", true, None::<&str>)?,
+					])?,
+
+					&Submenu::with_id_and_items(handle, "import", "Import", true, &[
+						&MenuItem::with_id(handle, "import_strings", "Import Strings", true, None::<&str>)?,
+					])?,
+
+					&PredefinedMenuItem::separator(handle)?,
+					&MenuItem::with_id(handle, "quit", "Quit", true, Some("CmdOrCtrl+Q"))?,
 				])?,
 
 				&Submenu::with_id_and_items(handle, "help", "Help", true, &[
@@ -101,9 +118,12 @@ fn main() {
 
 				match id.as_str() {
 					"open" => open_bin(handle),
-					"quit" => try_quit(handle),
+					"save" => save_bin(handle),
+					"save_as" => save_bin_as(handle),
 					"export_data" => export_data(handle),
 					"export_images" => export_images(handle),
+					"import_strings" => import_strings(handle),
+					"quit" => try_quit(handle),
 					"about" => handle.emit("show_about_dialog", "").unwrap(),
 					_ => {}
 				}
@@ -150,68 +170,6 @@ fn main() {
 		.run(tauri::generate_context!())
 
 		.expect("error while running tauri application");
-}
-
-#[tauri::command]
-fn open_bin(handle: AppHandle) {
-	spawn(async move {
-		let data_state: State<DataState> = handle.state();
-		let image_state: State<ImageState> = handle.state();
-
-		let mut file_dialog = FileDialog::new()
-			.add_filter("firmware dump", &["bin"]);
-		if let Some(base_path) = data_state.base_path.lock().unwrap().clone() {
-			file_dialog = file_dialog.set_directory(base_path);
-		}
-
-		if let Some(path) = file_dialog.pick_file() {
-			show_spinner(&handle);
-
-			let raw_data = fs::read(&path).unwrap();
-			let data = DataView::new(&raw_data);
-
-			let bin_type = if &raw_data[0..14] == b"GP-SPIF-HEADER" {
-				BinType::Firmware
-			} else {
-				BinType::SmaCard
-			};
-
-			match &bin_type {
-				BinType::SmaCard => {
-					match read_card(&data) {
-						Ok(card) => {
-							*data_state.data_pack.lock().unwrap() = Some(card.data_pack.clone());
-							*data_state.sprite_pack.lock().unwrap() = Some(card.sprite_pack.clone());
-							if let Ok(image_data) = get_image_data(&card.sprite_pack.clone()) {
-								*image_state.images.lock().unwrap() = image_data;
-							}
-							handle.emit("show_card", card).unwrap();
-						},
-						Err(why) => show_error_message(why)
-					}
-				},
-
-				BinType::Firmware => {
-					match read_firmware(&data) {
-						Ok(firmware) => {
-							*data_state.data_pack.lock().unwrap() = Some(firmware.data_pack.clone());
-							*data_state.sprite_pack.lock().unwrap() = Some(firmware.sprite_pack.clone());
-							if let Ok(image_data) = get_image_data(&firmware.sprite_pack.clone()) {
-								*image_state.images.lock().unwrap() = image_data;
-							}
-							handle.emit("show_firmware", firmware).unwrap();
-						},
-						Err(why) => show_error_message(why)
-					}
-				}
-			}
-
-			*data_state.bin_type.lock().unwrap() = Some(bin_type);
-			*data_state.base_path.lock().unwrap() = Some(path.parent().unwrap().to_path_buf());
-
-			hide_spinner(&handle);
-		}
-	});
 }
 
 pub fn show_error_message(why: Box<dyn Error>) {

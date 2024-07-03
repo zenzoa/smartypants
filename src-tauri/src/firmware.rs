@@ -13,5 +13,6 @@ pub struct Firmware {
 pub fn read_firmware(data: &DataView) -> Result<Firmware, Box<dyn Error>> {
 	let data_pack = get_data_pack(&data.chunk(0x6CE000, 0x730000 - 0x6CE000))?;
 	let sprite_pack = get_sprite_pack(&data.chunk(0x730000, data.len() - 0x730000))?;
+
 	Ok(Firmware { data_pack, sprite_pack })
 }

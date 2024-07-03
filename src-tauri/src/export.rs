@@ -23,7 +23,7 @@ pub fn export_data(handle: AppHandle) {
 			let mut file_dialog = FileDialog::new()
 				.add_filter("JSON", &["json"]);
 
-			if let Some(base_path) = data_state.base_path.lock().unwrap().clone() {
+			if let Some(base_path) = data_state.base_path.lock().unwrap().as_ref() {
 				file_dialog = file_dialog.set_directory(base_path);
 			}
 
@@ -41,7 +41,7 @@ pub fn export_data(handle: AppHandle) {
 }
 
 pub fn export_data_to(data_state: &DataState, path: &PathBuf) -> Result<(), Box<dyn Error>> {
-	if let Some(data_pack) = data_state.data_pack.lock().unwrap().clone() {
+	if let Some(data_pack) = data_state.data_pack.lock().unwrap().as_ref() {
 		let serialized = serde_json::to_string(&data_pack)?;
 		let mut file = File::create(path)?;
 		file.write_all(serialized.as_bytes())?;
@@ -63,7 +63,7 @@ pub fn export_images(handle: AppHandle) {
 		} else {
 			let mut file_dialog = FileDialog::new()
 				.add_filter("PNG image", &["png"]);
-			if let Some(base_path) = data_state.base_path.lock().unwrap().clone() {
+			if let Some(base_path) = data_state.base_path.lock().unwrap().as_ref() {
 				file_dialog = file_dialog.set_directory(base_path);
 			}
 			let file_result = file_dialog.save_file();

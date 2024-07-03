@@ -201,6 +201,11 @@ table button:hover {
 	background-color: var(--table-header-bg);
 }
 
+hr {
+	border: none;
+	border-bottom: 1px solid #ccc;
+}
+
 .dialog {
 	display: none;
 	z-index: 200;

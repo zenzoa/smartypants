@@ -1,6 +1,6 @@
 use std::error::Error;
 
-use crate::data_view::DataView;
+use crate::data_view::{ DataView, words_to_bytes };
 
 mod particle_emitter;
 mod scene;
@@ -32,18 +32,25 @@ impl EntityId {
 			}
 		}
 	}
+
+	pub fn to_word(&self) -> u16 {
+		match self.card_id {
+			Some(card_id) => (card_id as u16) << 8 & self.entity_id,
+			None => self.entity_id
+		}
+	}
 }
 
 #[derive(Clone, serde::Serialize)]
 pub struct DataPack {
-	particle_emitters: Vec<particle_emitter::ParticleEmitter>,
-	scenes: Vec<scene::Scene>,
-	strings: Vec<tamastring::TamaString>,
-	table9: Vec<Vec<u16>>,
-	items: Vec<item::Item>,
-	characters: Vec<character::Character>,
-	graphics_nodes: Vec<graphics_node::GraphicsNode>,
-	frame_groups: Vec<frame::FrameGroup>
+	pub particle_emitters: Vec<particle_emitter::ParticleEmitter>,
+	pub scenes: Vec<scene::Scene>,
+	pub strings: Vec<tamastring::TamaString>,
+	pub table9: Vec<Vec<u16>>,
+	pub items: Vec<item::Item>,
+	pub characters: Vec<character::Character>,
+	pub graphics_nodes: Vec<graphics_node::GraphicsNode>,
+	pub frame_groups: Vec<frame::FrameGroup>
 }
 
 pub fn get_data_pack(data: &DataView) -> Result<DataPack, Box<dyn Error>> {
@@ -86,7 +93,7 @@ pub fn get_data_pack(data: &DataView) -> Result<DataPack, Box<dyn Error>> {
 	})
 }
 
-fn get_table_offsets(data: &DataView) -> Result<(Vec<usize>, Vec<usize>), Box<dyn Error>> {
+pub fn get_table_offsets(data: &DataView) -> Result<(Vec<usize>, Vec<usize>), Box<dyn Error>> {
 	if data.len() < 80 {
 		return Err("Unable to read data table offsets: too short".into());
 	}
@@ -113,4 +120,50 @@ fn get_table_offsets(data: &DataView) -> Result<(Vec<usize>, Vec<usize>), Box<dy
 	}
 
 	Ok((table_offsets, table_sizes))
+}
+
+pub fn save_data_pack(original_data: &[u8], data_pack: &DataPack) -> Result<Vec<u8>, Box<dyn Error>> {
+	let data = DataView::new(&original_data);
+	let data_pack_data_view = data.chunk(0x6CE000, 0x730000 - 0x6CE000);
+	let (table_offsets, table_sizes) = get_table_offsets(&data_pack_data_view)?;
+
+	let mut tables: Vec<Vec<u8>> = Vec::new();
+	for i in 0..20 {
+		let table_data = data_pack_data_view.chunk(table_offsets[i], table_sizes[i]).data;
+		tables.push(table_data);
+	}
+
+	let mut string_offsets: Vec<u16> = Vec::new();
+	let mut string_data: Vec<u16> = Vec::new();
+	for string in &data_pack.strings {
+		string_offsets.push(string_data.len() as u16);
+		for word in string.to_words() {
+			string_data.push(word);
+		}
+	}
+	string_offsets.push(0xFFFF);
+	tables[6] = words_to_bytes(&string_data);
+	tables[7] = words_to_bytes(&string_offsets);
+
+	let mut table_offset_data: Vec<u8> = Vec::new();
+	let mut new_table_offsets: Vec<u32> = Vec::new();
+	let mut last_offset: u32 = 80;
+	for table in &tables {
+		new_table_offsets.push(last_offset);
+		for byte in u32::to_le_bytes(last_offset / 2) {
+			table_offset_data.push(byte);
+		}
+		let table_size = table.len() as u32;
+		last_offset += table_size;
+	}
+
+	let new_data_pack = [
+			table_offset_data,
+			tables[..].concat()
+		].concat();
+
+	let mut new_data = Vec::from(original_data);
+	let _: Vec<_> = new_data.splice(0x6CE000..0x730000, new_data_pack).collect();
+
+	Ok(new_data)
 }
