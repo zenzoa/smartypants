@@ -56,6 +56,15 @@ impl DataView {
 		}
 		value
 	}
+
+	pub fn find_bytes(&self, bytes: &[u8]) -> Option<usize> {
+		for i in 0..self.data.len() {
+			if self.data[i..].starts_with(bytes) {
+				return Some(i);
+			}
+		}
+		None
+	}
 }
 
 pub fn words_to_bytes(words: &[u16]) -> Vec<u8> {
@@ -83,6 +92,7 @@ pub fn get_char_encoding(ch: &str) -> Option<u16> {
 			return Some(*key)
 		}
 	}
+	println!("ERROR: Could not find encoding for '{}'", ch);
 	None
 }
 
@@ -307,7 +317,7 @@ fn get_encoding_map() -> HashMap<u16, String> {
 		(187u16, String::from("!")),
 		(188u16, String::from("?")),
 		(189u16, String::from("&")),
-		(190u16, String::from("⭕")),
+		(190u16, String::from("○")),
 		(191u16, String::from("✕")),
 		(192u16, String::from("♥")),
 		(193u16, String::from("☼")),
@@ -367,6 +377,7 @@ fn get_encoding_map() -> HashMap<u16, String> {
 		(247u16, String::from("🍰")),
 		(248u16, String::from("✨")),
 		(249u16, String::from("🟥")),
+		(250u16, String::from("'")),
 		(61440u16, String::from("<br>")),
 		(61441u16, String::from("<hr>")), //new page
 		(61442u16, String::from("{username}")),

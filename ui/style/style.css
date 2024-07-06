@@ -72,6 +72,10 @@ main {
 	background-color: #eee;
 }
 
+#toolbar button:hover {
+	background-color: #fff;
+}
+
 button.text, button.icon {
 	border-radius: 8px;
 	border-bottom: 2px solid #666;
@@ -87,7 +91,7 @@ button.text {
 }
 
 button.text:hover, button.icon:hover {
-	background-color: #fff;
+	background-color: #eee;
 }
 
 button.text:active, button.icon:active {
@@ -158,6 +162,10 @@ button.icon img {
 	flex-grow: 1;
 	overflow: auto;
 	padding: 16px;
+}
+
+.section-toolbar {
+	margin-bottom: 12px;
 }
 
 .table-title {

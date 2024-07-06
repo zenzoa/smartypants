@@ -11,6 +11,8 @@ mod character;
 mod graphics_node;
 mod frame;
 
+const FIRMWARE_DATA_PACK_SIZE: usize = 0x730000 - 0x6CE000;
+
 #[derive(Clone, Debug, serde::Serialize)]
 pub struct EntityId {
 	pub card_id: Option<u8>,
@@ -115,7 +117,7 @@ pub fn get_table_offsets(data: &DataView) -> Result<(Vec<usize>, Vec<usize>), Bo
 			if data.len() < table_offsets[i] {
 				return Err("Unable to read data table offsets: invalid offsets".into());
 			}
-			table_sizes.push(data.len() - table_offsets[i]);
+			table_sizes.push(0);
 		}
 	}
 
@@ -124,7 +126,7 @@ pub fn get_table_offsets(data: &DataView) -> Result<(Vec<usize>, Vec<usize>), Bo
 
 pub fn save_data_pack(original_data: &[u8], data_pack: &DataPack) -> Result<Vec<u8>, Box<dyn Error>> {
 	let data = DataView::new(&original_data);
-	let data_pack_data_view = data.chunk(0x6CE000, 0x730000 - 0x6CE000);
+	let data_pack_data_view = data.chunk(0x6CE000, FIRMWARE_DATA_PACK_SIZE);
 	let (table_offsets, table_sizes) = get_table_offsets(&data_pack_data_view)?;
 
 	let mut tables: Vec<Vec<u8>> = Vec::new();
@@ -157,10 +159,14 @@ pub fn save_data_pack(original_data: &[u8], data_pack: &DataPack) -> Result<Vec<
 		last_offset += table_size;
 	}
 
-	let new_data_pack = [
+	let mut new_data_pack = [
 			table_offset_data,
 			tables[..].concat()
 		].concat();
+
+	let padding_size = FIRMWARE_DATA_PACK_SIZE - new_data_pack.len();
+	let padding = vec![0; padding_size];
+	new_data_pack = [new_data_pack, padding].concat();
 
 	let mut new_data = Vec::from(original_data);
 	let _: Vec<_> = new_data.splice(0x6CE000..0x730000, new_data_pack).collect();

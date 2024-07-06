@@ -83,6 +83,7 @@ window.addEventListener('load', () => {
 			header: setupFirmwareHeader(),
 			particleEmitters: setupParticleEmitters(),
 			scenes: setupScenes(),
+			menu_strings: setupMenuStrings(),
 			strings: setupStrings(),
 			table9: setupTable9(),
 			items: setupItems(),
@@ -99,8 +100,10 @@ window.addEventListener('load', () => {
 				`Particle Emitters <span class="tag">${cardData.data_pack.particle_emitters.length}</span>`),
 			button({id: 'view-scenes-button', onclick: viewScenes},
 				`Scenes <span class="tag">${cardData.data_pack.scenes.length}</span>`),
+			button({id: 'view-menu-strings-button', onclick: viewMenuStrings},
+				`Menu Strings <span class="tag">${cardData.menu_strings.length}</span>`),
 			button({id: 'view-strings-button', onclick: viewStrings},
-				`Strings <span class="tag">${cardData.data_pack.strings.length}</span>`),
+				`Dialog Strings <span class="tag">${cardData.data_pack.strings.length}</span>`),
 			button({id: 'view-table9-button', onclick: viewTable9},
 				`Unknown <span class="tag">${cardData.data_pack.table9.length}</span>`),
 			button({id: 'view-items-button', onclick: viewItems},
@@ -127,6 +130,12 @@ window.addEventListener('load', () => {
 		cardData.data_pack.strings = event.payload
 		sections.strings = setupStrings()
 		viewStrings()
+	})
+
+	tauri_listen('update_menu_strings', event => {
+		cardData.menu_strings = event.payload
+		sections.menu_strings = setupMenuStrings()
+		viewMenuStrings()
 	})
 
 	tauri_listen('show_spinner', () => {

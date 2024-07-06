@@ -25,9 +25,9 @@ mod import;
 use data_view::DataView;
 use data_pack::DataPack;
 use sprite_pack::SpritePack;
-use file::{ open_bin, save_bin, save_bin_as };
+use file::{ open_bin, save_bin, save_bin_as, continue_if_modified };
 use export::{ export_data, export_images };
-use import::import_strings;
+use import::{ import_strings, import_menu_strings };
 
 pub struct DataState {
 	pub is_modified: Mutex<bool>,
@@ -36,6 +36,7 @@ pub struct DataState {
 	pub base_path: Mutex<Option<PathBuf>>,
 	pub data_pack: Mutex<Option<DataPack>>,
 	pub sprite_pack: Mutex<Option<SpritePack>>,
+	pub menu_strings: Mutex<Option<Vec<String>>>,
 	pub original_data: Mutex<Option<Vec<u8>>>
 }
 
@@ -48,6 +49,7 @@ impl DataState {
 			base_path: Mutex::new(None),
 			data_pack: Mutex::new(None),
 			sprite_pack: Mutex::new(None),
+			menu_strings: Mutex::new(None),
 			original_data: Mutex::new(None)
 		}
 	}
@@ -77,6 +79,7 @@ fn main() {
 			export_data,
 			export_images,
 			import_strings,
+			import_menu_strings,
 			try_quit
 		])
 
@@ -95,10 +98,6 @@ fn main() {
 					&Submenu::with_id_and_items(handle, "export", "Export", true, &[
 						&MenuItem::with_id(handle, "export_data", "Export Data", true, None::<&str>)?,
 						&MenuItem::with_id(handle, "export_images", "Export Images", true, None::<&str>)?,
-					])?,
-
-					&Submenu::with_id_and_items(handle, "import", "Import", true, &[
-						&MenuItem::with_id(handle, "import_strings", "Import Strings", true, None::<&str>)?,
 					])?,
 
 					&PredefinedMenuItem::separator(handle)?,
@@ -122,7 +121,6 @@ fn main() {
 					"save_as" => save_bin_as(handle),
 					"export_data" => export_data(handle),
 					"export_images" => export_images(handle),
-					"import_strings" => import_strings(handle),
 					"quit" => try_quit(handle),
 					"about" => handle.emit("show_about_dialog", "").unwrap(),
 					_ => {}
@@ -145,10 +143,21 @@ fn main() {
 				let subimage_index = usize::from_str_radix(subimage_index_str, 10)?;
 
 				let image_state: State<ImageState> = app.state();
-				let img = image_state.images.lock().unwrap()
-					.get(image_id).ok_or("image not found")?
-					.get(subimage_index).ok_or("subimage not found")?
-					.clone();
+				let img = match image_state.images.lock().unwrap().get(image_id) {
+					Some(image) => {
+						match image.get(subimage_index) {
+							Some(subimage) => {
+								subimage.clone()
+							},
+							None => {
+								return Err(format!("subimage {}-{} not found", image_id, subimage_index).into());
+							}
+						}
+					},
+					None => {
+						return Err(format!("image {} not found", image_id).into());
+					}
+				};
 
 				let mut img_data = Cursor::new(Vec::new());
 				let _ = img.write_to(&mut img_data, image::ImageFormat::Png)?;
@@ -160,8 +169,8 @@ fn main() {
 
 			match do_the_thing() {
 				Ok(response) => response,
-				Err(why) => {
-					println!("ERROR: {}", why);
+				Err(_why) => {
+					// println!("ERROR: {}", why);
 					not_found
 				}
 			}
@@ -192,5 +201,28 @@ pub fn hide_spinner(handle: &AppHandle) {
 
 #[tauri::command]
 fn try_quit(handle: AppHandle) {
-	handle.exit(0);
+	if continue_if_modified(&handle) {
+		handle.exit(0);
+	}
+}
+
+pub fn update_window_title(handle: &AppHandle) {
+	let window = handle.get_webview_window("main").unwrap();
+	let data_state: State<DataState> = handle.state();
+	let file_path_opt = data_state.file_path.lock().unwrap();
+
+	let modified_indicator = if *data_state.is_modified.lock().unwrap() { "*" } else { "" };
+
+	let file_name = match file_path_opt.as_ref() {
+		Some(file_path) => match file_path.file_name() {
+			Some(file_name) => Some(file_name.to_string_lossy()),
+			None => None
+		},
+		None => None
+	};
+
+	match file_name {
+		Some(file_name) => window.set_title(&format!("Smarty Pants - {}{}", file_name, modified_indicator)).unwrap(),
+		None => window.set_title("Smarty Pants").unwrap()
+	}
 }

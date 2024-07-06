@@ -8,7 +8,7 @@ use tauri::async_runtime::spawn;
 
 use rfd::FileDialog;
 
-use crate::{ DataState, show_error_message, show_spinner, hide_spinner };
+use crate::{ DataState, show_error_message, show_spinner, hide_spinner, update_window_title };
 
 #[derive(Clone, Debug, serde::Deserialize)]
 struct TamaStringTranslation {
@@ -29,6 +29,15 @@ impl TamaStringTranslation {
 
 #[tauri::command]
 pub fn import_strings(handle: AppHandle) {
+	import_strings_base(handle, import_strings_from);
+}
+
+#[tauri::command]
+pub fn import_menu_strings(handle: AppHandle) {
+	import_strings_base(handle, import_menu_strings_from);
+}
+
+pub fn import_strings_base(handle: AppHandle, callback: fn(&AppHandle, &PathBuf) -> Result<(), Box<dyn Error>>) {
 	spawn(async move {
 		let data_state: State<DataState> = handle.state();
 
@@ -48,8 +57,12 @@ pub fn import_strings(handle: AppHandle) {
 
 			if let Some(path) = file_result {
 				show_spinner(&handle);
-				if let Err(why) = import_strings_from(&handle, &path) {
-					show_error_message(why);
+				match callback(&handle, &path) {
+					Ok(()) => {
+						*data_state.is_modified.lock().unwrap() = true;
+						update_window_title(&handle);
+					}
+					Err(why) => show_error_message(why)
 				}
 				hide_spinner(&handle);
 			}
@@ -60,6 +73,44 @@ pub fn import_strings(handle: AppHandle) {
 pub fn import_strings_from(handle: &AppHandle, path: &PathBuf) -> Result<(), Box<dyn Error>> {
 	let data_state: State<DataState> = handle.state();
 
+	let translation_list = parse_csv(path)?;
+
+	if let Some(data_pack) = data_state.data_pack.lock().unwrap().as_mut() {
+		for tamastring in data_pack.strings.iter_mut() {
+			if let Some(new_string) = translation_list.get(&tamastring.id.entity_id) {
+				tamastring.value = new_string.value.clone();
+			}
+		}
+		handle.emit("update_strings", data_pack.strings.clone()).unwrap();
+	}
+
+	Ok(())
+}
+
+pub fn import_menu_strings_from(handle: &AppHandle, path: &PathBuf) -> Result<(), Box<dyn Error>> {
+	let data_state: State<DataState> = handle.state();
+
+	let translation_list = parse_csv(path)?;
+
+	let mut new_menu_strings = Vec::new();
+
+	if let Some(menu_strings) = data_state.menu_strings.lock().unwrap().as_ref() {
+		for i in 0..menu_strings.len() {
+			if let Some(new_string) = translation_list.get(&(i as u16)) {
+				new_menu_strings.push(new_string.value.clone());
+			} else {
+				return Err(format!("Missing menu string {}", i).into());
+			}
+		}
+		handle.emit("update_menu_strings", &new_menu_strings).unwrap();
+	}
+
+	*data_state.menu_strings.lock().unwrap() = Some(new_menu_strings);
+
+	Ok(())
+}
+
+fn parse_csv(path: &PathBuf) -> Result<HashMap<u16, TamaStringTranslation>, Box<dyn Error>> {
 	let mut csv_reader = csv::Reader::from_path(&path)?;
 	let mut translation_list = HashMap::new();
 	let mut temp_translation = TamaStringTranslation::new(0);
@@ -82,8 +133,8 @@ pub fn import_strings_from(handle: &AppHandle, path: &PathBuf) -> Result<(), Box
 				if let Some(line) = record.get(2) {
 					if line.len() > 0 {
 						temp_translation.line_count += 1;
-						if temp_translation.line_count == 2 {
-							temp_translation.value = format!("{}<br>ーーー<br>{}", temp_translation.value, line);
+						if temp_translation.line_count == 2 || temp_translation.line_count == 4 {
+							temp_translation.value = format!("{}<hr>{}", temp_translation.value, line);
 						} else {
 							temp_translation.value = format!("{}<br>{}", temp_translation.value, line);
 						}
@@ -95,17 +146,5 @@ pub fn import_strings_from(handle: &AppHandle, path: &PathBuf) -> Result<(), Box
 
 	translation_list.insert(temp_translation.id, temp_translation);
 
-	let mut data_pack_opt = data_state.data_pack.lock().unwrap();
-	if let Some(data_pack) = data_pack_opt.as_mut() {
-		for tamastring in data_pack.strings.iter_mut() {
-			if let Some(new_string) = translation_list.get(&tamastring.id.entity_id) {
-				tamastring.value = new_string.value.clone();
-			}
-		}
-		handle.emit("update_strings", data_pack.strings.clone()).unwrap();
-	}
-
-	*data_state.is_modified.lock().unwrap() = true;
-
-	Ok(())
+	Ok(translation_list)
 }
