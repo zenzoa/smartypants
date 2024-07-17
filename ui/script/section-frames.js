@@ -2,7 +2,7 @@ const setupFrames = () => {
 	const frame_groups = cardData.data_pack.frame_groups
 	let el = document.createElement('div')
 	frame_groups.forEach((frame_group, i) => {
-		el.append(div({id: `framegroup-${i}`, 'class': 'table-title'}, `Frame Group ${i}`))
+		el.append(div({id: `framegroup-${i}`, className: 'table-title'}, `Frame Group ${i}`))
 		el.append(table([
 			thead([tr([
 				th('-'),

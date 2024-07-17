@@ -1,6 +1,8 @@
 use std::error::Error;
 use std::path::PathBuf;
 use std::collections::HashMap;
+use image::io::Reader as ImageReader;
+use image::{ RgbaImage, GenericImageView };
 use csv;
 
 use tauri::{ AppHandle, Manager, State };
@@ -8,7 +10,8 @@ use tauri::async_runtime::spawn;
 
 use rfd::FileDialog;
 
-use crate::{ DataState, show_error_message, show_spinner, hide_spinner, update_window_title };
+use crate::{ DataState, ImageState, show_error_message, show_spinner, hide_spinner, update_window_title };
+use crate::sprite_pack::{ palette::Color, get_spritesheet_dims };
 
 #[derive(Clone, Debug, serde::Deserialize)]
 struct TamaStringTranslation {
@@ -147,4 +150,110 @@ fn parse_csv(path: &PathBuf) -> Result<HashMap<u16, TamaStringTranslation>, Box<
 	translation_list.insert(temp_translation.id, temp_translation);
 
 	Ok(translation_list)
+}
+
+#[tauri::command]
+pub fn import_image_spritesheet(handle: AppHandle, image_index: usize) {
+	spawn(async move {
+		let data_state: State<DataState> = handle.state();
+
+		let mut file_dialog = FileDialog::new()
+			.add_filter("PNG", &["png"]);
+
+		if let Some(base_path) = data_state.base_path.lock().unwrap().as_ref() {
+			file_dialog = file_dialog.set_directory(base_path);
+		}
+
+		let file_result = file_dialog.pick_file();
+
+		if let Some(path) = file_result {
+			show_spinner(&handle);
+			if let Err(why) = import_image_spritesheet_from(&handle, image_index, &path) {
+				show_error_message(why);
+			}
+			hide_spinner(&handle);
+		}
+	});
+}
+
+fn import_image_spritesheet_from(handle: &AppHandle, image_index: usize, path: &PathBuf) -> Result<(), Box<dyn Error>> {
+	let spritesheet = ImageReader::open(path)?.decode()?;
+	let image_state: State<ImageState> = handle.state();
+
+	if let Some(subimages) = image_state.images.lock().unwrap().get_mut(image_index) {
+		let (width, height) = get_spritesheet_dims(&subimages);
+		if spritesheet.width() != width || spritesheet.height() != height {
+			return Err(format!("Spritesheet does not match expected dimensions: {}x{}", width, height).into());
+		}
+
+		let mut x = 0;
+		for (i, subimage) in subimages.iter_mut().enumerate() {
+			let new_subimage = spritesheet.view(x, 0, subimage.width(), subimage.height()).to_image();
+			replace_image_data(handle, image_index, i, &new_subimage)?;
+			*subimage = new_subimage;
+			x += subimage.width();
+		}
+
+		handle.emit("update_image", image_index).unwrap();
+	}
+
+	Ok(())
+}
+
+fn replace_image_data(handle: &AppHandle, image_index: usize, subimage_index: usize, img: &RgbaImage) -> Result<(), Box<dyn Error>> {
+	let data_state: State<DataState> = handle.state();
+	let mut sprite_pack_opt = data_state.sprite_pack.lock().unwrap();
+	if let Some(sprite_pack) = sprite_pack_opt.as_mut() {
+		if let Some(image_def) = sprite_pack.image_defs.get(image_index) {
+			let first_color_index = image_def.first_palette_index as usize * 4;
+			let colors = &sprite_pack.palettes[first_color_index..];
+
+			let sprites_per_subimage = image_def.width_in_sprites as usize * image_def.height_in_sprites as usize;
+			let first_sprite_index = image_def.first_sprite_index as usize + (subimage_index / sprites_per_subimage);
+
+			let subimage_width = img.width() / image_def.width_in_sprites as u32;
+			let subimage_height = img.height() / image_def.height_in_sprites as u32;
+			let mut img_views = Vec::new();
+			for row in 0..image_def.height_in_sprites as u32 {
+				for col in 0..image_def.width_in_sprites as u32 {
+					let x = col * subimage_width;
+					let y = row * subimage_height;
+					let img_view = img.view(x, y, subimage_width, subimage_height);
+					img_views.push(img_view);
+				}
+			}
+
+			for i in 0..sprites_per_subimage {
+				if let Some(sprite) = sprite_pack.sprites.get_mut(first_sprite_index + i) {
+					let sprite_width = sprite.width as u32;
+					let sprite_height = sprite.height as u32;
+					let img_view = img_views[i];
+					if img_view.width() == sprite_width && img_view.height() == sprite_height {
+						let mut new_pixels: Vec<u16> = Vec::new();
+						for y in 0..sprite_height {
+							for x in 0..sprite_width {
+								let pixel = img_view.get_pixel(x, y);
+								let color = Color::from_rgba(pixel);
+								match colors.iter().position(|&x| x == color || (color.a == 0 && x.a == 0)) {
+									Some(color_index) => {
+										new_pixels.push(color_index as u16);
+									},
+									None => {
+										println!("r: {}, g: {}, b: {}, a: {}", color.r, color.g, color.b, color.a);
+										return Err(format!("New image uses color not in the original at ({}, {}).", x, y).into());
+									}
+								}
+							}
+						}
+						sprite.pixels = new_pixels;
+					} else {
+						return Err("New image's dimensions do not match the original's dimensions.".into());
+					}
+				}
+			}
+
+		}
+	}
+
+	Ok(())
 }

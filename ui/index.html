@@ -11,6 +11,7 @@
 		<script src="./script/main.js"></script>
 		<script src="./script/html.js"></script>
 		<script src="./script/about-dialog.js"></script>
+		<script src="./script/edit-dialog.js"></script>
 		<script src="./script/section-animations.js"></script>
 		<script src="./script/section-characters.js"></script>
 		<script src="./script/section-frames.js"></script>
@@ -19,6 +20,7 @@
 		<script src="./script/section-particle-emitters.js"></script>
 		<script src="./script/section-scenes.js"></script>
 		<script src="./script/section-sprites.js"></script>
+		<script src="./script/section-palettes.js"></script>
 		<script src="./script/section-strings.js"></script>
 	</head>
 
@@ -46,6 +48,30 @@
 			</div>
 
 			<div id="main">
+			</div>
+
+			<div id="edit-dialog" class="dialog">
+				<div class="dialog-content">
+					<div class="dialog-header">
+						<span id="edit-dialog-title" class="dialog-title">
+						</span>
+						<button id="edit-close-button" class="dialog-close-button icon" title="Close Dialog">
+							<img src="icons/cancel.svg" alt="Close Dialog">
+						</button>
+					</div>
+					<div class="dialog-body">
+						<div id="edit-dialog-contents">
+						</div>
+						<div class="dialog-actions">
+							<button id="edit-cancel-button" class="text" title="Cancel">
+								Cancel
+							</button>
+							<button id="edit-ok-button" class="text" title="Ok">
+								Ok
+							</button>
+						</div>
+					</div>
+				</div>
 			</div>
 
 			<div id="about-dialog" class="dialog">

@@ -2,7 +2,7 @@ const setupScenes = () => {
 	let el = document.createElement('div')
 	const scenes = cardData.data_pack.scenes
 	scenes.forEach((scene, i) => {
-		el.append(div({id: `scene-${i}`, 'class': 'table-title'}, `Scene ${i}`))
+		el.append(div({id: `scene-${i}`, className: 'table-title'}, `Scene ${i}`))
 		el.append(table([
 			thead([tr([
 				th('-'),

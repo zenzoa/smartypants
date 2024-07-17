@@ -77,6 +77,54 @@ pub fn words_to_bytes(words: &[u16]) -> Vec<u8> {
 	bytes
 }
 
+pub struct BitWriter {
+	pub bytes: Vec<u8>,
+	pub byte_in_progress: u8,
+	pub shift: usize
+}
+
+impl BitWriter {
+	pub fn new() -> BitWriter {
+		BitWriter { bytes: Vec::new(), byte_in_progress: 0, shift: 0 }
+	}
+
+	// pub fn from(bytes: Vec<u8>) -> BitWriter {
+	// 	BitWriter { bytes, byte_in_progress: 0, shift: 0 }
+	// }
+
+	// pub fn write_byte(&mut self, byte: u8) {
+	// 	self.bytes.push(byte);
+	// }
+
+	pub fn write_bit(&mut self, bit: bool) {
+		self.byte_in_progress = self.byte_in_progress << 1;
+		if bit {
+			self.byte_in_progress |= 0x1;
+		}
+		self.shift += 1;
+		if self.shift == 8 {
+			self.bytes.push(self.byte_in_progress);
+			self.byte_in_progress = 0;
+			self.shift = 0;
+		}
+	}
+
+	pub fn write_bits(&mut self, mut value: u32, mut num_bits: usize) {
+		if num_bits > 32 { num_bits = 32 }
+		let mask: u32 = (1 << num_bits - 1) as u32;
+		for _ in 0..num_bits {
+			self.write_bit(value & mask != 0);
+			value = value << 1;
+		}
+	}
+
+	pub fn end(&mut self) {
+		if self.shift != 0 {
+			self.write_bits(0, 8 - self.shift);
+		}
+	}
+}
+
 pub fn get_encoded_char(word: u16) -> String {
 	let map = get_encoding_map();
 	match map.get(&word) {

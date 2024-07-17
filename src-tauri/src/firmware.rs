@@ -1,8 +1,11 @@
 use std::error::Error;
 
+use crate::DataState;
 use crate::data_view::{ DataView, get_encoded_char, encode_string, words_to_bytes };
-use crate::data_pack::{ DataPack, get_data_pack };
-use crate::sprite_pack::{ SpritePack, get_sprite_pack };
+use crate::data_pack::{ DataPack, get_data_pack, save_data_pack };
+use crate::sprite_pack::{ SpritePack, get_sprite_pack, save_sprite_pack };
+
+const FIRMWARE_DATA_PACK_SIZE: usize = 0x730000 - 0x6CE000;
 
 #[derive(Clone, serde::Serialize)]
 pub struct Firmware {
@@ -25,6 +28,40 @@ pub fn read_firmware(data: &DataView) -> Result<Firmware, Box<dyn Error>> {
 	};
 
 	Ok(Firmware { data_pack, sprite_pack, menu_strings })
+}
+
+pub fn save_firmware(original_data: &[u8], data_state: &DataState) -> Result<Vec<u8>, Box<dyn Error>> {
+	let mut new_data = DataView::new(original_data);
+
+	if let Some(old_menu_strings) = data_state.menu_strings.lock().unwrap().as_ref() {
+		match new_data.find_bytes(&[0xF9, 0x01, 0xFB, 0x01]) {
+			Some(start_index) => {
+				let new_menu_strings_data = save_menu_strings(&old_menu_strings)?;
+				let end_index = start_index + new_menu_strings_data.len();
+				let _: Vec<_> = new_data.data.splice(start_index..end_index, new_menu_strings_data).collect();
+			},
+			None => {
+				return Err("Can't find menu strings".into());
+			}
+		}
+	}
+
+	if let Some(old_data_pack) = data_state.data_pack.lock().unwrap().as_ref() {
+		let data_pack_data_view = new_data.chunk(0x6CE000, FIRMWARE_DATA_PACK_SIZE);
+		let new_data_pack_data = save_data_pack(&old_data_pack, &data_pack_data_view)?;
+		let padding_size = FIRMWARE_DATA_PACK_SIZE - new_data_pack_data.len();
+		let padding = vec![0; padding_size];
+		let new_data_pack_data = [new_data_pack_data, padding].concat();
+		let _: Vec<_> = new_data.data.splice(0x6CE000..0x730000, new_data_pack_data).collect();
+	}
+
+	if let Some(old_sprite_pack) = data_state.sprite_pack.lock().unwrap().as_ref() {
+		let new_sprite_pack_data = save_sprite_pack(&old_sprite_pack)?;
+		let end_of_sprite_pack = 0x730000 + new_sprite_pack_data.len();
+		let _: Vec<_> = new_data.data.splice(0x730000..end_of_sprite_pack, new_sprite_pack_data).collect();
+	}
+
+	Ok(new_data.data)
 }
 
 pub fn read_menu_strings(data: &DataView) -> Result<Vec<String>, Box<dyn Error>> {
@@ -67,7 +104,7 @@ pub fn read_menu_strings(data: &DataView) -> Result<Vec<String>, Box<dyn Error>>
 	Ok(menu_strings)
 }
 
-pub fn save_menu_strings(original_data: &[u8], menu_strings: &[String]) -> Result<Vec<u8>, Box<dyn Error>> {
+pub fn save_menu_strings(menu_strings: &[String]) -> Result<Vec<u8>, Box<dyn Error>> {
 	let mut offsets: Vec<u16> = vec![menu_strings.len() as u16 + 2];
 	for (i, string) in menu_strings.iter().enumerate() {
 		let last_offset = offsets[i];
@@ -98,15 +135,5 @@ pub fn save_menu_strings(original_data: &[u8], menu_strings: &[String]) -> Resul
 	let padding = vec![0; padding_size];
 	let new_menu_strings_data = [new_menu_strings_data, padding].concat();
 
-	match DataView::new(original_data).find_bytes(&[0xF9, 0x01, 0xFB, 0x01]) {
-		Some(start_index) => {
-			let mut new_data = Vec::from(original_data);
-			let end_index = start_index + new_menu_strings_data.len();
-			let _: Vec<_> = new_data.splice(start_index..end_index, new_menu_strings_data).collect();
-			Ok(new_data)
-		},
-		None => {
-			Err("Can't find menu strings".into())
-		}
-	}
+	Ok(new_menu_strings_data)
 }

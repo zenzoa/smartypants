@@ -25,7 +25,7 @@ window.addEventListener('load', () => {
 		timestamp = Date.now()
 
 		const main = document.getElementById('main')
-		main.innerHTML = ''
+		main.replaceChildren()
 
 		sections = {
 			header: setupCardHeader(),
@@ -37,7 +37,8 @@ window.addEventListener('load', () => {
 			characters: setupCharacters(),
 			animations: setupAnimations(),
 			frames: setupFrames(),
-			sprites: setupSprites()
+			sprites: setupSprites(),
+			palettes: setupPalettes()
 		}
 
 		const nav = div({id: 'sidebar'}, [
@@ -61,6 +62,8 @@ window.addEventListener('load', () => {
 				`Frames <span class="tag">${cardData.data_pack.frame_groups.length}</span>`),
 			button({id: 'view-sprites-button', onclick: viewSprites},
 				`Images <span class="tag">${cardData.sprite_pack.image_defs.length}</span>`),
+			button({id: 'view-palettes-button', onclick: viewPalettes},
+				`Palettes <span class="tag">${Math.ceil(cardData.sprite_pack.palettes.length / 4)}</span>`)
 		])
 
 		contents = div({id: 'contents'})
@@ -77,7 +80,7 @@ window.addEventListener('load', () => {
 		timestamp = Date.now()
 
 		const main = document.getElementById('main')
-		main.innerHTML = ''
+		main.replaceChildren()
 
 		sections = {
 			header: setupFirmwareHeader(),
@@ -90,7 +93,8 @@ window.addEventListener('load', () => {
 			characters: setupCharacters(),
 			animations: setupAnimations(),
 			frames: setupFrames(),
-			sprites: setupSprites()
+			sprites: setupSprites(),
+			palettes: setupPalettes()
 		}
 
 		const nav = div({id: 'sidebar'}, [
@@ -116,6 +120,8 @@ window.addEventListener('load', () => {
 				`Frames <span class="tag">${cardData.data_pack.frame_groups.length}</span>`),
 			button({id: 'view-sprites-button', onclick: viewSprites},
 				`Images <span class="tag">${cardData.sprite_pack.image_defs.length}</span>`),
+			button({id: 'view-palettes-button', onclick: viewPalettes},
+				`Palettes <span class="tag">${Math.ceil(cardData.sprite_pack.palettes.length / 4)}</span>`)
 		])
 
 		contents = div({id: 'contents'})
@@ -136,6 +142,20 @@ window.addEventListener('load', () => {
 		cardData.menu_strings = event.payload
 		sections.menu_strings = setupMenuStrings()
 		viewMenuStrings()
+	})
+
+	tauri_listen('update_image_def', event => {
+		updateImageDef(event.payload[0], event.payload[1])
+	})
+
+	tauri_listen('update_image', event => {
+		timestamp = Date.now()
+		const imageIndex = event.payload
+		const subimageCount = cardData.sprite_pack.image_defs[imageIndex].subimage_count
+		for (let i=0; i < subimageCount; i++) {
+			const subimageEl = document.getElementById(`subimage-${imageIndex}-${i}`)
+			subimageEl.src = convertFileSrc(`${timestamp}-${imageIndex}-${i}`, 'getimage')
+		}
 	})
 
 	tauri_listen('show_spinner', () => {
@@ -168,10 +188,12 @@ window.addEventListener('load', () => {
 })
 
 const setupDialogs = () => {
+	EditDialog.setup()
 	AboutDialog.setup()
 }
 
 const closeDialogs = () => {
+	EditDialog.close()
 	AboutDialog.close()
 }
 
@@ -195,12 +217,20 @@ const exportImages = () => {
 	tauri_invoke('export_images')
 }
 
+const importImageSpritesheet = (imageIndex) => {
+	tauri_invoke('import_image_spritesheet', { imageIndex })
+}
+
+const exportImageSpritesheet = (imageIndex) => {
+	tauri_invoke('export_image_spritesheet', { imageIndex })
+}
+
 const selectSection = (sectionId) => {
 	for (child of document.getElementById('sidebar').children) {
 		child.classList.remove('selected')
 	}
 	document.getElementById(sectionId).classList.add('selected')
-	contents.innerHTML = ''
+	contents.replaceChildren()
 	contents.scrollTo(0, 0)
 }
 

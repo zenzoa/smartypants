@@ -2,9 +2,9 @@ use std::error::Error;
 use image::RgbaImage;
 use crate::data_view::DataView;
 
-mod image_def;
-mod palette;
-mod sprite;
+pub mod image_def;
+pub mod palette;
+pub mod sprite;
 
 #[derive(Clone, serde::Serialize)]
 pub struct SpritePack {
@@ -14,13 +14,13 @@ pub struct SpritePack {
 }
 
 pub fn get_sprite_pack(data: &DataView) -> Result<SpritePack, Box<dyn Error>> {
-	let images_offset = data.get_u32(0) as usize;
+	let image_defs_offset = data.get_u32(0) as usize;
 	let sprite_defs_offset = data.get_u32(4) as usize;
 	let palettes_offset = data.get_u32(8) as usize;
 	let pixel_data_offset = data.get_u32(12) as usize;
 
-	let image_data = data.chunk(images_offset, sprite_defs_offset - images_offset);
-	let mut image_defs = image_def::get_images(&image_data)?;
+	let image_def_data = data.chunk(image_defs_offset, sprite_defs_offset - image_defs_offset);
+	let mut image_defs = image_def::get_image_defs(&image_def_data)?;
 
 	let palette_data = data.chunk(palettes_offset, pixel_data_offset - palettes_offset);
 	let palettes = palette::get_palettes(&palette_data)?;
@@ -31,7 +31,9 @@ pub fn get_sprite_pack(data: &DataView) -> Result<SpritePack, Box<dyn Error>> {
 
 	image_def::calc_subimage_counts(&mut image_defs, sprites.len());
 
-	Ok(SpritePack { image_defs, palettes, sprites })
+	let sprite_pack = SpritePack { image_defs, palettes, sprites };
+
+	Ok(sprite_pack)
 }
 
 pub fn get_image_data(sprite_pack: &SpritePack) -> Result<Vec<Vec<RgbaImage>>, Box<dyn Error>> {
@@ -51,8 +53,8 @@ pub fn get_image_data(sprite_pack: &SpritePack) -> Result<Vec<Vec<RgbaImage>>, B
 			sprites.len()
 		};
 		let image_sprites = &sprites[first_sprite_index..next_sprite_index];
-		let sprites_per_subimage = image_def.width_in_sprites * image_def.height_in_sprites;
-		let subimage_count = image_sprites.len() / sprites_per_subimage as usize;
+		let sprites_per_subimage = image_def.width_in_sprites as usize * image_def.height_in_sprites as usize;
+		let subimage_count = image_sprites.len() / sprites_per_subimage;
 
 		let image_colors = &palettes[(4 * image_def.first_palette_index as usize)..];
 
@@ -90,4 +92,46 @@ pub fn get_image_data(sprite_pack: &SpritePack) -> Result<Vec<Vec<RgbaImage>>, B
 	}
 
 	Ok(images)
+}
+
+pub fn save_sprite_pack(sprite_pack: &SpritePack) -> Result<Vec<u8>, Box<dyn Error>> {
+	let mut data: Vec<u8> = Vec::new();
+
+	let image_def_data = image_def::save_image_defs(&sprite_pack.image_defs)?;
+	let palette_data = palette::save_palettes(&sprite_pack.palettes)?;
+	let (sprite_def_data, pixel_data) = sprite::save_sprites(&sprite_pack.sprites)?;
+
+	let image_defs_offset = 16;
+	let sprite_defs_offset = image_defs_offset + image_def_data.len();
+	let palettes_offset = sprite_defs_offset + sprite_def_data.len();
+	let pixel_data_offset = palettes_offset + palette_data.len();
+
+	for bytes in u32::to_le_bytes(image_defs_offset as u32) {
+		data.push(bytes);
+	}
+	for bytes in u32::to_le_bytes(sprite_defs_offset as u32) {
+		data.push(bytes);
+	}
+	for bytes in u32::to_le_bytes(palettes_offset as u32) {
+		data.push(bytes);
+	}
+	for bytes in u32::to_le_bytes(pixel_data_offset as u32) {
+		data.push(bytes);
+	}
+
+	data = [data, image_def_data, sprite_def_data, palette_data, pixel_data].concat();
+
+	Ok(data)
+}
+
+pub fn get_spritesheet_dims(subimages: &[RgbaImage]) -> (u32, u32) {
+	let mut width = 0;
+	let mut height = 0;
+	for subimage in subimages {
+		width += subimage.width();
+		if subimage.height() > height {
+			height = subimage.height();
+		}
+	}
+	(width, height)
 }

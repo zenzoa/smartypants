@@ -9,10 +9,9 @@ use rfd::{ FileDialog, MessageButtons, MessageDialog, MessageDialogResult };
 
 use crate::{ DataState, ImageState, BinType, show_spinner, hide_spinner, show_error_message, update_window_title };
 use crate::data_view::DataView;
-use crate::data_pack::save_data_pack;
-use crate::sprite_pack::get_image_data ;
+use crate::sprite_pack::get_image_data;
 use crate::smacard::read_card;
-use crate::firmware::{ read_firmware, save_menu_strings };
+use crate::firmware::{ read_firmware, save_firmware };
 
 #[tauri::command]
 pub fn open_bin(handle: AppHandle) {
@@ -115,8 +114,15 @@ pub fn save_bin_as(handle: AppHandle) {
 		} else {
 			let mut file_dialog = FileDialog::new()
 				.add_filter("firmware dump", &["bin"]);
+
 			if let Some(base_path) = data_state.base_path.lock().unwrap().as_ref() {
 				file_dialog = file_dialog.set_directory(base_path);
+			}
+
+			if let Some(file_path) = data_state.file_path.lock().unwrap().as_ref() {
+				if let Some(file_stem) = file_path.file_stem() {
+					file_dialog = file_dialog.set_file_name(format!("{}-copy.bin", file_stem.to_string_lossy()));
+				}
 			}
 
 			if let Some(path) = file_dialog.save_file() {
@@ -136,31 +142,19 @@ pub fn save_bin_as(handle: AppHandle) {
 
 pub fn save(handle: &AppHandle, path: &PathBuf) -> Result<(), Box<dyn Error>> {
 	let data_state: State<DataState> = handle.state();
-	// let image_state: State<ImageState> = handle.state();
 
 	if let Some(bin_type) = data_state.bin_type.lock().unwrap().as_ref() {
 		match bin_type {
 			BinType::Firmware => {
 				match data_state.original_data.lock().unwrap().as_ref() {
 					Some(original_data) => {
-						match data_state.data_pack.lock().unwrap().as_ref() {
-							Some(data_pack) => {
-								match data_state.menu_strings.lock().unwrap().as_ref() {
-									Some(menu_strings) => {
-										let new_data = save_data_pack(&original_data, &data_pack)?;
-										let new_data = save_menu_strings(&new_data, &menu_strings)?;
-										if original_data.len() == new_data.len() {
-											fs::write(path, &new_data)?;
-											*data_state.is_modified.lock().unwrap() = false;
-											update_window_title(&handle);
-										} else {
-											return Err(format!("New data is {} bytes, but original is {} bytes", new_data.len(), original_data.len()).into());
-										}
-									},
-									None => return Err("No menu strings found in current file".into())
-								}
-							},
-							None => return Err("No data pack found in current file".into())
+						let new_data = save_firmware(&original_data, &data_state)?;
+						if original_data.len() == new_data.len() {
+							fs::write(path, &new_data)?;
+							*data_state.is_modified.lock().unwrap() = false;
+							update_window_title(&handle);
+						} else {
+							return Err(format!("New data is {} bytes, but original is {} bytes", new_data.len(), original_data.len()).into());
 						}
 					},
 					None => return Err("No original data found for current file".into())

@@ -26,8 +26,8 @@ use data_view::DataView;
 use data_pack::DataPack;
 use sprite_pack::SpritePack;
 use file::{ open_bin, save_bin, save_bin_as, continue_if_modified };
-use export::{ export_data, export_images };
-use import::{ import_strings, import_menu_strings };
+use export::{ export_data, export_images, export_image_spritesheet };
+use import::{ import_strings, import_menu_strings, import_image_spritesheet };
 
 pub struct DataState {
 	pub is_modified: Mutex<bool>,
@@ -78,9 +78,12 @@ fn main() {
 			save_bin_as,
 			export_data,
 			export_images,
+			import_image_spritesheet,
+			export_image_spritesheet,
 			import_strings,
 			import_menu_strings,
-			try_quit
+			try_quit,
+			sprite_pack::image_def::update_image_def
 		])
 
 		.manage(DataState::new())

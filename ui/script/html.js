@@ -1,12 +1,15 @@
 const el = (type, props, contents) => {
 	const element = document.createElement(type)
 
-	if (typeof props === 'object' && props.length == null) {
+	if (typeof props === 'object' && props != null && props.length == null) {
 		for (const propName in props) {
+			const propValue = props[propName]
 			if (propName === 'onclick') {
-				element.addEventListener('click', props[propName])
+				element.addEventListener('click', propValue)
+			} else if (propName === 'className') {
+				element.className = propValue
 			} else {
-				element.setAttribute(propName, props[propName])
+				element.setAttribute(propName, propValue)
 			}
 		}
 	} else if (contents == null) {
@@ -25,6 +28,8 @@ const el = (type, props, contents) => {
 }
 
 const div = el.bind(this, 'div')
+const span = el.bind(this, 'span')
+const a = el.bind(this, 'a')
 const button = el.bind(this, 'button')
 const table = el.bind(this, 'table')
 const thead = el.bind(this, 'thead')
@@ -101,6 +106,18 @@ const linkToSubimage = (imageId, subimageIndex) => {
 	} else {
 		return '-'
 	}
+}
+
+const linkToPalette = (paletteIndex) => {
+	const link = button(paletteIndex)
+	link.addEventListener('click', () => {
+		viewPalettes()
+		const paletteEl = document.getElementById(`palette-${paletteIndex}`)
+		if (paletteEl != null) {
+			paletteEl.scrollIntoView()
+		}
+	})
+	return link
 }
 
 const displayImage = (imageId, subimageIndex, showTooltip) => {
