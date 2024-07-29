@@ -5,7 +5,7 @@ use crate::data_view::DataView;
 pub enum FrameLayerType {
 	Unknown,
 	Face,
-	NPC,
+	Npc,
 	Body,
 	HeadAccessory,
 	FaceAccessory,
@@ -14,7 +14,7 @@ pub enum FrameLayerType {
 	HandAccessory
 }
 
-#[derive(Clone, Debug, serde::Serialize)]
+#[derive(Default, Clone, Debug, serde::Serialize)]
 pub struct FrameLayer {
 	pub prop_bitmask: u16,
 	pub x: Option<i16>,
@@ -22,19 +22,6 @@ pub struct FrameLayer {
 	pub subimage_index: Option<u16>,
 	pub layer_type: Option<FrameLayerType>,
 	pub image_id: Option<EntityId>,
-}
-
-impl FrameLayer {
-	pub fn new() -> FrameLayer {
-		FrameLayer {
-			prop_bitmask: 0,
-			x: None,
-			y: None,
-			layer_type: None,
-			subimage_index: None,
-			image_id: None
-		}
-	}
 }
 
 #[derive(Clone, serde::Serialize)]
@@ -53,7 +40,7 @@ pub fn get_frame_layers(data: &DataView) -> Vec<FrameLayer> {
 
 	let mut i = 0;
 	while i + 2 <= data.len() {
-		let mut layer = FrameLayer::new();
+		let mut layer = FrameLayer::default();
 		let bitmask = data.get_u16(i);
 
 		if bitmask & 0x1 > 0 {
@@ -89,7 +76,7 @@ pub fn get_frame_layers(data: &DataView) -> Vec<FrameLayer> {
 			if i < data.len() {
 				layer.layer_type = Some(match data.get_u16(i) {
 					1 => FrameLayerType::Face,
-					2 => FrameLayerType::NPC,
+					2 => FrameLayerType::Npc,
 					3 => FrameLayerType::Body,
 					4 => FrameLayerType::HeadAccessory,
 					6 => FrameLayerType::FaceAccessory,
@@ -105,7 +92,7 @@ pub fn get_frame_layers(data: &DataView) -> Vec<FrameLayer> {
 			i += 2;
 			if i < data.len() {
 				layer.image_id = Some(EntityId::new(data.get_u16(i)));
-				if let None = layer.subimage_index {
+				if layer.subimage_index.is_none() {
 					layer.subimage_index = Some(0);
 				}
 			}

@@ -61,7 +61,7 @@ pub fn get_image_data(sprite_pack: &SpritePack) -> Result<Vec<Vec<RgbaImage>>, B
 		let mut subimages = Vec::new();
 
 		for j in 0..subimage_count {
-			let first_subimage_sprite_index = sprites_per_subimage as usize * j;
+			let first_subimage_sprite_index = sprites_per_subimage * j;
 			let first_subimage_sprite = &image_sprites[first_subimage_sprite_index];
 			let subimage_width = image_def.width_in_sprites as u32 * first_subimage_sprite.width as u32;
 			let subimage_height = image_def.height_in_sprites as u32 * first_subimage_sprite.height as u32;
@@ -79,7 +79,7 @@ pub fn get_image_data(sprite_pack: &SpritePack) -> Result<Vec<Vec<RgbaImage>>, B
 							let adj_y = y + (row * sprite_height);
 							let color_index = sprite.pixels.get(y * sprite_width + x).ok_or("pixel data not found")?;
 							let color = image_colors.get(*color_index as usize).ok_or("color not found")?;
-							img.put_pixel(adj_x as u32, adj_y as u32, color.into_rgba());
+							img.put_pixel(adj_x as u32, adj_y as u32, color.as_rgba());
 						}
 					}
 				}

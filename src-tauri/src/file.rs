@@ -10,6 +10,7 @@ use rfd::{ FileDialog, MessageButtons, MessageDialog, MessageDialogResult };
 use crate::{ DataState, ImageState, BinType, show_spinner, hide_spinner, show_error_message, update_window_title };
 use crate::data_view::DataView;
 use crate::sprite_pack::get_image_data;
+use crate::text::FontState;
 use crate::smacard::read_card;
 use crate::firmware::{ read_firmware, save_firmware };
 
@@ -19,6 +20,7 @@ pub fn open_bin(handle: AppHandle) {
 		spawn(async move {
 			let data_state: State<DataState> = handle.state();
 			let image_state: State<ImageState> = handle.state();
+			let font_state: State<FontState> = handle.state();
 
 			let mut file_dialog = FileDialog::new()
 				.add_filter("firmware dump", &["bin"]);
@@ -41,7 +43,7 @@ pub fn open_bin(handle: AppHandle) {
 
 				match &bin_type {
 					BinType::SmaCard => {
-						match read_card(&data) {
+						match read_card(&font_state, &data) {
 							Ok(card) => {
 								*data_state.data_pack.lock().unwrap() = Some(card.data_pack.clone());
 								*data_state.sprite_pack.lock().unwrap() = Some(card.sprite_pack.clone());
@@ -55,14 +57,23 @@ pub fn open_bin(handle: AppHandle) {
 					},
 
 					BinType::Firmware => {
-						match read_firmware(&data) {
+						match read_firmware(&handle, &data) {
 							Ok(firmware) => {
 								*data_state.data_pack.lock().unwrap() = Some(firmware.data_pack.clone());
+
 								*data_state.sprite_pack.lock().unwrap() = Some(firmware.sprite_pack.clone());
 								if let Ok(image_data) = get_image_data(&firmware.sprite_pack.clone()) {
 									*image_state.images.lock().unwrap() = image_data;
 								}
+								if let Some(small_font_images) = image_state.images.lock().unwrap().get(98) {
+									font_state.small_font_images.lock().unwrap().clone_from(small_font_images);
+								}
+								if let Some(large_font_images) = image_state.images.lock().unwrap().get(99) {
+									font_state.large_font_images.lock().unwrap().clone_from(large_font_images);
+								}
+
 								*data_state.menu_strings.lock().unwrap() = Some(firmware.menu_strings.clone());
+
 								handle.emit("show_firmware", firmware).unwrap();
 							},
 							Err(why) => show_error_message(why)
@@ -86,7 +97,7 @@ pub fn open_bin(handle: AppHandle) {
 #[tauri::command]
 pub fn save_bin(handle: AppHandle) {
 	let data_state: State<DataState> = handle.state();
-	let no_data = if let None = *data_state.data_pack.lock().unwrap() { true } else { false };
+	let no_data = data_state.data_pack.lock().unwrap().is_none();
 	if no_data {
 		show_error_message("No data to save".into());
 
@@ -96,6 +107,7 @@ pub fn save_bin(handle: AppHandle) {
 			Some(file_path) => {
 				if let Err(why) = save(&handle, &file_path) {
 					show_error_message(why);
+					update_window_title(&handle);
 				}
 			},
 			None => save_bin_as(handle)
@@ -107,7 +119,7 @@ pub fn save_bin(handle: AppHandle) {
 pub fn save_bin_as(handle: AppHandle) {
 	spawn(async move {
 		let data_state: State<DataState> = handle.state();
-		let no_data = if let None = *data_state.data_pack.lock().unwrap() { true } else { false };
+		let no_data = data_state.data_pack.lock().unwrap().is_none();
 		if no_data {
 			show_error_message("No data to save".into());
 
@@ -131,6 +143,7 @@ pub fn save_bin_as(handle: AppHandle) {
 					Ok(()) => {
 						*data_state.file_path.lock().unwrap() = Some(path.to_path_buf());
 						*data_state.base_path.lock().unwrap() = Some(path.parent().unwrap().to_path_buf());
+						update_window_title(&handle);
 					},
 					Err(why) => show_error_message(why)
 				}
@@ -148,11 +161,10 @@ pub fn save(handle: &AppHandle, path: &PathBuf) -> Result<(), Box<dyn Error>> {
 			BinType::Firmware => {
 				match data_state.original_data.lock().unwrap().as_ref() {
 					Some(original_data) => {
-						let new_data = save_firmware(&original_data, &data_state)?;
+						let new_data = save_firmware(handle, original_data)?;
 						if original_data.len() == new_data.len() {
 							fs::write(path, &new_data)?;
 							*data_state.is_modified.lock().unwrap() = false;
-							update_window_title(&handle);
 						} else {
 							return Err(format!("New data is {} bytes, but original is {} bytes", new_data.len(), original_data.len()).into());
 						}
@@ -175,10 +187,7 @@ pub fn continue_if_modified(handle: &AppHandle) -> bool {
 			.set_description("Do you want to continue anyway and lose any unsaved work?")
 			.set_buttons(MessageButtons::YesNo)
 			.show();
-		match dialog_result {
-			MessageDialogResult::Yes => true,
-			_ => false
-		}
+		matches!(dialog_result, MessageDialogResult::Yes)
 	} else {
 		true
 	}

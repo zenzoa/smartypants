@@ -47,6 +47,12 @@
 			"icons/icon.ico"
 		],
 		"targets": "all",
+		"resources": [
+			"tamafonts/default_font_large.png",
+			"tamafonts/default_font_small.png",
+			"encodings/encoding_jp.json",
+			"encodings/encoding_en.json"
+		],
 		"windows": {
 			"allowDowngrades": true,
 			"certificateThumbprint": null,

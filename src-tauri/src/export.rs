@@ -1,5 +1,5 @@
 use std::error::Error;
-use std::path::PathBuf;
+use std::path::{ PathBuf, Path };
 use std::fs::File;
 use std::io::prelude::*;
 use image::{ RgbaImage, GenericImage };
@@ -11,13 +11,14 @@ use rfd::FileDialog;
 
 use crate::{ DataState, ImageState, show_error_message, show_spinner, hide_spinner };
 use crate::sprite_pack::get_spritesheet_dims;
+use crate::text::FontState;
 
 #[tauri::command]
 pub fn export_data(handle: AppHandle) {
 	spawn(async move {
 		let data_state: State<DataState> = handle.state();
 
-		let no_data = if let None = *data_state.data_pack.lock().unwrap() { true } else { false };
+		let no_data = data_state.data_pack.lock().unwrap().is_none();
 		if no_data {
 			show_error_message("No data to export".into());
 
@@ -65,7 +66,7 @@ pub fn export_images(handle: AppHandle) {
 		let data_state: State<DataState> = handle.state();
 		let image_state: State<ImageState> = handle.state();
 
-		if image_state.images.lock().unwrap().len() == 0 || image_state.images.lock().unwrap()[0].len() == 0 {
+		if image_state.images.lock().unwrap().is_empty() || image_state.images.lock().unwrap()[0].is_empty() {
 			show_error_message("No images to export".into());
 
 		} else {
@@ -95,7 +96,7 @@ pub fn export_images(handle: AppHandle) {
 	});
 }
 
-pub fn export_images_to(image_state: &ImageState, path: &PathBuf) -> Result<(), Box<dyn Error>> {
+pub fn export_images_to(image_state: &ImageState, path: &Path) -> Result<(), Box<dyn Error>> {
 	let base_name = path.file_stem().unwrap().to_string_lossy();
 
 	let image_count = image_state.images.lock().unwrap().len();
@@ -143,12 +144,12 @@ pub fn export_image_spritesheet(handle: AppHandle, image_index: usize) {
 	});
 }
 
-fn export_image_spritesheet_to(handle: &AppHandle, image_index: usize, path: &PathBuf) -> Result<(), Box<dyn Error>> {
+fn export_image_spritesheet_to(handle: &AppHandle, image_index: usize, path: &Path) -> Result<(), Box<dyn Error>> {
 	let image_state: State<ImageState> = handle.state();
 	if let Some(subimages) = image_state.images.lock().unwrap().get(image_index) {
-		let (width, height) = get_spritesheet_dims(&subimages);
+		let (width, height) = get_spritesheet_dims(subimages);
 
-		let mut spritesheet = RgbaImage::new(width as u32, height as u32);
+		let mut spritesheet = RgbaImage::new(width, height);
 		let mut x = 0;
 		for subimage in subimages {
 			spritesheet.copy_from(subimage, x, 0)?;
@@ -157,5 +158,37 @@ fn export_image_spritesheet_to(handle: &AppHandle, image_index: usize, path: &Pa
 
 		spritesheet.save(path)?;
 	}
+	Ok(())
+}
+
+#[tauri::command]
+pub fn export_encoding(handle: AppHandle) {
+	spawn(async move {
+		let data_state: State<DataState> = handle.state();
+		let font_state: State<FontState> = handle.state();
+
+		let mut file_dialog = FileDialog::new()
+			.add_filter("JSON", &["json"]);
+
+		if let Some(base_path) = data_state.base_path.lock().unwrap().as_ref() {
+			file_dialog = file_dialog.set_directory(base_path);
+		}
+
+		let file_result = file_dialog.save_file();
+
+		if let Some(path) = file_result {
+			show_spinner(&handle);
+			if let Err(why) = export_encoding_to(&font_state, &path) {
+				show_error_message(why);
+			}
+			hide_spinner(&handle);
+		}
+	});
+}
+
+fn export_encoding_to(font_state: &FontState, path: &PathBuf) -> Result<(), Box<dyn Error>> {
+	let serialized = serde_json::to_string(&font_state.char_codes)?;
+	let mut file = File::create(path)?;
+	file.write_all(serialized.as_bytes())?;
 	Ok(())
 }

@@ -96,14 +96,14 @@ pub fn save_sprites(sprites: &[Sprite]) -> Result<(Vec<u8>, Vec<u8>), Box<dyn Er
 			32 => 2,
 			64 => 3,
 			_ => return Err("Invalid width".into())
-		} << 4 as u16;
+		} << 4;
 		let height = match sprite.height {
 			8 => 0,
 			16 => 1,
 			32 => 2,
 			64 => 3,
 			_ => return Err("Invalid height".into())
-		} << 6 as u16;
+		} << 6;
 		let palette_bank = (sprite.palette_bank as u16) << 8;
 		let draw_depth = (sprite.draw_depth as u16) << 12;
 		let blend_enabled = if sprite.blend_enabled { 1 << 14 } else { 0 };

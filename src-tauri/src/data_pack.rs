@@ -1,15 +1,19 @@
 use std::error::Error;
 
+use tauri::State;
+
+use crate::text::FontState;
 use crate::data_view::{ DataView, words_to_bytes };
 
-mod particle_emitter;
-mod scene;
-mod tamastring;
-mod table9;
-mod item;
-mod character;
-mod graphics_node;
-mod frame;
+pub mod table1;
+pub mod particle_emitter;
+pub mod scene;
+pub mod tamastring;
+pub mod table9;
+pub mod item;
+pub mod character;
+pub mod graphics_node;
+pub mod frame;
 
 #[derive(Clone, Debug, serde::Serialize)]
 pub struct EntityId {
@@ -35,7 +39,7 @@ impl EntityId {
 
 	pub fn to_word(&self) -> u16 {
 		match self.card_id {
-			Some(card_id) => (card_id as u16) << 8 & self.entity_id,
+			Some(card_id) => (1 << 15) | ((card_id as u16) << 8) | self.entity_id,
 			None => self.entity_id
 		}
 	}
@@ -43,6 +47,7 @@ impl EntityId {
 
 #[derive(Clone, serde::Serialize)]
 pub struct DataPack {
+	pub table1: Vec<u16>,
 	pub particle_emitters: Vec<particle_emitter::ParticleEmitter>,
 	pub scenes: Vec<scene::Scene>,
 	pub strings: Vec<tamastring::TamaString>,
@@ -53,12 +58,14 @@ pub struct DataPack {
 	pub frame_groups: Vec<frame::FrameGroup>
 }
 
-pub fn get_data_pack(data: &DataView) -> Result<DataPack, Box<dyn Error>> {
-	let (table_offsets, table_sizes) = get_table_offsets(&data)?;
+pub fn get_data_pack(font_state: &FontState, data: &DataView) -> Result<DataPack, Box<dyn Error>> {
+	let (table_offsets, table_sizes) = get_table_offsets(data)?;
 
 	let get_table_data = |i: usize| -> DataView {
 		data.chunk(table_offsets[i], table_sizes[i])
 	};
+
+	let table1 = get_table_data(1).to_words();
 
 	let particle_emitters = particle_emitter::get_particle_emitters(&get_table_data(2));
 
@@ -66,14 +73,14 @@ pub fn get_data_pack(data: &DataView) -> Result<DataPack, Box<dyn Error>> {
 	let scene_layer_offsets = scene::get_scene_layer_offsets(&get_table_data(4), scene_offsets, scene_sizes);
 	let scenes = scene::get_scenes(&get_table_data(5), scene_layer_offsets);
 
-	let strings = tamastring::get_strings(&get_table_data(6));
+	let strings = tamastring::get_strings(font_state, &get_table_data(6));
 
 	let (table9_offsets, table9_sizes) = table9::get_entity_offsets(&get_table_data(8));
 	let table9 = table9::get_entities(&get_table_data(9), table9_offsets, table9_sizes);
 
-	let items = item::get_items(&get_table_data(10));
+	let items = item::get_items(font_state, &get_table_data(10));
 
-	let characters = character::get_characters(&get_table_data(11));
+	let characters = character::get_characters(font_state, &get_table_data(11));
 
 	let (graphics_nodes_offsets, graphics_nodes_sizes) = graphics_node::get_graphics_nodes_offsets(&get_table_data(13));
 	let graphics_nodes = graphics_node::get_graphics_nodes(&get_table_data(14), graphics_nodes_offsets, graphics_nodes_sizes);
@@ -81,7 +88,8 @@ pub fn get_data_pack(data: &DataView) -> Result<DataPack, Box<dyn Error>> {
 	let frame_layers = frame::get_frame_layers(&get_table_data(15));
 	let frame_groups = frame::get_frame_groups(&get_table_data(18), frame_layers);
 
-	Ok(DataPack {
+	let data_pack = DataPack {
+		table1,
 		particle_emitters,
 		scenes,
 		strings,
@@ -90,7 +98,9 @@ pub fn get_data_pack(data: &DataView) -> Result<DataPack, Box<dyn Error>> {
 		characters,
 		graphics_nodes,
 		frame_groups
-	})
+	};
+
+	Ok(data_pack)
 }
 
 pub fn get_table_offsets(data: &DataView) -> Result<(Vec<usize>, Vec<usize>), Box<dyn Error>> {
@@ -122,8 +132,8 @@ pub fn get_table_offsets(data: &DataView) -> Result<(Vec<usize>, Vec<usize>), Bo
 	Ok((table_offsets, table_sizes))
 }
 
-pub fn save_data_pack(data_pack: &DataPack, original_data: &DataView) -> Result<Vec<u8>, Box<dyn Error>> {
-	let (table_offsets, table_sizes) = get_table_offsets(&original_data)?;
+pub fn save_data_pack(data_pack: &DataPack, original_data: &DataView, font_state: State<FontState>) -> Result<Vec<u8>, Box<dyn Error>> {
+	let (table_offsets, table_sizes) = get_table_offsets(original_data)?;
 
 	let mut tables: Vec<Vec<u8>> = Vec::new();
 	for i in 0..20 {
@@ -135,13 +145,16 @@ pub fn save_data_pack(data_pack: &DataPack, original_data: &DataView) -> Result<
 	let mut string_data: Vec<u16> = Vec::new();
 	for string in &data_pack.strings {
 		string_offsets.push(string_data.len() as u16);
-		for word in string.to_words() {
+		for word in string.to_words(font_state.clone()) {
 			string_data.push(word);
 		}
 	}
 	string_offsets.push(0xFFFF);
+
 	tables[6] = words_to_bytes(&string_data);
 	tables[7] = words_to_bytes(&string_offsets);
+	tables[10] = item::save_items(&data_pack.items, font_state.clone())?;
+	tables[11] = character::save_characters(&data_pack.characters, font_state)?;
 
 	let mut table_offset_data: Vec<u8> = Vec::new();
 	let mut new_table_offsets: Vec<u32> = Vec::new();
@@ -157,7 +170,8 @@ pub fn save_data_pack(data_pack: &DataPack, original_data: &DataView) -> Result<
 
 	let data = [
 			table_offset_data,
-			tables[..].concat()
+			tables[..].concat(),
+			vec![2, 0]
 		].concat();
 
 	Ok(data)

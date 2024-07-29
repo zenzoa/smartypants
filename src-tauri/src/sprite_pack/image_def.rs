@@ -33,7 +33,7 @@ pub fn get_image_defs(data: &DataView) -> Result<Vec<ImageDef>, Box<dyn Error>> 
 	Ok(image_defs)
 }
 
-pub fn calc_subimage_counts(image_defs: &mut Vec<ImageDef>, sprite_count: usize) {
+pub fn calc_subimage_counts(image_defs: &mut [ImageDef], sprite_count: usize) {
 	for i in 0..image_defs.len() {
 		image_defs[i].next_sprite_index = if i+1 < image_defs.len() {
 			image_defs[i+1].first_sprite_index
@@ -64,14 +64,14 @@ pub fn save_image_defs(image_defs: &[ImageDef]) -> Result<Vec<u8>, Box<dyn Error
 }
 
 #[tauri::command]
-pub fn update_image_def(handle: AppHandle, data_state: State<DataState>, image_index: usize, first_palette_index: u16) {
+pub fn update_image_def(handle: AppHandle, data_state: State<DataState>, index: usize, first_palette_index: u16) {
 	let mut sprite_pack_opt = data_state.sprite_pack.lock().unwrap();
 	if let Some(sprite_pack) = sprite_pack_opt.as_mut() {
-		if let Some(image_def) = sprite_pack.image_defs.get_mut(image_index) {
+		if let Some(image_def) = sprite_pack.image_defs.get_mut(index) {
 			image_def.first_palette_index = first_palette_index;
 		}
-		if let Some(image_def) = sprite_pack.image_defs.get(image_index) {
-			handle.emit("update_image_def", (image_index, image_def)).unwrap();
+		if let Some(image_def) = sprite_pack.image_defs.get(index) {
+			handle.emit("update_image_def", (index, image_def)).unwrap();
 		}
 	}
 }

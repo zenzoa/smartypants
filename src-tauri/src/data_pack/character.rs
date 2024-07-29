@@ -1,5 +1,10 @@
+use std::error::Error;
+use tauri::{ AppHandle, Manager, State };
+
 use super::EntityId;
-use crate::data_view::DataView;
+use crate::DataState;
+use crate::data_view::{ DataView, words_to_bytes };
+use crate::text::{ FontState, encode_string_with_length };
 
 #[derive(Clone, serde::Serialize)]
 pub enum Gender {
@@ -30,7 +35,7 @@ pub struct Character {
 	pub gender: Gender
 }
 
-pub fn get_characters(data: &DataView) -> Vec<Character> {
+pub fn get_characters(font_state: &FontState, data: &DataView) -> Vec<Character> {
 
 	let mut characters = Vec::new();
 
@@ -38,15 +43,15 @@ pub fn get_characters(data: &DataView) -> Vec<Character> {
 	while i + 96 <= data.len() {
 		let id = EntityId::new(data.get_u16(i));
 		let character_type = data.get_u16(i + 2);
-		let name = data.get_encoded_string(i + 4, 10);
+		let name = data.get_encoded_string(font_state, i + 4, 10);
 		let profile_image_id = EntityId::new(data.get_u16(i + 24));
 		let icon_image_id = EntityId::new(data.get_u16(i + 26));
 		let composition_id = EntityId::new(data.get_u16(i + 28));
 		let unknown1 = EntityId::new(data.get_u16(i + 30));
-		let pronoun = data.get_encoded_string(i + 32, 6);
-		let statement = data.get_encoded_string(i + 44, 6);
-		let question1 = data.get_encoded_string(i + 56, 6);
-		let question2 = data.get_encoded_string(i + 68, 6);
+		let pronoun = data.get_encoded_string(font_state, i + 32, 6);
+		let statement = data.get_encoded_string(font_state, i + 44, 6);
+		let question1 = data.get_encoded_string(font_state, i + 56, 6);
+		let question2 = data.get_encoded_string(font_state, i + 68, 6);
 		let unknown2 = data.get_u16(i + 80);
 		let unknown3 = data.get_u16(i + 82);
 		let global_id = EntityId::new(data.get_u16(i + 84));
@@ -85,4 +90,48 @@ pub fn get_characters(data: &DataView) -> Vec<Character> {
 	}
 
 	characters
+}
+
+pub fn save_characters(characters: &[Character], font_state: State<FontState>) -> Result<Vec<u8>, Box<dyn Error>> {
+	let mut words: Vec<u16> = Vec::new();
+
+	for character in characters {
+		words.push(character.id.to_word());
+		words.push(character.character_type);
+		words = [words, encode_string_with_length(font_state.clone(), &character.name, 10)].concat();
+		words.push(character.profile_image_id.to_word());
+		words.push(character.icon_image_id.to_word());
+		words.push(character.composition_id.to_word());
+		words.push(character.unknown1.to_word());
+		words = [words, encode_string_with_length(font_state.clone(), &character.pronoun, 6)].concat();
+		words = [words, encode_string_with_length(font_state.clone(), &character.statement, 6)].concat();
+		words = [words, encode_string_with_length(font_state.clone(), &character.question1, 6)].concat();
+		words = [words, encode_string_with_length(font_state.clone(), &character.question2, 6)].concat();
+		words.push(character.unknown2);
+		words.push(character.unknown3);
+		words.push(character.global_id.to_word());
+		words.push(character.unknown4);
+		words.push(character.unknown5);
+		words.push(character.unknown6);
+		words.push(character.unknown7);
+		words.push(match character.gender {
+			Gender::Female => 0,
+			Gender::Male => 1
+		});
+	}
+
+	Ok(words_to_bytes(&words))
+}
+
+#[tauri::command]
+pub fn update_character(handle: AppHandle, data_state: State<DataState>, index: usize, name: String) {
+	let mut data_pack_opt = data_state.data_pack.lock().unwrap();
+	if let Some(data_pack) = data_pack_opt.as_mut() {
+		if let Some(character) = data_pack.characters.get_mut(index) {
+			character.name = name;
+		}
+		if let Some(character) = data_pack.characters.get(index) {
+			handle.emit("update_character", (index, character)).unwrap();
+		}
+	}
 }

@@ -4,6 +4,7 @@ const tauri_invoke = Tauri.core.invoke
 const convertFileSrc = Tauri.core.convertFileSrc
 
 let cardData = null
+let textEncoding = null
 let contents = null
 
 let timestamp = Date.now()
@@ -29,6 +30,7 @@ window.addEventListener('load', () => {
 
 		sections = {
 			header: setupCardHeader(),
+			table1: setupTable1(),
 			particleEmitters: setupParticleEmitters(),
 			scenes: setupScenes(),
 			strings: setupStrings(),
@@ -44,6 +46,8 @@ window.addEventListener('load', () => {
 		const nav = div({id: 'sidebar'}, [
 			button({id: 'view-header-button', onclick: viewCardHeader},
 				'Header'),
+			button({id: 'view-table1-button', onclick: viewTable1},
+				'Unknown'),
 			button({id: 'view-particle-emitters-button', onclick: viewParticleEmitters},
 				`Particle Emitters <span class="tag">${cardData.data_pack.particle_emitters.length}</span>`),
 			button({id: 'view-scenes-button', onclick: viewScenes},
@@ -84,6 +88,7 @@ window.addEventListener('load', () => {
 
 		sections = {
 			header: setupFirmwareHeader(),
+			table1: setupTable1(),
 			particleEmitters: setupParticleEmitters(),
 			scenes: setupScenes(),
 			menu_strings: setupMenuStrings(),
@@ -100,6 +105,8 @@ window.addEventListener('load', () => {
 		const nav = div({id: 'sidebar'}, [
 			button({id: 'view-header-button', onclick: viewFirmwareHeader},
 				'Header'),
+			button({id: 'view-table1-button', onclick: viewTable1},
+				'Unknown'),
 			button({id: 'view-particle-emitters-button', onclick: viewParticleEmitters},
 				`Particle Emitters <span class="tag">${cardData.data_pack.particle_emitters.length}</span>`),
 			button({id: 'view-scenes-button', onclick: viewScenes},
@@ -144,6 +151,14 @@ window.addEventListener('load', () => {
 		viewMenuStrings()
 	})
 
+	tauri_listen('update_item', event => {
+		updateItem(event.payload[0], event.payload[1])
+	})
+
+	tauri_listen('update_character', event => {
+		updateCharacter(event.payload[0], event.payload[1])
+	})
+
 	tauri_listen('update_image_def', event => {
 		updateImageDef(event.payload[0], event.payload[1])
 	})
@@ -164,6 +179,15 @@ window.addEventListener('load', () => {
 
 	tauri_listen('hide_spinner', () => {
 		document.getElementById('spinner').classList.remove('on')
+	})
+
+	tauri_listen('update_char_codes', event => {
+		textEncoding = event.payload.slice(1, 257)
+		EncodingDialog.open()
+	})
+
+	tauri_invoke('get_default_char_codes').then(result => {
+		textEncoding = result.slice(1, 257)
 	})
 
 	document.body.addEventListener('keydown', (event) => {
@@ -190,11 +214,13 @@ window.addEventListener('load', () => {
 const setupDialogs = () => {
 	EditDialog.setup()
 	AboutDialog.setup()
+	EncodingDialog.setup()
 }
 
 const closeDialogs = () => {
 	EditDialog.close()
 	AboutDialog.close()
+	EncodingDialog.close()
 }
 
 const openBin = () => {
@@ -232,6 +258,22 @@ const selectSection = (sectionId) => {
 	document.getElementById(sectionId).classList.add('selected')
 	contents.replaceChildren()
 	contents.scrollTo(0, 0)
+}
+
+const setupTable1 = () => {
+	const entities = cardData.data_pack.table1
+	const pairs = []
+	for (let i=0; i<entities.length/2; i++) {
+		pairs.push(formatHexCode(entities[i]) + ' ' + formatHexCode(entities[i+1]))
+	}
+	console.log('table1', entities, pairs)
+	return table([
+		tbody(pairs.map((pair, i) => tr(td(pair))))
+	])
+}
+const viewTable1 = () => {
+	selectSection('view-table1-button')
+	contents.append(sections.table1)
 }
 
 const setupTable9 = () => {

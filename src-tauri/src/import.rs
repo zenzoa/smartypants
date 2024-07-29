@@ -1,17 +1,19 @@
 use std::error::Error;
+use std::fs;
 use std::path::PathBuf;
 use std::collections::HashMap;
+
 use image::io::Reader as ImageReader;
 use image::{ RgbaImage, GenericImageView };
-use csv;
 
 use tauri::{ AppHandle, Manager, State };
 use tauri::async_runtime::spawn;
 
-use rfd::FileDialog;
+use rfd::{ FileDialog, MessageButtons, MessageDialog, MessageDialogResult };
 
 use crate::{ DataState, ImageState, show_error_message, show_spinner, hide_spinner, update_window_title };
 use crate::sprite_pack::{ palette::Color, get_spritesheet_dims };
+use crate::text::{ FontState, CharEncoding };
 
 #[derive(Clone, Debug, serde::Deserialize)]
 struct TamaStringTranslation {
@@ -44,7 +46,7 @@ pub fn import_strings_base(handle: AppHandle, callback: fn(&AppHandle, &PathBuf)
 	spawn(async move {
 		let data_state: State<DataState> = handle.state();
 
-		let no_data = if let None = *data_state.data_pack.lock().unwrap() { true } else { false };
+		let no_data = data_state.data_pack.lock().unwrap().is_none();
 		if no_data {
 			show_error_message("Open a BIN file to edit first".into());
 
@@ -81,7 +83,7 @@ pub fn import_strings_from(handle: &AppHandle, path: &PathBuf) -> Result<(), Box
 	if let Some(data_pack) = data_state.data_pack.lock().unwrap().as_mut() {
 		for tamastring in data_pack.strings.iter_mut() {
 			if let Some(new_string) = translation_list.get(&tamastring.id.entity_id) {
-				tamastring.value = new_string.value.clone();
+				tamastring.value.clone_from(&new_string.value);
 			}
 		}
 		handle.emit("update_strings", data_pack.strings.clone()).unwrap();
@@ -114,7 +116,7 @@ pub fn import_menu_strings_from(handle: &AppHandle, path: &PathBuf) -> Result<()
 }
 
 fn parse_csv(path: &PathBuf) -> Result<HashMap<u16, TamaStringTranslation>, Box<dyn Error>> {
-	let mut csv_reader = csv::Reader::from_path(&path)?;
+	let mut csv_reader = csv::Reader::from_path(path)?;
 	let mut translation_list = HashMap::new();
 	let mut temp_translation = TamaStringTranslation::new(0);
 
@@ -122,7 +124,7 @@ fn parse_csv(path: &PathBuf) -> Result<HashMap<u16, TamaStringTranslation>, Box<
 		let record = result?;
 
 		if let Some(id) = record.get(0) {
-			if let Ok(id) = u16::from_str_radix(id, 10) {
+			if let Ok(id) = id.parse::<u16>() {
 				if id > 0 {
 					translation_list.insert(temp_translation.id, temp_translation);
 				}
@@ -132,9 +134,9 @@ fn parse_csv(path: &PathBuf) -> Result<HashMap<u16, TamaStringTranslation>, Box<
 					temp_translation.value = line.to_string();
 				}
 
-			} else if temp_translation.value.len() > 0 {
+			} else if !temp_translation.value.is_empty() {
 				if let Some(line) = record.get(2) {
-					if line.len() > 0 {
+					if !line.is_empty() {
 						temp_translation.line_count += 1;
 						if temp_translation.line_count == 2 || temp_translation.line_count == 4 {
 							temp_translation.value = format!("{}<hr>{}", temp_translation.value, line);
@@ -181,7 +183,7 @@ fn import_image_spritesheet_from(handle: &AppHandle, image_index: usize, path: &
 	let image_state: State<ImageState> = handle.state();
 
 	if let Some(subimages) = image_state.images.lock().unwrap().get_mut(image_index) {
-		let (width, height) = get_spritesheet_dims(&subimages);
+		let (width, height) = get_spritesheet_dims(subimages);
 		if spritesheet.width() != width || spritesheet.height() != height {
 			return Err(format!("Spritesheet does not match expected dimensions: {}x{}", width, height).into());
 		}
@@ -223,11 +225,10 @@ fn replace_image_data(handle: &AppHandle, image_index: usize, subimage_index: us
 				}
 			}
 
-			for i in 0..sprites_per_subimage {
+			for (i, img_view) in img_views.iter().enumerate().take(sprites_per_subimage) {
 				if let Some(sprite) = sprite_pack.sprites.get_mut(first_sprite_index + i) {
 					let sprite_width = sprite.width as u32;
 					let sprite_height = sprite.height as u32;
-					let img_view = img_views[i];
 					if img_view.width() == sprite_width && img_view.height() == sprite_height {
 						let mut new_pixels: Vec<u16> = Vec::new();
 						for y in 0..sprite_height {
@@ -255,5 +256,48 @@ fn replace_image_data(handle: &AppHandle, image_index: usize, subimage_index: us
 		}
 	}
 
+	Ok(())
+}
+
+#[tauri::command]
+pub fn import_encoding(handle: AppHandle) {
+	let dialog_result = MessageDialog::new()
+		.set_title("Import Text Encoding")
+		.set_description("This will overwrite your existing text encoding. Are you sure you want to continue?")
+		.set_buttons(MessageButtons::YesNo)
+		.show();
+	if dialog_result == MessageDialogResult::Yes {
+		spawn(async move {
+			let data_state: State<DataState> = handle.state();
+
+			let mut file_dialog = FileDialog::new()
+				.add_filter("JSON", &["json"]);
+
+			if let Some(base_path) = data_state.base_path.lock().unwrap().as_ref() {
+				file_dialog = file_dialog.set_directory(base_path);
+			}
+
+			let file_result = file_dialog.pick_file();
+
+			if let Some(path) = file_result {
+				show_spinner(&handle);
+				if let Err(why) = import_encoding_from(&handle, &path, true) {
+					show_error_message(why);
+				}
+				hide_spinner(&handle);
+			}
+		});
+	}
+}
+
+pub fn import_encoding_from(handle: &AppHandle, path: &PathBuf, open_dialog: bool) -> Result<(), Box<dyn Error>> {
+	let file_string = fs::read_to_string(path)?;
+	let char_codes: Vec<CharEncoding> = serde_json::from_str(&file_string)?;
+	let font_state: State<FontState> = handle.state();
+	if open_dialog {
+		handle.emit("update_char_codes", char_codes.clone()).unwrap();
+	}
+	*font_state.char_codes.lock().unwrap() = char_codes;
+	*font_state.is_custom.lock().unwrap() = true;
 	Ok(())
 }

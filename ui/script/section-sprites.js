@@ -16,7 +16,7 @@ const setupSprites = () => {
 				th('Actions')
 			])]),
 			tbody(cardData.sprite_pack.image_defs.map((imageDef, i) =>
-				drawImageDef(i, imageDef)
+				renderImageDef(i, imageDef)
 			))
 		])
 	])
@@ -25,10 +25,10 @@ const setupSprites = () => {
 const updateImageDef = (i, newImageDef) => {
 	cardData.sprite_pack.image_defs[i] = newImageDef
 	const imageEl = document.getElementById(`image-${i}`)
-	imageEl.replaceWith(drawImageDef(i, newImageDef))
+	imageEl.replaceWith(renderImageDef(i, newImageDef))
 }
 
-const drawImageDef = (i, imageDef) => {
+const renderImageDef = (i, imageDef) => {
 	return tr({id: `image-${i}`}, [
 		th(i),
 		td(Array(imageDef.subimage_count).fill(0).map((_, j) =>
@@ -53,16 +53,16 @@ const viewSprites = () => {
 
 const editImageFirstPalette = (i) => {
 	const image_def = cardData.sprite_pack.image_defs[i]
-	const originalValue = image_def.first_palette_index
-	EditDialog.setTitle(`Edit Image ${i}: First Palette`)
-	EditDialog.setContents(`<label><span>First Palette:</span><input id="first-palette-input" value="${originalValue}"></label>`)
-	EditDialog.open(() => {
-		const inputValue = document.getElementById('first-palette-input').value
-		const newValue = parseInt(inputValue)
-		if (newValue === parseFloat(inputValue)) {
+	EditDialog.openNumberEditor(
+		`Edit Image ${i}: First Palette`,
+		'First Palette',
+		image_def.first_palette_index,
+		(newValue) => {
 			image_def.first_palette_index = newValue
-			tauri_invoke('update_image_def', { imageIndex: i, firstPaletteIndex: newValue })
-		}
-	})
-	document.getElementById('first-palette-input').focus()
+			tauri_invoke('update_image_def', { index: i, firstPaletteIndex: newValue })
+			EditDialog.close()
+		},
+		0,
+		Math.floor(cardData.sprite_pack.palettes.length / 4) - 1
+	)
 }

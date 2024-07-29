@@ -6,6 +6,8 @@ const el = (type, props, contents) => {
 			const propValue = props[propName]
 			if (propName === 'onclick') {
 				element.addEventListener('click', propValue)
+			} else if (propName === 'onchange') {
+				element.addEventListener('change', propValue)
 			} else if (propName === 'className') {
 				element.className = propValue
 			} else {
@@ -31,6 +33,8 @@ const div = el.bind(this, 'div')
 const span = el.bind(this, 'span')
 const a = el.bind(this, 'a')
 const button = el.bind(this, 'button')
+const input = el.bind(this, 'input')
+const label = el.bind(this, 'label')
 const table = el.bind(this, 'table')
 const thead = el.bind(this, 'thead')
 const tbody = el.bind(this, 'tbody')

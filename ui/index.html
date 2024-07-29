@@ -12,6 +12,7 @@
 		<script src="./script/html.js"></script>
 		<script src="./script/about-dialog.js"></script>
 		<script src="./script/edit-dialog.js"></script>
+		<script src="./script/encoding-dialog.js"></script>
 		<script src="./script/section-animations.js"></script>
 		<script src="./script/section-characters.js"></script>
 		<script src="./script/section-frames.js"></script>
@@ -50,6 +51,35 @@
 			<div id="main">
 			</div>
 
+			<div id="encoding-dialog" class="dialog">
+				<div class="dialog-content">
+					<div class="dialog-header">
+						<span class="dialog-title">
+							Text Encoding
+						</span>
+						<button id="encoding-close-button" class="dialog-close-button icon" title="Close Dialog">
+							<img src="icons/cancel.svg" alt="Close Dialog">
+						</button>
+					</div>
+					<div id="encoding-dialog-body" class="dialog-body">
+					</div>
+					<div class="dialog-actions">
+						<button class="icon" id="encoding-import-button" title="Import Encoding">
+							<img src="icons/import.svg" alt="Import Encoding">
+						</button>
+						<button class="icon" id="encoding-export-button" title="Export Encoding">
+							<img src="icons/export.svg" alt="Export Encoding">
+						</button>
+						<button id="encoding-cancel-button" class="text" title="Cancel">
+							Cancel
+						</button>
+						<button id="encoding-ok-button" class="text" title="Save Changes">
+							Save Changes
+						</button>
+					</div>
+				</div>
+			</div>
+
 			<div id="edit-dialog" class="dialog">
 				<div class="dialog-content">
 					<div class="dialog-header">
@@ -59,17 +89,15 @@
 							<img src="icons/cancel.svg" alt="Close Dialog">
 						</button>
 					</div>
-					<div class="dialog-body">
-						<div id="edit-dialog-contents">
-						</div>
-						<div class="dialog-actions">
-							<button id="edit-cancel-button" class="text" title="Cancel">
-								Cancel
-							</button>
-							<button id="edit-ok-button" class="text" title="Ok">
-								Ok
-							</button>
-						</div>
+					<div id="edit-dialog-body" class="dialog-body">
+					</div>
+					<div class="dialog-actions">
+						<button id="edit-cancel-button" class="text" title="Cancel">
+							Cancel
+						</button>
+						<button id="edit-ok-button" class="text" title="Ok">
+							Ok
+						</button>
 					</div>
 				</div>
 			</div>
@@ -92,11 +120,11 @@
 							<br>
 							<em>https://github.com/zenzoa/smartypants</em>
 						</p>
-						<div class="dialog-actions">
-							<button id="about-ok-button" class="text" title="Ok">
-								Ok
-							</button>
-						</div>
+					</div>
+					<div class="dialog-actions">
+						<button id="about-ok-button" class="text" title="Ok">
+							Ok
+						</button>
 					</div>
 				</div>
 			</div>

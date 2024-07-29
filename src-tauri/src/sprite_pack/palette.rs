@@ -11,7 +11,7 @@ pub struct Color {
 }
 
 impl Color {
-	pub fn into_rgba(&self) -> Rgba::<u8> {
+	pub fn as_rgba(&self) -> Rgba::<u8> {
 		Rgba([self.r, self.g, self.b, self.a])
 	}
 
