@@ -18,6 +18,7 @@ window.addEventListener('load', () => {
 	document.getElementById('save-button').addEventListener('click', saveBin)
 	document.getElementById('save-as-button').addEventListener('click', saveBinAs)
 	document.getElementById('export-data-button').addEventListener('click', exportData)
+	document.getElementById('export-strings-button').addEventListener('click', exportStrings)
 	document.getElementById('export-images-button').addEventListener('click', exportImages)
 
 	tauri_listen('show_card', event => {
@@ -229,6 +230,10 @@ const saveBinAs = () => {
 
 const exportData = () => {
 	tauri_invoke('export_data')
+}
+
+const exportStrings = () => {
+	tauri_invoke('export_strings')
 }
 
 const exportImages = () => {
