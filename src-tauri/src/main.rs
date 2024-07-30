@@ -29,7 +29,7 @@ use data_pack::DataPack;
 use sprite_pack::SpritePack;
 use text::{ Text, FontState, set_to_preset_encoding };
 use file::{ open_bin, save_bin, save_bin_as, continue_if_modified };
-use export::{ export_data, export_images, export_image_spritesheet, export_encoding };
+use export::{ export_data, export_strings, export_images, export_image_spritesheet, export_encoding };
 use import::{ import_strings, import_menu_strings, import_image_spritesheet, import_encoding };
 
 #[derive(Default)]
@@ -61,6 +61,7 @@ fn main() {
 			save_bin,
 			save_bin_as,
 			export_data,
+			export_strings,
 			export_images,
 			export_image_spritesheet,
 			export_encoding,
@@ -93,6 +94,7 @@ fn main() {
 
 					&Submenu::with_id_and_items(handle, "export", "Export", true, &[
 						&MenuItem::with_id(handle, "export_data", "Export Data", true, None::<&str>)?,
+						&MenuItem::with_id(handle, "export_strings", "Export Strings", true, None::<&str>)?,
 						&MenuItem::with_id(handle, "export_images", "Export Images", true, None::<&str>)?,
 					])?,
 
@@ -139,6 +141,7 @@ fn main() {
 					"save" => save_bin(handle),
 					"save_as" => save_bin_as(handle),
 					"export_data" => export_data(handle),
+					"export_strings" => export_strings(handle),
 					"export_images" => export_images(handle),
 					"quit" => try_quit(handle),
 

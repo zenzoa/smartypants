@@ -61,6 +61,128 @@ pub fn export_data_to(data_state: &DataState, path: &PathBuf) -> Result<(), Box<
 }
 
 #[tauri::command]
+pub fn export_strings(handle: AppHandle) {
+	spawn(async move {
+		let data_state: State<DataState> = handle.state();
+
+		let no_data = data_state.data_pack.lock().unwrap().is_none();
+		if no_data {
+			show_error_message("No data to export".into());
+
+		} else {
+			let mut file_dialog = FileDialog::new()
+				.add_filter("CSV", &["csv"]);
+
+			if let Some(base_path) = data_state.base_path.lock().unwrap().as_ref() {
+				file_dialog = file_dialog.set_directory(base_path);
+			}
+
+			if let Some(file_path) = data_state.file_path.lock().unwrap().as_ref() {
+				if let Some(file_stem) = file_path.file_stem() {
+					file_dialog = file_dialog.set_file_name(format!("{}.csv", file_stem.to_string_lossy()));
+				}
+			}
+
+			let file_result = file_dialog.save_file();
+
+			if let Some(path) = file_result {
+				show_spinner(&handle);
+				if let Err(why) = export_strings_to(&handle, &path) {
+					show_error_message(why);
+				}
+				hide_spinner(&handle);
+			}
+		}
+	});
+}
+
+pub fn export_strings_to(handle: &AppHandle, path: &PathBuf) -> Result<(), Box<dyn Error>> {
+	let mut wtr = csv::Writer::from_path(path)?;
+	let data_state: State<DataState> = handle.state();
+
+	let blank_line = ["", "", ""];
+
+	wtr.write_record(&["ID", "Field", "Original Text"])?;
+
+	let menu_strings_opt = data_state.menu_strings.lock().unwrap();
+	if let Some(menu_strings) = menu_strings_opt.as_ref() {
+
+		wtr.write_record(&blank_line)?;
+		wtr.write_record(&["MENU STRINGS", "", ""])?;
+		wtr.write_record(&blank_line)?;
+
+		for (i, str) in menu_strings.iter().enumerate() {
+			let mut id_written = false;
+			let pages = str.string.split("<hr>");
+			for page in pages {
+				let lines = page.split("<br>");
+				for line in lines {
+					if id_written {
+						wtr.write_record(&["", "", &line])?;
+					} else {
+						wtr.write_record(&[&i.to_string(), "", &line])?;
+						id_written = true;
+					}
+				}
+				wtr.write_record(&blank_line)?;
+			}
+			wtr.write_record(&blank_line)?;
+		}
+	}
+
+	let data_pack_opt = data_state.data_pack.lock().unwrap();
+	if let Some(data_pack) = data_pack_opt.as_ref() {
+
+		wtr.write_record(&blank_line)?;
+		wtr.write_record(&["STRINGS", "", ""])?;
+		wtr.write_record(&blank_line)?;
+
+		for (i, str) in data_pack.strings.iter().enumerate() {
+			let mut id_written = false;
+			let pages = str.value.string.split("<hr>");
+			for page in pages {
+				let lines = page.split("<br>");
+				for line in lines {
+					if id_written {
+						wtr.write_record(&["", "", &line])?;
+					} else {
+						wtr.write_record(&[&i.to_string(), "", &line])?;
+						id_written = true;
+					}
+				}
+				wtr.write_record(&blank_line)?;
+			}
+			wtr.write_record(&blank_line)?;
+		}
+
+		wtr.write_record(&blank_line)?;
+		wtr.write_record(&["ITEMS", "", ""])?;
+		wtr.write_record(&blank_line)?;
+
+		for (i, item) in data_pack.items.iter().enumerate() {
+			wtr.write_record(&[&i.to_string(), "Name:", &item.name.string])?;
+			wtr.write_record(&blank_line)?;
+		}
+
+		wtr.write_record(&blank_line)?;
+		wtr.write_record(&["CHARACTERS", "", ""])?;
+		wtr.write_record(&blank_line)?;
+
+		for (i, char) in data_pack.characters.iter().enumerate() {
+			wtr.write_record(&[&i.to_string(), "Name:", &char.name.string])?;
+			wtr.write_record(&[&i.to_string(), "Pronoun:", &char.pronoun.string])?;
+			wtr.write_record(&[&i.to_string(), "Statement Ending:", &char.statement.string])?;
+			wtr.write_record(&[&i.to_string(), "Question Ending 1:", &char.question1.string])?;
+			wtr.write_record(&[&i.to_string(), "Question Ending 2:", &char.question2.string])?;
+			wtr.write_record(&blank_line)?;
+		}
+	}
+
+	wtr.flush()?;
+	Ok(())
+}
+
+#[tauri::command]
 pub fn export_images(handle: AppHandle) {
 	spawn(async move {
 		let data_state: State<DataState> = handle.state();
