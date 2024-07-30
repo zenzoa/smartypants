@@ -27,7 +27,7 @@ mod import;
 use data_view::DataView;
 use data_pack::DataPack;
 use sprite_pack::SpritePack;
-use text::{ FontState, set_to_preset_encoding };
+use text::{ Text, FontState, set_to_preset_encoding };
 use file::{ open_bin, save_bin, save_bin_as, continue_if_modified };
 use export::{ export_data, export_images, export_image_spritesheet, export_encoding };
 use import::{ import_strings, import_menu_strings, import_image_spritesheet, import_encoding };
@@ -40,7 +40,7 @@ pub struct DataState {
 	pub base_path: Mutex<Option<PathBuf>>,
 	pub data_pack: Mutex<Option<DataPack>>,
 	pub sprite_pack: Mutex<Option<SpritePack>>,
-	pub menu_strings: Mutex<Option<Vec<String>>>,
+	pub menu_strings: Mutex<Option<Vec<Text>>>,
 	pub original_data: Mutex<Option<Vec<u8>>>
 }
 
@@ -73,7 +73,7 @@ fn main() {
 			data_pack::character::update_character,
 			sprite_pack::image_def::update_image_def,
 			text::validate_string,
-			text::encode_string,
+			text::decode_string_js,
 			text::get_default_char_codes,
 			text::update_char_codes
 		])
@@ -171,12 +171,12 @@ fn main() {
 				match image_id_str {
 					"smallfont" => {
 						let font_state: State<FontState> = app.state();
-						let img = text::get_char_image_small(font_state, subimage_index).ok_or("no font image found for character index")?;
+						let img = text::get_char_image_small(&font_state, subimage_index).ok_or("no font image found for character index")?;
 						img.write_to(&mut img_data, image::ImageFormat::Png)?;
 					},
 					"largefont" => {
 						let font_state: State<FontState> = app.state();
-						let img = text::get_char_image_large(font_state, subimage_index).ok_or("no font image found for character index")?;
+						let img = text::get_char_image_large(&font_state, subimage_index).ok_or("no font image found for character index")?;
 						img.write_to(&mut img_data, image::ImageFormat::Png)?;
 					},
 					_ => {

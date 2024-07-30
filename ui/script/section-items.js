@@ -20,18 +20,12 @@ const setupItems = () => {
 	])
 }
 
-const updateItem = (i, newItem) => {
-	cardData.data_pack.items[i] = newItem
-	const itemEl = document.getElementById(`item-${i}`)
-	itemEl.replaceWith(renderItem(i, newItem))
-}
-
 const renderItem = (i, item) => {
 	return tr({id: `item-${item.id.entity_id}`}, [
 		th(item.id.entity_id),
 		td(item.item_type),
 		td([
-			span(item.name),
+			span(item.name.string),
 			button({className: 'edit', onclick: editItemName.bind(this, i)}, '✏️')
 		]),
 		td(item.item_type === 'Game' ? '-' : displayImageWithLink(item.image_id, 0)),
@@ -56,11 +50,15 @@ const editItemName = (i) => {
 	const item = cardData.data_pack.items[i]
 	EditDialog.openStringEditor(
 		`Edit Item ${i}: Name`,
-		'Name',
-		item.name,
+		'Name:',
+		item.name.string,
 		(newValue) => {
 			item.name = newValue
-			tauri_invoke('update_item', { index: i, name: newValue })
+			tauri_invoke('update_item', { index: i, name: newValue }).then(result => {
+				if (result != null) item.name = result
+				const itemEl = document.getElementById(`item-${i}`)
+				if (itemEl != null) itemEl.replaceWith(renderItem(i, item))
+			})
 			EditDialog.close()
 		},
 		8

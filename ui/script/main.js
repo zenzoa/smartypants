@@ -151,14 +151,6 @@ window.addEventListener('load', () => {
 		viewMenuStrings()
 	})
 
-	tauri_listen('update_item', event => {
-		updateItem(event.payload[0], event.payload[1])
-	})
-
-	tauri_listen('update_character', event => {
-		updateCharacter(event.payload[0], event.payload[1])
-	})
-
 	tauri_listen('update_image_def', event => {
 		updateImageDef(event.payload[0], event.payload[1])
 	})

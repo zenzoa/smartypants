@@ -26,28 +26,22 @@ const setupCharacters = () => {
 	])
 }
 
-const updateCharacter = (i, newCharacter) => {
-	cardData.data_pack.characters[i] = newCharacter
-	const characterEl = document.getElementById(`character-${i}`)
-	characterEl.replaceWith(renderCharacter(i, newCharacter))
-}
-
 const renderCharacter = (i, character) => {
 	return tr({id: `character-${character.id.entity_id}`}, [
 		th(character.id.entity_id),
 		td(character.character_type),
 		td([
-			character.name,
+			span(character.name.string),
 			button({className: 'edit', onclick: editCharacterName.bind(this, i)}, '✏️')
 		]),
 		td(displayImageWithLink(character.profile_image_id, 0)),
 		td(displayImageWithLink(character.icon_image_id, 0)),
 		td(linkToFrame(character.composition_id)),
 		td(formatEntityId(character.unknown1)),
-		td(character.pronoun),
-		td(character.statement),
-		td(character.question1),
-		td(character.question2),
+		td(character.pronoun.string),
+		td(character.statement.string),
+		td(character.question1.string),
+		td(character.question2.string),
 		td(character.unknown2),
 		td(character.unknown3),
 		td(formatEntityId(character.global_id)),
@@ -69,10 +63,14 @@ const editCharacterName = (i) => {
 	EditDialog.openStringEditor(
 		`Edit Character ${i}: Name`,
 		'Name:',
-		character.name,
+		character.name.string,
 		(newValue) => {
-			character.name = newValue
-			tauri_invoke('update_character', { index: i, name: newValue })
+			tauri_invoke('update_character', { index: i, name: newValue }).then(result => {
+				console.log(result)
+				if (result != null) character.name = result
+				const characterEl = document.getElementById(`character-${i}`)
+				if (characterEl != null) characterEl.replaceWith(renderCharacter(i, character))
+			})
 			EditDialog.close()
 		},
 		8

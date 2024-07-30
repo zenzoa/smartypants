@@ -4,13 +4,13 @@ use tauri::{ AppHandle, Manager, State };
 use super::EntityId;
 use crate::DataState;
 use crate::data_view::{ DataView, words_to_bytes };
-use crate::text::{ FontState, encode_string_with_length };
+use crate::text::{ Text, FontState };
 
 #[derive(Clone, serde::Serialize)]
 pub struct Item {
 	pub id: EntityId,
 	pub item_type: ItemType,
-	pub name: String,
+	pub name: Text,
 	pub image_id: EntityId,
 	pub worn_image_id: Option<EntityId>,
 	pub close_image_id: Option<EntityId>,
@@ -66,7 +66,7 @@ pub fn get_items(font_state: &FontState, data: &DataView) -> Vec<Item> {
 			8 => ItemType::Game,
 			_ => ItemType::Unknown
 		};
-		let name = data.get_encoded_string(font_state, i + 4, 10);
+		let name = data.get_text(font_state, i + 4, 10);
 		let image_id = EntityId::new(data.get_u16(i + 24));
 		let worn_image_id = if data.get_u16(i + 26) > 0 {
 			Some(EntityId::new(data.get_u16(i + 26)))
@@ -124,7 +124,7 @@ pub fn get_items(font_state: &FontState, data: &DataView) -> Vec<Item> {
 	items
 }
 
-pub fn save_items(items: &[Item], font_state: State<FontState>) -> Result<Vec<u8>, Box<dyn Error>> {
+pub fn save_items(items: &[Item]) -> Result<Vec<u8>, Box<dyn Error>> {
 	let mut words: Vec<u16> = Vec::new();
 
 	for item in items {
@@ -141,7 +141,7 @@ pub fn save_items(items: &[Item], font_state: State<FontState>) -> Result<Vec<u8
 			ItemType::Game => 8,
 			ItemType::Unknown => 9,
 		});
-		words = [words, encode_string_with_length(font_state.clone(), &item.name, 10)].concat();
+		words = [words, item.name.data.clone()].concat();
 		words.push(item.image_id.to_word());
 		words.push(match &item.worn_image_id {
 			Some(id) => id.to_word(),
@@ -177,14 +177,14 @@ pub fn save_items(items: &[Item], font_state: State<FontState>) -> Result<Vec<u8
 }
 
 #[tauri::command]
-pub fn update_item(handle: AppHandle, data_state: State<DataState>, index: usize, name: String) {
+pub fn update_item(handle: AppHandle, data_state: State<DataState>, index: usize, name: String) -> Option<Text> {
+	let font_state: State<FontState> = handle.state();
 	let mut data_pack_opt = data_state.data_pack.lock().unwrap();
 	if let Some(data_pack) = data_pack_opt.as_mut() {
 		if let Some(item) = data_pack.items.get_mut(index) {
-			item.name = name;
-		}
-		if let Some(item) = data_pack.items.get(index) {
-			handle.emit("update_item", (index, item)).unwrap();
+			item.name.set_string(&font_state, &name);
+			return Some(item.name.clone());
 		}
 	}
+	None
 }

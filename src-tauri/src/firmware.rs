@@ -6,7 +6,7 @@ use crate::DataState;
 use crate::data_view::{ DataView, words_to_bytes };
 use crate::data_pack::{ DataPack, get_data_pack, save_data_pack };
 use crate::sprite_pack::{ SpritePack, get_sprite_pack, save_sprite_pack };
-use crate::text::{ FontState, encode_string, word_to_char_code };
+use crate::text::{ Text, FontState, decode_string };
 
 const FIRMWARE_DATA_PACK_SIZE: usize = 0x730000 - 0x6CE000;
 
@@ -14,7 +14,7 @@ const FIRMWARE_DATA_PACK_SIZE: usize = 0x730000 - 0x6CE000;
 pub struct Firmware {
 	pub data_pack: DataPack,
 	pub sprite_pack: SpritePack,
-	pub menu_strings: Vec<String>
+	pub menu_strings: Vec<Text>
 }
 
 pub fn read_firmware(handle: &AppHandle, data: &DataView) -> Result<Firmware, Box<dyn Error>> {
@@ -25,12 +25,17 @@ pub fn read_firmware(handle: &AppHandle, data: &DataView) -> Result<Firmware, Bo
 
 	let menu_strings = match data.find_bytes(&[0xF9, 0x01, 0xFB, 0x01]) {
 		Some(start_index) => {
-			read_menu_strings(font_state.clone(), &data.chunk(start_index, data.len() - start_index))?
+			read_menu_strings(&font_state, &data.chunk(start_index, data.len() - start_index))?
 		},
 		None => {
 			return Err("Can't find menu strings".into())
 		}
 	};
+
+	let new_data = save_firmware(handle, &data.data)?;
+	if new_data == data.data {
+		println!("Firmware export matches!");
+	}
 
 	Ok(Firmware { data_pack, sprite_pack, menu_strings })
 }
@@ -56,7 +61,7 @@ pub fn save_firmware(handle: &AppHandle, original_data: &[u8]) -> Result<Vec<u8>
 
 	if let Some(old_data_pack) = data_state.data_pack.lock().unwrap().as_ref() {
 		let data_pack_data_view = new_data.chunk(0x6CE000, FIRMWARE_DATA_PACK_SIZE);
-		let new_data_pack_data = save_data_pack(old_data_pack, &data_pack_data_view, font_state)?;
+		let new_data_pack_data = save_data_pack(old_data_pack, &data_pack_data_view)?;
 		let padding_size = FIRMWARE_DATA_PACK_SIZE - new_data_pack_data.len();
 		let padding = vec![0; padding_size];
 		let new_data_pack_data = [new_data_pack_data, padding].concat();
@@ -72,7 +77,7 @@ pub fn save_firmware(handle: &AppHandle, original_data: &[u8]) -> Result<Vec<u8>
 	Ok(new_data.data)
 }
 
-pub fn read_menu_strings(font_state: State<FontState>, data: &DataView) -> Result<Vec<String>, Box<dyn Error>> {
+pub fn read_menu_strings(font_state: &FontState, data: &DataView) -> Result<Vec<Text>, Box<dyn Error>> {
 	let num_strings = data.get_u16(0) as usize;
 
 	if data.len() < 2 * num_strings + 2 {
@@ -95,38 +100,32 @@ pub fn read_menu_strings(font_state: State<FontState>, data: &DataView) -> Resul
 		return Err("Cannot read all menu strings".into());
 	}
 
-	let mut menu_strings = Vec::new();
+	let mut menu_strings: Vec<Text> = Vec::new();
 	for i in 0..offsets.len() - 1 {
-		let mut menu_string = String::new();
+		let mut text_data: Vec<u16> = Vec::new();
 		for j in 0..sizes[i] {
-			let c = data.get_u16(offsets[i]*2 + j*2);
-			if c > 0 {
-				if let Some(s) = word_to_char_code(&font_state, c) {
-					menu_string.push_str(&s);
-				} else {
-					return Err(format!("No encoding for 0x{:x} at 0x{:x} in menu strings", c, offsets[i]*2 + j*2).into());
-				}
-			} else {
-				break;
+			let word = data.get_u16(offsets[i]*2 + j*2);
+			if word > 0 {
+				text_data.push(word);
 			}
 		}
-		menu_strings.push(menu_string);
+		menu_strings.push(Text::from_data(font_state, &text_data));
 	}
 
 	Ok(menu_strings)
 }
 
-pub fn save_menu_strings(font_state: State<FontState>, menu_strings: &[String]) -> Result<Vec<u8>, Box<dyn Error>> {
+pub fn save_menu_strings(font_state: State<FontState>, menu_strings: &[Text]) -> Result<Vec<u8>, Box<dyn Error>> {
 	let mut offsets: Vec<u16> = vec![menu_strings.len() as u16 + 2];
-	for (i, string) in menu_strings.iter().enumerate() {
+	for (i, txt) in menu_strings.iter().enumerate() {
 		let last_offset = offsets[i];
-		let string_size = encode_string(font_state.clone(), string).len() as u16;
+		let string_size = decode_string(&font_state, &txt.string).len() as u16;
 		offsets.push(last_offset + string_size + 1);
 	}
 
 	let mut string_data: Vec<u16> = Vec::new();
-	for string in menu_strings {
-		for word in encode_string(font_state.clone(), string) {
+	for txt in menu_strings {
+		for word in decode_string(&font_state, &txt.string) {
 			string_data.push(word);
 		}
 		string_data.push(0);

@@ -1,7 +1,5 @@
 use std::error::Error;
 
-use tauri::State;
-
 use crate::text::FontState;
 use crate::data_view::{ DataView, words_to_bytes };
 
@@ -132,7 +130,7 @@ pub fn get_table_offsets(data: &DataView) -> Result<(Vec<usize>, Vec<usize>), Bo
 	Ok((table_offsets, table_sizes))
 }
 
-pub fn save_data_pack(data_pack: &DataPack, original_data: &DataView, font_state: State<FontState>) -> Result<Vec<u8>, Box<dyn Error>> {
+pub fn save_data_pack(data_pack: &DataPack, original_data: &DataView) -> Result<Vec<u8>, Box<dyn Error>> {
 	let (table_offsets, table_sizes) = get_table_offsets(original_data)?;
 
 	let mut tables: Vec<Vec<u8>> = Vec::new();
@@ -145,16 +143,16 @@ pub fn save_data_pack(data_pack: &DataPack, original_data: &DataView, font_state
 	let mut string_data: Vec<u16> = Vec::new();
 	for string in &data_pack.strings {
 		string_offsets.push(string_data.len() as u16);
-		for word in string.to_words(font_state.clone()) {
-			string_data.push(word);
+		for word in string.value.data.iter() {
+			string_data.push(*word);
 		}
 	}
 	string_offsets.push(0xFFFF);
 
 	tables[6] = words_to_bytes(&string_data);
 	tables[7] = words_to_bytes(&string_offsets);
-	tables[10] = item::save_items(&data_pack.items, font_state.clone())?;
-	tables[11] = character::save_characters(&data_pack.characters, font_state)?;
+	tables[10] = item::save_items(&data_pack.items)?;
+	tables[11] = character::save_characters(&data_pack.characters)?;
 
 	let mut table_offset_data: Vec<u8> = Vec::new();
 	let mut new_table_offsets: Vec<u32> = Vec::new();

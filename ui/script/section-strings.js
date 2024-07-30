@@ -17,7 +17,7 @@ const setupStrings = () => {
 				td('#' + formatHexCode(str.unknown1)),
 				td(str.unknown2),
 				td(str.unknown3),
-				td(str.value)
+				td(str.value.string)
 			])))
 		])
 	])
@@ -45,7 +45,7 @@ const setupMenuStrings = () => {
 			])]),
 			tbody(strings.map((str, i) => tr({id: `menu-string-${i}`}, [
 				th(i),
-				td(str)
+				td(str.string)
 			])))
 		])
 	])

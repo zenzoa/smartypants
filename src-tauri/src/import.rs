@@ -13,7 +13,7 @@ use rfd::{ FileDialog, MessageButtons, MessageDialog, MessageDialogResult };
 
 use crate::{ DataState, ImageState, show_error_message, show_spinner, hide_spinner, update_window_title };
 use crate::sprite_pack::{ palette::Color, get_spritesheet_dims };
-use crate::text::{ FontState, CharEncoding };
+use crate::text::{ Text, FontState, CharEncoding };
 
 #[derive(Clone, Debug, serde::Deserialize)]
 struct TamaStringTranslation {
@@ -77,13 +77,14 @@ pub fn import_strings_base(handle: AppHandle, callback: fn(&AppHandle, &PathBuf)
 
 pub fn import_strings_from(handle: &AppHandle, path: &PathBuf) -> Result<(), Box<dyn Error>> {
 	let data_state: State<DataState> = handle.state();
+	let font_state: State<FontState> = handle.state();
 
 	let translation_list = parse_csv(path)?;
 
 	if let Some(data_pack) = data_state.data_pack.lock().unwrap().as_mut() {
 		for tamastring in data_pack.strings.iter_mut() {
 			if let Some(new_string) = translation_list.get(&tamastring.id.entity_id) {
-				tamastring.value.clone_from(&new_string.value);
+				tamastring.value.set_string(&font_state, &new_string.value);
 			}
 		}
 		handle.emit("update_strings", data_pack.strings.clone()).unwrap();
@@ -94,6 +95,7 @@ pub fn import_strings_from(handle: &AppHandle, path: &PathBuf) -> Result<(), Box
 
 pub fn import_menu_strings_from(handle: &AppHandle, path: &PathBuf) -> Result<(), Box<dyn Error>> {
 	let data_state: State<DataState> = handle.state();
+	let font_state: State<FontState> = handle.state();
 
 	let translation_list = parse_csv(path)?;
 
@@ -102,7 +104,7 @@ pub fn import_menu_strings_from(handle: &AppHandle, path: &PathBuf) -> Result<()
 	if let Some(menu_strings) = data_state.menu_strings.lock().unwrap().as_ref() {
 		for i in 0..menu_strings.len() {
 			if let Some(new_string) = translation_list.get(&(i as u16)) {
-				new_menu_strings.push(new_string.value.clone());
+				new_menu_strings.push(Text::from_string(&font_state, &new_string.value));
 			} else {
 				return Err(format!("Missing menu string {}", i).into());
 			}

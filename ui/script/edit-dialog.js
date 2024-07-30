@@ -79,7 +79,7 @@ class EditDialog {
 			const inputEl = document.getElementById('edit-dialog-input')
 			const smallPreviewEl = document.getElementById('preview-small-text')
 			const largePreviewEl = document.getElementById('preview-large-text')
-			tauri_invoke('encode_string', { string: inputEl.value }).then(result => {
+			tauri_invoke('decode_string_js', { string: inputEl.value }).then(result => {
 				smallPreviewEl.replaceChildren()
 				largePreviewEl.replaceChildren()
 				result.forEach(i => {

@@ -11,8 +11,44 @@ use image::{ RgbaImage, GenericImageView };
 use rfd::{ MessageButtons, MessageDialog, MessageDialogResult };
 
 use crate::show_error_message;
-use crate::data_view::{ DataView, words_to_bytes };
 use crate::import::import_encoding_from;
+
+#[derive(Clone, serde::Serialize)]
+pub struct Text {
+	pub data: Vec<u16>,
+	pub string: String
+}
+
+impl Text {
+	pub fn from_data(font_state: &FontState, new_data: &[u16]) -> Text {
+		Text {
+			data: new_data.to_vec(),
+			string: encode_string(font_state, new_data)
+		}
+	}
+
+	pub fn from_string(font_state: &FontState, new_string: &str) -> Text {
+		Text {
+			data: decode_string(font_state, new_string),
+			string: new_string.to_string()
+		}
+	}
+
+	pub fn set_string(&mut self, font_state: &FontState, new_string: &str) {
+		self.data = decode_string(font_state, new_string);
+		self.string = new_string.to_string();
+	}
+
+	pub fn update_string(&mut self, font_state: &FontState) {
+		let mut new_string = String::new();
+		for word in &self.data {
+			if let Some(substring) = word_to_char_code(font_state, *word) {
+				new_string.push_str(&substring);
+			}
+		}
+		self.string = new_string;
+	}
+}
 
 pub struct FontState {
 	pub char_codes: Mutex<Vec<CharEncoding>>,
@@ -94,6 +130,12 @@ pub fn update_char_codes(font_state: State<FontState>, new_char_codes: Vec<CharE
 			}
 		}
 		*font_state.is_custom.lock().unwrap() = true;
+
+		// TODO: re-decode all the strings
+		// tamastrings
+		// item name
+		// character name + pronoun + endings
+		// menu strings, if around
 	}
 
 	problem_codes.sort();
@@ -111,7 +153,11 @@ pub fn update_char_codes(font_state: State<FontState>, new_char_codes: Vec<CharE
 }
 
 #[tauri::command]
-pub fn encode_string(font_state: State<FontState>, string: &str) -> Vec<u16> {
+pub fn decode_string_js(font_state: State<FontState>, string: &str) -> Vec<u16> {
+	decode_string(&font_state, string)
+}
+
+pub fn decode_string(font_state: &FontState, string: &str) -> Vec<u16> {
 	let mut data: Vec<u16> = Vec::new();
 
 	let mut var_name = String::new();
@@ -141,34 +187,32 @@ pub fn encode_string(font_state: State<FontState>, string: &str) -> Vec<u16> {
 	data
 }
 
-pub fn encode_string_with_length(font_state: State<FontState>, string: &str, goal_len: usize) -> Vec<u16> {
-	let mut data = encode_string(font_state, string);
-	if data.len() > goal_len {
-		data[0..goal_len].to_owned()
-	} else {
-		let padding = goal_len - data.len();
-		data = vec![0;padding];
-		data
+pub fn encode_string(font_state: &FontState, data: &[u16]) -> String {
+	let mut new_string = String::new();
+	for word in data {
+		if let Some(substring) = word_to_char_code(font_state, *word) {
+			new_string.push_str(&substring);
+		}
 	}
+	new_string
 }
 
-pub fn get_char_image_small(font_state: State<FontState>, char_index: usize) -> Option<RgbaImage> {
+pub fn get_char_image_small(font_state: &FontState, char_index: usize) -> Option<RgbaImage> {
 	let small_font_images = font_state.small_font_images.lock().unwrap();
 	small_font_images.get(char_index).cloned()
 }
 
-pub fn get_char_image_large(font_state: State<FontState>, char_index: usize) -> Option<RgbaImage> {
+pub fn get_char_image_large(font_state: &FontState, char_index: usize) -> Option<RgbaImage> {
 	let large_font_images = font_state.large_font_images.lock().unwrap();
 	large_font_images.get(char_index).cloned()
 }
 
 #[tauri::command]
 pub fn validate_string(font_state: State<FontState>, string: &str, max_length: usize) -> (bool, String) {
-	let words = encode_string(font_state.clone(), string);
-	let bytes = words_to_bytes(&words);
-	let string2 = DataView::new(&bytes).get_encoded_string(&font_state, 0, max_length);
-	let words2 = encode_string(font_state.clone(), &string2);
-	(words == words2, string2)
+	let words = decode_string(&font_state, string);
+	let string2 = encode_string(&font_state, &words);
+	let words2 = decode_string(&font_state, &string2);
+	(words == words2 && words2.len() <= max_length, string2)
 }
 
 pub fn load_font(path: &PathBuf) -> Result<Vec<RgbaImage>, Box<dyn Error>> {
@@ -490,9 +534,9 @@ pub fn get_default_char_codes() -> Vec<CharEncoding> {
 		CharEncoding { data: 61441u16, text: vec![String::from("<hr>")] }, //new page
 		CharEncoding { data: 61442u16, text: vec![String::from("{username}")] },
 		CharEncoding { data: 61443u16, text: vec![String::from("{charname}")] },
-		CharEncoding { data: 61444u16, text: vec![String::from("{ndesu}")] },
-		CharEncoding { data: 61445u16, text: vec![String::from("{ndesuka}")] },
-		CharEncoding { data: 61446u16, text: vec![String::from("{desuka}")] },
+		CharEncoding { data: 61444u16, text: vec![String::from("{statement}")] },
+		CharEncoding { data: 61445u16, text: vec![String::from("{question1}")] },
+		CharEncoding { data: 61446u16, text: vec![String::from("{question2}")] },
 		CharEncoding { data: 61447u16, text: vec![String::from("{variable}")] },
 		CharEncoding { data: 61448u16, text: vec![String::from("{pronoun}")] },
 		CharEncoding { data: 61449u16, text: vec![String::from("{nickname}")] },
