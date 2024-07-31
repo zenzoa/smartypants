@@ -124,13 +124,34 @@ pub fn save_characters(characters: &[Character]) -> Result<Vec<u8>, Box<dyn Erro
 }
 
 #[tauri::command]
-pub fn update_character(handle: AppHandle, data_state: State<DataState>, index: usize, name: String) -> Option<Text> {
+pub fn update_character(handle: AppHandle, data_state: State<DataState>, index: usize, key: &str, new_value: String) -> Option<Text> {
 	let font_state: State<FontState> = handle.state();
 	let mut data_pack_opt = data_state.data_pack.lock().unwrap();
 	if let Some(data_pack) = data_pack_opt.as_mut() {
 		if let Some(character) = data_pack.characters.get_mut(index) {
-			character.name.set_string(&font_state, &name);
-			return Some(character.name.clone());
+			return match key {
+				"name" => {
+					character.name.set_string(&font_state, &new_value);
+					Some(character.name.clone())
+				},
+				"pronoun" => {
+					character.pronoun.set_string(&font_state, &new_value);
+					Some(character.pronoun.clone())
+				},
+				"statement" => {
+					character.statement.set_string(&font_state, &new_value);
+					Some(character.statement.clone())
+				},
+				"question1" => {
+					character.question1.set_string(&font_state, &new_value);
+					Some(character.question1.clone())
+				},
+				"question2" => {
+					character.question2.set_string(&font_state, &new_value);
+					Some(character.question2.clone())
+				},
+				_ => None
+			}
 		}
 	}
 	None
