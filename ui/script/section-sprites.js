@@ -47,7 +47,7 @@ const renderImageDef = (i, imageDef) => {
 }
 
 const viewSprites = () => {
-	selectSection('view-sprites-button')
+	selectSection('sprites')
 	contents.append(sections.sprites)
 }
 

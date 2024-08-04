@@ -2,8 +2,8 @@ use std::error::Error;
 use tauri::{ AppHandle, Manager, State };
 
 use super::EntityId;
-use crate::DataState;
-use crate::data_view::{ DataView, words_to_bytes };
+use crate::{ DataState, update_window_title };
+use crate::data_view::{ DataView, words_to_bytes, resize_words };
 use crate::text::{ Text, FontState };
 
 #[derive(Clone, serde::Serialize)]
@@ -141,7 +141,7 @@ pub fn save_items(items: &[Item]) -> Result<Vec<u8>, Box<dyn Error>> {
 			ItemType::Game => 8,
 			ItemType::Unknown => 9,
 		});
-		words = [words, item.name.data.clone()].concat();
+		words = [words, resize_words(&item.name.data, 10)].concat();
 		words.push(item.image_id.to_word());
 		words.push(match &item.worn_image_id {
 			Some(id) => id.to_word(),
@@ -177,14 +177,19 @@ pub fn save_items(items: &[Item]) -> Result<Vec<u8>, Box<dyn Error>> {
 }
 
 #[tauri::command]
-pub fn update_item(handle: AppHandle, data_state: State<DataState>, index: usize, name: String) -> Option<Text> {
+pub fn update_item(handle: AppHandle, index: usize, name: String) -> Option<Text> {
+	let data_state: State<DataState> = handle.state();
 	let font_state: State<FontState> = handle.state();
+
 	let mut data_pack_opt = data_state.data_pack.lock().unwrap();
 	if let Some(data_pack) = data_pack_opt.as_mut() {
 		if let Some(item) = data_pack.items.get_mut(index) {
 			item.name.set_string(&font_state, &name);
+			*data_state.is_modified.lock().unwrap() = true;
+			update_window_title(&handle);
 			return Some(item.name.clone());
 		}
 	}
+
 	None
 }

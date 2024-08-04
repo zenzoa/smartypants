@@ -1,6 +1,8 @@
+use std::fs;
 use std::error::Error;
 
 use tauri::{ AppHandle, State, Manager };
+use tauri::path::BaseDirectory;
 
 use crate::DataState;
 use crate::data_view::{ DataView, words_to_bytes };
@@ -14,14 +16,22 @@ const FIRMWARE_DATA_PACK_SIZE: usize = 0x730000 - 0x6CE000;
 pub struct Firmware {
 	pub data_pack: DataPack,
 	pub sprite_pack: SpritePack,
-	pub menu_strings: Vec<Text>
+	pub menu_strings: Vec<Text>,
+	pub use_gp_header: bool
 }
 
 pub fn read_firmware(handle: &AppHandle, data: &DataView) -> Result<Firmware, Box<dyn Error>> {
 	let font_state: State<FontState> = handle.state();
 
-	let data_pack = get_data_pack(&font_state, &data.chunk(0x6CE000, FIRMWARE_DATA_PACK_SIZE))?;
-	let sprite_pack = get_sprite_pack(&data.chunk(0x730000, data.len() - 0x730000))?;
+	let use_gp_header = data.data.starts_with("GP-SPIF-HEADER".as_bytes());
+
+	println!("use_gp_header: {:?}", use_gp_header);
+	let data_pack_start = if use_gp_header { 0x6CE000 } else { 0x6CE000 - 1024 };
+	let sprite_pack_start = if use_gp_header { 0x730000 } else { 0x730000 - 1024 };
+	let sprite_pack_size = data.len() - sprite_pack_start;
+
+	let data_pack = get_data_pack(&font_state, &data.chunk(data_pack_start, FIRMWARE_DATA_PACK_SIZE))?;
+	let sprite_pack = get_sprite_pack(&data.chunk(sprite_pack_start, sprite_pack_size))?;
 
 	let menu_strings = match data.find_bytes(&[0xF9, 0x01, 0xFB, 0x01]) {
 		Some(start_index) => {
@@ -32,12 +42,7 @@ pub fn read_firmware(handle: &AppHandle, data: &DataView) -> Result<Firmware, Bo
 		}
 	};
 
-	let new_data = save_firmware(handle, &data.data)?;
-	if new_data == data.data {
-		println!("Firmware export matches!");
-	}
-
-	Ok(Firmware { data_pack, sprite_pack, menu_strings })
+	Ok(Firmware { data_pack, sprite_pack, menu_strings, use_gp_header })
 }
 
 pub fn save_firmware(handle: &AppHandle, original_data: &[u8]) -> Result<Vec<u8>, Box<dyn Error>> {
@@ -59,19 +64,38 @@ pub fn save_firmware(handle: &AppHandle, original_data: &[u8]) -> Result<Vec<u8>
 		}
 	}
 
+	let use_gp_header = data_state.use_gp_header.lock().unwrap().clone();
+	let data_pack_start = if use_gp_header { 0x6CE000 } else { 0x6CE000 - 1024 };
+	let sprite_pack_start = if use_gp_header { 0x730000 } else { 0x730000 - 1024 };
+
 	if let Some(old_data_pack) = data_state.data_pack.lock().unwrap().as_ref() {
-		let data_pack_data_view = new_data.chunk(0x6CE000, FIRMWARE_DATA_PACK_SIZE);
+		let data_pack_data_view = new_data.chunk(data_pack_start, FIRMWARE_DATA_PACK_SIZE);
 		let new_data_pack_data = save_data_pack(old_data_pack, &data_pack_data_view)?;
 		let padding_size = FIRMWARE_DATA_PACK_SIZE - new_data_pack_data.len();
 		let padding = vec![0; padding_size];
 		let new_data_pack_data = [new_data_pack_data, padding].concat();
-		let _: Vec<_> = new_data.data.splice(0x6CE000..0x730000, new_data_pack_data).collect();
+		let end_of_data_pack = data_pack_start + FIRMWARE_DATA_PACK_SIZE;
+		let _: Vec<_> = new_data.data.splice(data_pack_start..end_of_data_pack, new_data_pack_data).collect();
 	}
 
 	if let Some(old_sprite_pack) = data_state.sprite_pack.lock().unwrap().as_ref() {
 		let new_sprite_pack_data = save_sprite_pack(old_sprite_pack)?;
-		let end_of_sprite_pack = 0x730000 + new_sprite_pack_data.len();
-		let _: Vec<_> = new_data.data.splice(0x730000..end_of_sprite_pack, new_sprite_pack_data).collect();
+		let end_of_sprite_pack = sprite_pack_start + new_sprite_pack_data.len();
+		let _: Vec<_> = new_data.data.splice(sprite_pack_start..end_of_sprite_pack, new_sprite_pack_data).collect();
+	}
+
+	let already_has_header = new_data.data.starts_with("GP-SPIF-HEADER".as_bytes());
+	if use_gp_header && !already_has_header {
+		println!("add header");
+		let gp_header_path = handle.path().resolve("resources/gp_header.bin", BaseDirectory::Resource)?;
+		let gp_header_file = fs::read(&gp_header_path)?;
+		let _: Vec<_> = new_data.data.splice(0..0, gp_header_file).collect();
+		let _: Vec<_> = new_data.data.splice((new_data.len() - 1024)..new_data.len(), Vec::new()).collect();
+	} else if !use_gp_header && already_has_header {
+		println!("remove header");
+		let padding = vec![0xFF; 1024];
+		let _: Vec<_> = new_data.data.splice(0..1024, Vec::new()).collect();
+		new_data.data.extend_from_slice(&padding);
 	}
 
 	Ok(new_data.data)
@@ -147,4 +171,10 @@ pub fn save_menu_strings(font_state: State<FontState>, menu_strings: &[Text]) ->
 	let new_menu_strings_data = [new_menu_strings_data, padding].concat();
 
 	Ok(new_menu_strings_data)
+}
+
+#[tauri::command]
+pub fn set_gp_header(handle: AppHandle, enable: bool) {
+	let data_state: State<DataState> = handle.state();
+	*data_state.use_gp_header.lock().unwrap() = enable;
 }

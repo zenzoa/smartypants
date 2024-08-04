@@ -29,6 +29,6 @@ const setupPalettes = () => {
 }
 
 const viewPalettes = () => {
-	selectSection('view-palettes-button')
+	selectSection('palettes')
 	contents.append(sections.palettes)
 }

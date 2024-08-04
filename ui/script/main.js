@@ -9,6 +9,7 @@ let contents = null
 
 let timestamp = Date.now()
 
+let currentSection = ''
 let sections = {}
 
 window.addEventListener('load', () => {
@@ -45,11 +46,11 @@ window.addEventListener('load', () => {
 		}
 
 		const nav = div({id: 'sidebar'}, [
-			button({id: 'view-header-button', onclick: viewCardHeader},
+			button({id: 'view-header-button', onclick: viewHeader},
 				'Header'),
 			button({id: 'view-table1-button', onclick: viewTable1},
 				'Unknown'),
-			button({id: 'view-particle-emitters-button', onclick: viewParticleEmitters},
+			button({id: 'view-particleEmitters-button', onclick: viewParticleEmitters},
 				`Particle Emitters <span class="tag">${cardData.data_pack.particle_emitters.length}</span>`),
 			button({id: 'view-scenes-button', onclick: viewScenes},
 				`Scenes <span class="tag">${cardData.data_pack.scenes.length}</span>`),
@@ -76,7 +77,7 @@ window.addEventListener('load', () => {
 		main.append(nav)
 		main.append(contents)
 
-		viewCardHeader()
+		viewHeader()
 	})
 
 	tauri_listen('show_firmware', event => {
@@ -92,7 +93,7 @@ window.addEventListener('load', () => {
 			table1: setupTable1(),
 			particleEmitters: setupParticleEmitters(),
 			scenes: setupScenes(),
-			menu_strings: setupMenuStrings(),
+			menuStrings: setupMenuStrings(),
 			strings: setupStrings(),
 			table9: setupTable9(),
 			items: setupItems(),
@@ -104,15 +105,15 @@ window.addEventListener('load', () => {
 		}
 
 		const nav = div({id: 'sidebar'}, [
-			button({id: 'view-header-button', onclick: viewFirmwareHeader},
+			button({id: 'view-header-button', onclick: viewHeader},
 				'Header'),
 			button({id: 'view-table1-button', onclick: viewTable1},
 				'Unknown'),
-			button({id: 'view-particle-emitters-button', onclick: viewParticleEmitters},
+			button({id: 'view-particleEmitters-button', onclick: viewParticleEmitters},
 				`Particle Emitters <span class="tag">${cardData.data_pack.particle_emitters.length}</span>`),
 			button({id: 'view-scenes-button', onclick: viewScenes},
 				`Scenes <span class="tag">${cardData.data_pack.scenes.length}</span>`),
-			button({id: 'view-menu-strings-button', onclick: viewMenuStrings},
+			button({id: 'view-menuStrings-button', onclick: viewMenuStrings},
 				`Menu Strings <span class="tag">${cardData.menu_strings.length}</span>`),
 			button({id: 'view-strings-button', onclick: viewStrings},
 				`Dialog Strings <span class="tag">${cardData.data_pack.strings.length}</span>`),
@@ -137,19 +138,44 @@ window.addEventListener('load', () => {
 		main.append(nav)
 		main.append(contents)
 
-		viewFirmwareHeader()
+		viewHeader()
 	})
 
-	tauri_listen('update_strings', event => {
-		cardData.data_pack.strings = event.payload
-		sections.strings = setupStrings()
-		viewStrings()
+	tauri_listen('refresh_tab', () => {
+		selectSection(currentSection)
+		contents.append(sections[currentSection])
 	})
 
 	tauri_listen('update_menu_strings', event => {
-		cardData.menu_strings = event.payload
+		cardData.menu_strings = event.payload[0]
 		sections.menu_strings = setupMenuStrings()
-		viewMenuStrings()
+		if (event.payload[1]) {
+			viewMenuStrings()
+		}
+	})
+
+	tauri_listen('update_strings', event => {
+		cardData.data_pack.strings = event.payload[0]
+		sections.strings = setupStrings()
+		if (event.payload[1]) {
+			viewStrings()
+		}
+	})
+
+	tauri_listen('update_items', event => {
+		cardData.data_pack.items = event.payload[0]
+		sections.items = setupItems()
+		if (event.payload[1]) {
+			viewItems()
+		}
+	})
+
+	tauri_listen('update_characters', event => {
+		cardData.data_pack.characters = event.payload[0]
+		sections.characters = setupCharacters()
+		if (event.payload[1]) {
+			viewCharacters()
+		}
 	})
 
 	tauri_listen('update_image_def', event => {
@@ -164,6 +190,12 @@ window.addEventListener('load', () => {
 			const subimageEl = document.getElementById(`subimage-${imageIndex}-${i}`)
 			subimageEl.src = convertFileSrc(`${timestamp}-${imageIndex}-${i}`, 'getimage')
 		}
+		sections.particleEmitters = setupParticleEmitters()
+		sections.scenes = setupScenes()
+		sections.items = setupItems()
+		sections.characters = setupCharacters()
+		sections.animations = setupAnimations()
+		sections.frames = setupFrames()
 	})
 
 	tauri_listen('show_spinner', () => {
@@ -175,8 +207,10 @@ window.addEventListener('load', () => {
 	})
 
 	tauri_listen('update_char_codes', event => {
-		textEncoding = event.payload.slice(1, 257)
-		EncodingDialog.open()
+		textEncoding = event.payload[0].slice(1, 257)
+		if (event.payload[1]) {
+			EncodingDialog.open()
+		}
 	})
 
 	tauri_invoke('get_default_char_codes').then(result => {
@@ -248,11 +282,12 @@ const exportImageSpritesheet = (imageIndex) => {
 	tauri_invoke('export_image_spritesheet', { imageIndex })
 }
 
-const selectSection = (sectionId) => {
+const selectSection = (sectionName) => {
+	currentSection = sectionName
 	for (child of document.getElementById('sidebar').children) {
 		child.classList.remove('selected')
 	}
-	document.getElementById(sectionId).classList.add('selected')
+	document.getElementById(`view-${sectionName}-button`).classList.add('selected')
 	contents.replaceChildren()
 	contents.scrollTo(0, 0)
 }
@@ -269,7 +304,7 @@ const setupTable1 = () => {
 	])
 }
 const viewTable1 = () => {
-	selectSection('view-table1-button')
+	selectSection('table1')
 	contents.append(sections.table1)
 }
 
@@ -283,6 +318,6 @@ const setupTable9 = () => {
 	])
 }
 const viewTable9 = () => {
-	selectSection('view-table9-button')
+	selectSection('table9')
 	contents.append(sections.table9)
 }

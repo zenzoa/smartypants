@@ -9,6 +9,6 @@ const setupAnimations = () => {
 }
 
 const viewAnimations = () => {
-	selectSection('view-animations-button')
+	selectSection('animations')
 	contents.append(sections.animations)
 }

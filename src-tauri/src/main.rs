@@ -29,8 +29,8 @@ use data_pack::DataPack;
 use sprite_pack::SpritePack;
 use text::{ Text, FontState, set_to_preset_encoding };
 use file::{ open_bin, save_bin, save_bin_as, continue_if_modified };
-use export::{ export_data, export_strings, export_images, export_image_spritesheet, export_encoding };
-use import::{ import_strings, import_menu_strings, import_image_spritesheet, import_encoding };
+use export::{ export_data, export_strings, export_images };
+use import::import_encoding;
 
 #[derive(Default)]
 pub struct DataState {
@@ -41,6 +41,7 @@ pub struct DataState {
 	pub data_pack: Mutex<Option<DataPack>>,
 	pub sprite_pack: Mutex<Option<SpritePack>>,
 	pub menu_strings: Mutex<Option<Vec<Text>>>,
+	pub use_gp_header: Mutex<bool>,
 	pub original_data: Mutex<Option<Vec<u8>>>
 }
 
@@ -60,16 +61,17 @@ fn main() {
 			open_bin,
 			save_bin,
 			save_bin_as,
-			export_data,
-			export_strings,
-			export_images,
-			export_image_spritesheet,
-			export_encoding,
-			import_image_spritesheet,
-			import_strings,
-			import_menu_strings,
-			import_encoding,
+			export::export_data,
+			export::export_strings,
+			export::export_images,
+			export::export_image_spritesheet,
+			export::export_encoding,
+			import::import_image_spritesheet,
+			import::import_strings,
+			import::import_menu_strings,
+			import::import_encoding,
 			try_quit,
+			firmware::set_gp_header,
 			data_pack::item::update_item,
 			data_pack::character::update_character,
 			sprite_pack::image_def::update_image_def,
@@ -105,7 +107,7 @@ fn main() {
 				&Submenu::with_id_and_items(handle, "text", "Text", true, &[
 					&Submenu::with_id_and_items(handle, "change_encoding", "Change Encoding", true, &[
 						&CheckMenuItem::with_id(handle, "set_encoding_to_jp", "Japanese", true, true, None::<&str>)?,
-						&CheckMenuItem::with_id(handle, "set_encoding_to_en", "English", true, false, None::<&str>)?,
+						&CheckMenuItem::with_id(handle, "set_encoding_to_en", "English/Latin", true, false, None::<&str>)?,
 						&MenuItem::with_id(handle, "import_encoding", "Import...", true, None::<&str>)?,
 					])?,
 					&MenuItem::with_id(handle, "edit_encoding", "Edit Encoding", true, None::<&str>)?,
@@ -120,13 +122,13 @@ fn main() {
 		.setup(|app| {
 			let font_state: State<FontState> = app.state();
 
-			if let Ok(small_font_path) = app.path().resolve("tamafonts/default_font_small.png", BaseDirectory::Resource) {
+			if let Ok(small_font_path) = app.path().resolve("resources/font_small_jp.png", BaseDirectory::Resource) {
 				if let Ok(small_font) = text::load_font(&small_font_path) {
 					*font_state.small_font_images.lock().unwrap() = small_font;
 				}
 			}
 
-			if let Ok(large_font_path) = app.path().resolve("tamafonts/default_font_large.png", BaseDirectory::Resource) {
+			if let Ok(large_font_path) = app.path().resolve("resources/font_large_jp.png", BaseDirectory::Resource) {
 				if let Ok(large_font) = text::load_font(&large_font_path) {
 					*font_state.large_font_images.lock().unwrap() = large_font;
 				}

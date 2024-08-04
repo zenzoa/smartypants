@@ -11,9 +11,9 @@ use tauri::async_runtime::spawn;
 
 use rfd::{ FileDialog, MessageButtons, MessageDialog, MessageDialogResult };
 
-use crate::{ DataState, ImageState, show_error_message, show_spinner, hide_spinner, update_window_title };
+use crate::{ DataState, BinType, ImageState, show_error_message, show_spinner, hide_spinner, update_window_title };
 use crate::sprite_pack::{ palette::Color, get_spritesheet_dims };
-use crate::text::{ Text, FontState, CharEncoding };
+use crate::text::{ Text, FontState, CharEncoding, re_decode_strings };
 
 #[derive(Clone, Debug, serde::Deserialize)]
 struct TamaStringTranslation {
@@ -87,7 +87,7 @@ pub fn import_strings_from(handle: &AppHandle, path: &PathBuf) -> Result<(), Box
 				tamastring.value.set_string(&font_state, &new_string.value);
 			}
 		}
-		handle.emit("update_strings", data_pack.strings.clone()).unwrap();
+		handle.emit("update_strings", (data_pack.strings.clone(), true)).unwrap();
 	}
 
 	Ok(())
@@ -109,7 +109,7 @@ pub fn import_menu_strings_from(handle: &AppHandle, path: &PathBuf) -> Result<()
 				return Err(format!("Missing menu string {}", i).into());
 			}
 		}
-		handle.emit("update_menu_strings", &new_menu_strings).unwrap();
+		handle.emit("update_menu_strings", (&new_menu_strings, true)).unwrap();
 	}
 
 	*data_state.menu_strings.lock().unwrap() = Some(new_menu_strings);
@@ -182,6 +182,8 @@ pub fn import_image_spritesheet(handle: AppHandle, image_index: usize) {
 
 fn import_image_spritesheet_from(handle: &AppHandle, image_index: usize, path: &PathBuf) -> Result<(), Box<dyn Error>> {
 	let spritesheet = ImageReader::open(path)?.decode()?;
+	let data_state: State<DataState> = handle.state();
+	let font_state: State<FontState> = handle.state();
 	let image_state: State<ImageState> = handle.state();
 
 	if let Some(subimages) = image_state.images.lock().unwrap().get_mut(image_index) {
@@ -196,6 +198,14 @@ fn import_image_spritesheet_from(handle: &AppHandle, image_index: usize, path: &
 			replace_image_data(handle, image_index, i, &new_subimage)?;
 			*subimage = new_subimage;
 			x += subimage.width();
+		}
+
+		if let Some(BinType::Firmware) = *data_state.bin_type.lock().unwrap() {
+			match image_index {
+				98 => font_state.small_font_images.lock().unwrap().clone_from(subimages),
+				99 => font_state.large_font_images.lock().unwrap().clone_from(subimages),
+				_ => {}
+			}
 		}
 
 		handle.emit("update_image", image_index).unwrap();
@@ -296,10 +306,13 @@ pub fn import_encoding_from(handle: &AppHandle, path: &PathBuf, open_dialog: boo
 	let file_string = fs::read_to_string(path)?;
 	let char_codes: Vec<CharEncoding> = serde_json::from_str(&file_string)?;
 	let font_state: State<FontState> = handle.state();
-	if open_dialog {
-		handle.emit("update_char_codes", char_codes.clone()).unwrap();
-	}
+
+	handle.emit("update_char_codes", (char_codes.clone(), open_dialog)).unwrap();
+
 	*font_state.char_codes.lock().unwrap() = char_codes;
 	*font_state.is_custom.lock().unwrap() = true;
+
+	re_decode_strings(handle);
+
 	Ok(())
 }

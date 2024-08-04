@@ -1,7 +1,7 @@
 use std::error::Error;
 
 use crate::text::FontState;
-use crate::data_view::{ DataView, words_to_bytes };
+use crate::data_view::DataView;
 
 pub mod table1;
 pub mod particle_emitter;
@@ -139,19 +139,12 @@ pub fn save_data_pack(data_pack: &DataPack, original_data: &DataView) -> Result<
 		tables.push(table_data);
 	}
 
-	let mut string_offsets: Vec<u16> = Vec::new();
-	let mut string_data: Vec<u16> = Vec::new();
-	for string in &data_pack.strings {
-		string_offsets.push(string_data.len() as u16);
-		for word in string.value.data.iter() {
-			string_data.push(*word);
-		}
-	}
-	string_offsets.push(0xFFFF);
+	let (string_data, string_offsets) = tamastring::save_strings(&data_pack.strings)?;
+	tables[6] = string_data;
+	tables[7] = string_offsets;
 
-	tables[6] = words_to_bytes(&string_data);
-	tables[7] = words_to_bytes(&string_offsets);
 	tables[10] = item::save_items(&data_pack.items)?;
+
 	tables[11] = character::save_characters(&data_pack.characters)?;
 
 	let mut table_offset_data: Vec<u8> = Vec::new();

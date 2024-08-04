@@ -83,8 +83,8 @@ class EditDialog {
 				smallPreviewEl.replaceChildren()
 				largePreviewEl.replaceChildren()
 				result.forEach(i => {
-					smallPreviewEl.append(displayImage('smallfont', i-1))
-					largePreviewEl.append(displayImage('largefont', i-1))
+					smallPreviewEl.append(div({ className: 'preview-letter' }, [displayImage('smallfont', i-1)]))
+					largePreviewEl.append(div({ className: 'preview-letter' }, [displayImage('largefont', i-1)]))
 				})
 			})
 		}

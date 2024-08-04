@@ -8,6 +8,6 @@ const setupParticleEmitters = () => {
 }
 
 const viewParticleEmitters = () => {
-	selectSection('view-particle-emitters-button')
+	selectSection('particleEmitters')
 	contents.append(sections.particleEmitters)
 }

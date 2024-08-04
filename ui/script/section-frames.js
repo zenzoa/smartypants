@@ -41,7 +41,7 @@ const setupFrames = () => {
 }
 
 const viewFrames = () => {
-	selectSection('view-frames-button')
+	selectSection('frames')
 	contents.append(sections.frames)
 }
 

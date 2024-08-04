@@ -81,7 +81,7 @@ const renderCharacter = (i, character) => {
 }
 
 const viewCharacters = () => {
-	selectSection('view-characters-button')
+	selectSection('characters')
 	contents.append(sections.characters)
 }
 

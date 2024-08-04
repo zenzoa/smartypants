@@ -2,8 +2,8 @@ use std::error::Error;
 use tauri::{ AppHandle, Manager, State };
 
 use super::EntityId;
-use crate::DataState;
-use crate::data_view::{ DataView, words_to_bytes };
+use crate::{ DataState, update_window_title };
+use crate::data_view::{ DataView, words_to_bytes, resize_words };
 use crate::text::{ Text, FontState };
 
 #[derive(Clone, serde::Serialize)]
@@ -98,15 +98,15 @@ pub fn save_characters(characters: &[Character]) -> Result<Vec<u8>, Box<dyn Erro
 	for character in characters {
 		words.push(character.id.to_word());
 		words.push(character.character_type);
-		words = [words, character.name.data.clone()].concat();
+		words = [words, resize_words(&character.name.data, 10)].concat();
 		words.push(character.profile_image_id.to_word());
 		words.push(character.icon_image_id.to_word());
 		words.push(character.composition_id.to_word());
 		words.push(character.unknown1.to_word());
-		words = [words, character.pronoun.data.clone()].concat();
-		words = [words, character.statement.data.clone()].concat();
-		words = [words, character.question1.data.clone()].concat();
-		words = [words, character.question2.data.clone()].concat();
+		words = [words, resize_words(&character.pronoun.data, 6)].concat();
+		words = [words, resize_words(&character.statement.data, 6)].concat();
+		words = [words, resize_words(&character.question1.data, 6)].concat();
+		words = [words, resize_words(&character.question2.data, 6)].concat();
 		words.push(character.unknown2);
 		words.push(character.unknown3);
 		words.push(character.global_id.to_word());
@@ -124,11 +124,16 @@ pub fn save_characters(characters: &[Character]) -> Result<Vec<u8>, Box<dyn Erro
 }
 
 #[tauri::command]
-pub fn update_character(handle: AppHandle, data_state: State<DataState>, index: usize, key: &str, new_value: String) -> Option<Text> {
+pub fn update_character(handle: AppHandle, index: usize, key: &str, new_value: String) -> Option<Text> {
+	let data_state: State<DataState> = handle.state();
 	let font_state: State<FontState> = handle.state();
+
 	let mut data_pack_opt = data_state.data_pack.lock().unwrap();
 	if let Some(data_pack) = data_pack_opt.as_mut() {
 		if let Some(character) = data_pack.characters.get_mut(index) {
+			*data_state.is_modified.lock().unwrap() = true;
+			update_window_title(&handle);
+
 			return match key {
 				"name" => {
 					character.name.set_string(&font_state, &new_value);
@@ -154,5 +159,6 @@ pub fn update_character(handle: AppHandle, data_state: State<DataState>, index: 
 			}
 		}
 	}
+
 	None
 }

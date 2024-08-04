@@ -88,6 +88,41 @@ button.icon img {
 	opacity: 0.67;
 }
 
+.toggle-container {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+}
+
+button.toggle {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+}
+
+button.toggle::before {
+	content: '';
+	box-sizing: border-box;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 32px;
+	height: 32px;
+	padding-bottom: 2px;
+	border-radius: 8px;
+	box-shadow: 0 2px 0 0 #666;
+	background-color: #ddd;
+	color: #fff;
+	font-size: 32px;
+}
+
+button.toggle.on::before{
+	content: '✔';
+	border-width: 0;
+	box-shadow: 0 2px 0 0 #222;
+	background-color: #666;
+}
+
 button.edit {
 	width: 32px;
 	height: 32px;
@@ -387,13 +422,21 @@ hr {
 }
 
 .string-preview {
+	display: flex;
 	border-radius: 6px;
+	margin-top: 6px;
 	padding: 6px;
 	background: #222;
 }
 
-.string-preview + .string-preview {
-	margin-top: 6px;
+#preview-small-text .preview-letter {
+	width: 12px;
+	margin-left: -3px;
+}
+
+#preview-large-text .preview-letter {
+	width: 14px;
+	margin-left: -1px;
 }
 
 #encoding-dialog .dialog-content {

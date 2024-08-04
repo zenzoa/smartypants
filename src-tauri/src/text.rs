@@ -10,7 +10,7 @@ use image::{ RgbaImage, GenericImageView };
 
 use rfd::{ MessageButtons, MessageDialog, MessageDialogResult };
 
-use crate::show_error_message;
+use crate::{ DataState, BinType, show_error_message };
 use crate::import::import_encoding_from;
 
 #[derive(Clone, serde::Serialize)]
@@ -229,13 +229,27 @@ pub fn load_font(path: &PathBuf) -> Result<Vec<RgbaImage>, Box<dyn Error>> {
 }
 
 pub fn set_to_preset_encoding(handle: AppHandle, name: &str) {
+	let data_state: State<DataState> = handle.state();
 	let font_state: State<FontState> = handle.state();
 
 	let do_the_thing = || {
-		if let Ok(encoding_path) = handle.path().resolve(format!("encodings/encoding_{}.json", name), BaseDirectory::Resource) {
+		if let Ok(encoding_path) = handle.path().resolve(format!("resources/encoding_{}.json", name), BaseDirectory::Resource) {
 			match import_encoding_from(&handle, &encoding_path, false) {
 				Ok(()) => {
 					*font_state.is_custom.lock().unwrap() = false;
+
+					if let Some(BinType::SmaCard) = *data_state.bin_type.lock().unwrap() {
+						if let Ok(small_font_path) = handle.path().resolve(format!("resources/font_small_{}.png", name), BaseDirectory::Resource) {
+							if let Ok(small_font) = load_font(&small_font_path) {
+								*font_state.small_font_images.lock().unwrap() = small_font;
+							}
+						}
+						if let Ok(large_font_path) = handle.path().resolve(format!("resources/font_large_{}.png", name), BaseDirectory::Resource) {
+							if let Ok(large_font) = load_font(&large_font_path) {
+								*font_state.large_font_images.lock().unwrap() = large_font;
+							}
+						}
+					}
 
 					if let Some(menu) = handle.menu() {
 						if let Some(MenuItemKind::Submenu(text_menu)) = menu.get("text") {
@@ -268,6 +282,43 @@ pub fn set_to_preset_encoding(handle: AppHandle, name: &str) {
 	} else {
 		do_the_thing();
 	}
+}
+
+pub fn re_decode_strings(handle: &AppHandle) {
+	let data_state: State<DataState> = handle.state();
+	let font_state: State<FontState> = handle.state();
+
+	let mut menu_strings_opt = data_state.menu_strings.lock().unwrap();
+	if let Some(menu_strings) = menu_strings_opt.as_mut() {
+		for menu_string in menu_strings.iter_mut() {
+			menu_string.update_string(&font_state);
+		}
+		handle.emit("update_menu_strings", (&menu_strings, false)).unwrap();
+	}
+
+	let mut data_pack_opt = data_state.data_pack.lock().unwrap();
+	if let Some(data_pack) = data_pack_opt.as_mut() {
+		for tamastring in data_pack.strings.iter_mut() {
+			tamastring.value.update_string(&font_state);
+		}
+		handle.emit("update_strings", (&data_pack.strings, false)).unwrap();
+
+		for item in data_pack.items.iter_mut() {
+			item.name.update_string(&font_state);
+		}
+		handle.emit("update_items", (&data_pack.items, false)).unwrap();
+
+		for character in data_pack.characters.iter_mut() {
+			character.name.update_string(&font_state);
+			character.pronoun.update_string(&font_state);
+			character.statement.update_string(&font_state);
+			character.question1.update_string(&font_state);
+			character.question2.update_string(&font_state);
+		}
+		handle.emit("update_characters", (&data_pack.characters, false)).unwrap();
+	}
+
+	handle.emit("refresh_tab", {}).unwrap();
 }
 
 #[tauri::command]

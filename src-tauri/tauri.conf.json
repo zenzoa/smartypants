@@ -48,10 +48,13 @@
 		],
 		"targets": "all",
 		"resources": [
-			"tamafonts/default_font_large.png",
-			"tamafonts/default_font_small.png",
-			"encodings/encoding_jp.json",
-			"encodings/encoding_en.json"
+			"resources/font_large_jp.png",
+			"resources/font_small_jp.png",
+			"resources/font_large_en.png",
+			"resources/font_small_en.png",
+			"resources/encoding_jp.json",
+			"resources/encoding_en.json",
+			"resources/gp_header.bin"
 		],
 		"windows": {
 			"allowDowngrades": true,

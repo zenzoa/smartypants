@@ -42,7 +42,7 @@ const renderItem = (i, item) => {
 }
 
 const viewItems = () => {
-	selectSection('view-items-button')
+	selectSection('items')
 	contents.append(sections.items)
 }
 

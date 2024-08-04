@@ -60,7 +60,7 @@ impl DataView {
 			if i + j*2 < self.len() {
 				let word = self.get_u16(i + j*2);
 				if word > 0 {
-					words.push(word)
+					words.push(word);
 				}
 			}
 		}
@@ -80,6 +80,12 @@ pub fn words_to_bytes(words: &[u16]) -> Vec<u8> {
 		}
 	}
 	bytes
+}
+
+pub fn resize_words(words: &[u16], len: usize) -> Vec<u16> {
+	let mut word_vec = words.to_vec();
+	word_vec.resize(len, 0);
+	word_vec
 }
 
 pub struct BitWriter {

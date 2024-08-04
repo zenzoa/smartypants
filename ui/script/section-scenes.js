@@ -28,6 +28,6 @@ const setupScenes = () => {
 }
 
 const viewScenes = () => {
-	selectSection('view-scenes-button')
+	selectSection('scenes')
 	contents.append(sections.scenes)
 }

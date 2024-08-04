@@ -24,7 +24,7 @@ const setupStrings = () => {
 }
 
 const viewStrings = () => {
-	selectSection('view-strings-button')
+	selectSection('strings')
 	contents.append(sections.strings)
 }
 
@@ -52,8 +52,8 @@ const setupMenuStrings = () => {
 }
 
 const viewMenuStrings = () => {
-	selectSection('view-menu-strings-button')
-	contents.append(sections.menu_strings)
+	selectSection('menuStrings')
+	contents.append(sections.menuStrings)
 }
 
 const importMenuStrings = () => {
