@@ -1,6 +1,6 @@
 {
 	"productName": "Smarty Pants",
-	"version": "0.1.6",
+	"version": "0.1.8",
 	"identifier": "thing.zenzoa.smartypants",
 	"app": {
 		"withGlobalTauri": true,
