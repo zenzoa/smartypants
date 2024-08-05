@@ -48,28 +48,28 @@ window.addEventListener('load', () => {
 		const nav = div({id: 'sidebar'}, [
 			button({id: 'view-header-button', onclick: viewHeader},
 				'Header'),
-			button({id: 'view-table1-button', onclick: viewTable1},
-				'Unknown'),
-			button({id: 'view-particleEmitters-button', onclick: viewParticleEmitters},
-				`Particle Emitters <span class="tag">${cardData.data_pack.particle_emitters.length}</span>`),
-			button({id: 'view-scenes-button', onclick: viewScenes},
-				`Scenes <span class="tag">${cardData.data_pack.scenes.length}</span>`),
-			button({id: 'view-strings-button', onclick: viewStrings},
-				`Strings <span class="tag">${cardData.data_pack.strings.length}</span>`),
-			button({id: 'view-table9-button', onclick: viewTable9},
-				`Unknown <span class="tag">${cardData.data_pack.table9.length}</span>`),
-			button({id: 'view-items-button', onclick: viewItems},
-				`Items <span class="tag">${cardData.data_pack.items.length}</span>`),
 			button({id: 'view-characters-button', onclick: viewCharacters},
 				`Characters <span class="tag">${cardData.data_pack.characters.length}</span>`),
-			button({id: 'view-animations-button', onclick: viewAnimations},
-				`Animations <span class="tag">${cardData.data_pack.graphics_nodes.length}</span>`),
-			button({id: 'view-frames-button', onclick: viewFrames},
-				`Frames <span class="tag">${cardData.data_pack.frame_groups.length}</span>`),
+			button({id: 'view-items-button', onclick: viewItems},
+				`Items <span class="tag">${cardData.data_pack.items.length}</span>`),
+			button({id: 'view-strings-button', onclick: viewStrings},
+				`Strings <span class="tag">${cardData.data_pack.strings.length}</span>`),
+			button({id: 'view-palettes-button', onclick: viewPalettes},
+				`Palettes <span class="tag">${Math.ceil(cardData.sprite_pack.palettes.length / 4)}</span>`),
 			button({id: 'view-sprites-button', onclick: viewSprites},
 				`Images <span class="tag">${cardData.sprite_pack.image_defs.length}</span>`),
-			button({id: 'view-palettes-button', onclick: viewPalettes},
-				`Palettes <span class="tag">${Math.ceil(cardData.sprite_pack.palettes.length / 4)}</span>`)
+			button({id: 'view-frames-button', onclick: viewFrames},
+				`Frames <span class="tag">${cardData.data_pack.frame_groups.length}</span>`),
+			button({id: 'view-scenes-button', onclick: viewScenes},
+				`Scenes <span class="tag">${cardData.data_pack.scenes.length}</span>`),
+			button({id: 'view-animations-button', onclick: viewAnimations},
+				`Animations <span class="tag">${cardData.data_pack.graphics_nodes.length}</span>`),
+			button({id: 'view-particleEmitters-button', onclick: viewParticleEmitters},
+				`Particle Emitters <span class="tag">${cardData.data_pack.particle_emitters.length}</span>`),
+			button({id: 'view-table1-button', onclick: viewTable1},
+				`Unknown 1 <span class="tag">${cardData.data_pack.table1.length}</span>`),
+			button({id: 'view-table9-button', onclick: viewTable9},
+				`Unknown 2 <span class="tag">${cardData.data_pack.table9.length}</span>`)
 		])
 
 		contents = div({id: 'contents'})
@@ -107,30 +107,30 @@ window.addEventListener('load', () => {
 		const nav = div({id: 'sidebar'}, [
 			button({id: 'view-header-button', onclick: viewHeader},
 				'Header'),
-			button({id: 'view-table1-button', onclick: viewTable1},
-				'Unknown'),
-			button({id: 'view-particleEmitters-button', onclick: viewParticleEmitters},
-				`Particle Emitters <span class="tag">${cardData.data_pack.particle_emitters.length}</span>`),
-			button({id: 'view-scenes-button', onclick: viewScenes},
-				`Scenes <span class="tag">${cardData.data_pack.scenes.length}</span>`),
+			button({id: 'view-characters-button', onclick: viewCharacters},
+				`Characters <span class="tag">${cardData.data_pack.characters.length}</span>`),
+			button({id: 'view-items-button', onclick: viewItems},
+				`Items <span class="tag">${cardData.data_pack.items.length}</span>`),
 			button({id: 'view-menuStrings-button', onclick: viewMenuStrings},
 				`Menu Strings <span class="tag">${cardData.menu_strings.length}</span>`),
 			button({id: 'view-strings-button', onclick: viewStrings},
 				`Dialog Strings <span class="tag">${cardData.data_pack.strings.length}</span>`),
-			button({id: 'view-table9-button', onclick: viewTable9},
-				`Unknown <span class="tag">${cardData.data_pack.table9.length}</span>`),
-			button({id: 'view-items-button', onclick: viewItems},
-				`Items <span class="tag">${cardData.data_pack.items.length}</span>`),
-			button({id: 'view-characters-button', onclick: viewCharacters},
-				`Characters <span class="tag">${cardData.data_pack.characters.length}</span>`),
-			button({id: 'view-animations-button', onclick: viewAnimations},
-				`Animations <span class="tag">${cardData.data_pack.graphics_nodes.length}</span>`),
-			button({id: 'view-frames-button', onclick: viewFrames},
-				`Frames <span class="tag">${cardData.data_pack.frame_groups.length}</span>`),
+			button({id: 'view-palettes-button', onclick: viewPalettes},
+				`Palettes <span class="tag">${Math.ceil(cardData.sprite_pack.palettes.length / 4)}</span>`),
 			button({id: 'view-sprites-button', onclick: viewSprites},
 				`Images <span class="tag">${cardData.sprite_pack.image_defs.length}</span>`),
-			button({id: 'view-palettes-button', onclick: viewPalettes},
-				`Palettes <span class="tag">${Math.ceil(cardData.sprite_pack.palettes.length / 4)}</span>`)
+			button({id: 'view-frames-button', onclick: viewFrames},
+				`Frames <span class="tag">${cardData.data_pack.frame_groups.length}</span>`),
+			button({id: 'view-scenes-button', onclick: viewScenes},
+				`Scenes <span class="tag">${cardData.data_pack.scenes.length}</span>`),
+			button({id: 'view-animations-button', onclick: viewAnimations},
+				`Animations <span class="tag">${cardData.data_pack.graphics_nodes.length}</span>`),
+			button({id: 'view-particleEmitters-button', onclick: viewParticleEmitters},
+				`Particle Emitters <span class="tag">${cardData.data_pack.particle_emitters.length}</span>`),
+			button({id: 'view-table1-button', onclick: viewTable1},
+				`Unknown 1 <span class="tag">${cardData.data_pack.table1.length}</span>`),
+			button({id: 'view-table9-button', onclick: viewTable9},
+				`Unknown 2 <span class="tag">${cardData.data_pack.table9.length}</span>`)
 		])
 
 		contents = div({id: 'contents'})
@@ -148,7 +148,7 @@ window.addEventListener('load', () => {
 
 	tauri_listen('update_menu_strings', event => {
 		cardData.menu_strings = event.payload[0]
-		sections.menu_strings = setupMenuStrings()
+		sections.menuStrings = setupMenuStrings()
 		if (event.payload[1]) {
 			viewMenuStrings()
 		}
@@ -294,13 +294,15 @@ const selectSection = (sectionName) => {
 
 const setupTable1 = () => {
 	const entities = cardData.data_pack.table1
-	const pairs = []
-	for (let i=0; i<entities.length/2; i++) {
-		pairs.push(formatHexCode(entities[i]) + ' ' + formatHexCode(entities[i+1]))
+	if (entities.length === 0) {
+		return div('[empty]')
 	}
-	console.log('table1', entities, pairs)
 	return table([
-		tbody(pairs.map((pair, i) => tr(td(pair))))
+		tbody([
+			tr([
+				td(entities.map(b => formatHexCode(b) + ' '))
+			])
+		])
 	])
 }
 const viewTable1 = () => {

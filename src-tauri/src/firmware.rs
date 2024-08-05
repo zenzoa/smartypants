@@ -25,7 +25,6 @@ pub fn read_firmware(handle: &AppHandle, data: &DataView) -> Result<Firmware, Bo
 
 	let use_gp_header = data.data.starts_with("GP-SPIF-HEADER".as_bytes());
 
-	println!("use_gp_header: {:?}", use_gp_header);
 	let data_pack_start = if use_gp_header { 0x6CE000 } else { 0x6CE000 - 1024 };
 	let sprite_pack_start = if use_gp_header { 0x730000 } else { 0x730000 - 1024 };
 	let sprite_pack_size = data.len() - sprite_pack_start;
@@ -86,13 +85,11 @@ pub fn save_firmware(handle: &AppHandle, original_data: &[u8]) -> Result<Vec<u8>
 
 	let already_has_header = new_data.data.starts_with("GP-SPIF-HEADER".as_bytes());
 	if use_gp_header && !already_has_header {
-		println!("add header");
 		let gp_header_path = handle.path().resolve("resources/gp_header.bin", BaseDirectory::Resource)?;
 		let gp_header_file = fs::read(&gp_header_path)?;
 		let _: Vec<_> = new_data.data.splice(0..0, gp_header_file).collect();
 		let _: Vec<_> = new_data.data.splice((new_data.len() - 1024)..new_data.len(), Vec::new()).collect();
 	} else if !use_gp_header && already_has_header {
-		println!("remove header");
 		let padding = vec![0xFF; 1024];
 		let _: Vec<_> = new_data.data.splice(0..1024, Vec::new()).collect();
 		new_data.data.extend_from_slice(&padding);
