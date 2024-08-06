@@ -77,6 +77,21 @@ pub fn open_bin(handle: AppHandle) {
 
 								*data_state.menu_strings.lock().unwrap() = Some(firmware.menu_strings.clone());
 
+								if let Ok(temp_save) = save_firmware(&handle, &data.data) {
+									println!("Faking a save to see if the output is the same...");
+									if temp_save == data.data {
+										println!("YAY! The output is the same! All is well");
+									} else {
+										println!("WARNING: The output is not the same!");
+										for i in 0..temp_save.len() {
+											if temp_save[i] != data.data[i] {
+												println!("Discrepency at byte {:x}", i);
+												break;
+											}
+										}
+									}
+								}
+
 								handle.emit("show_firmware", firmware).unwrap();
 							},
 							Err(why) => show_error_message(why)

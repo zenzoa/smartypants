@@ -162,7 +162,7 @@ pub fn save_data_pack(data_pack: &DataPack, original_data: &DataView) -> Result<
 	let data = [
 			table_offset_data,
 			tables[..].concat(),
-			vec![2, 0]
+			// vec![2, 0]
 		].concat();
 
 	Ok(data)
