@@ -41,7 +41,7 @@ pub struct DataState {
 	pub data_pack: Mutex<Option<DataPack>>,
 	pub sprite_pack: Mutex<Option<SpritePack>>,
 	pub menu_strings: Mutex<Option<Vec<Text>>>,
-	pub use_gp_header: Mutex<bool>,
+	pub use_patch_header: Mutex<bool>,
 	pub original_data: Mutex<Option<Vec<u8>>>
 }
 
@@ -71,7 +71,7 @@ fn main() {
 			import::import_menu_strings,
 			import::import_encoding,
 			try_quit,
-			firmware::set_gp_header,
+			firmware::set_patch_header,
 			data_pack::item::update_item,
 			data_pack::character::update_character,
 			sprite_pack::image_def::update_image_def,

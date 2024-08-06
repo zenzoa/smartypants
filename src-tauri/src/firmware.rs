@@ -11,22 +11,24 @@ use crate::sprite_pack::{ SpritePack, get_sprite_pack, save_sprite_pack };
 use crate::text::{ Text, FontState, decode_string };
 
 const FIRMWARE_DATA_PACK_SIZE: usize = 0x730000 - 0x6CE000;
+const PATCH_HEADER_START: [u8; 8] = [0x4F, 0x86, 0xA0, 0x86, 0x0A, 0xFE, 0x84, 0x30];
 
 #[derive(Clone, serde::Serialize)]
 pub struct Firmware {
 	pub data_pack: DataPack,
 	pub sprite_pack: SpritePack,
 	pub menu_strings: Vec<Text>,
-	pub use_gp_header: bool
+	pub use_patch_header: bool
 }
 
 pub fn read_firmware(handle: &AppHandle, data: &DataView) -> Result<Firmware, Box<dyn Error>> {
 	let font_state: State<FontState> = handle.state();
 
-	let use_gp_header = data.data.starts_with("GP-SPIF-HEADER".as_bytes());
+	let use_patch_header = data.data.starts_with(&PATCH_HEADER_START);
+	println!("Using patch header: {}", use_patch_header);
 
-	let data_pack_start = if use_gp_header { 0x6CE000 } else { 0x6CE000 - 1024 };
-	let sprite_pack_start = if use_gp_header { 0x730000 } else { 0x730000 - 1024 };
+	let data_pack_start = if use_patch_header { 0x6CE000 + 1024 } else { 0x6CE000 };
+	let sprite_pack_start = if use_patch_header { 0x730000 + 1024 } else { 0x730000 };
 	let sprite_pack_size = data.len() - sprite_pack_start;
 
 	let data_pack = get_data_pack(&font_state, &data.chunk(data_pack_start, FIRMWARE_DATA_PACK_SIZE))?;
@@ -41,7 +43,7 @@ pub fn read_firmware(handle: &AppHandle, data: &DataView) -> Result<Firmware, Bo
 		}
 	};
 
-	Ok(Firmware { data_pack, sprite_pack, menu_strings, use_gp_header })
+	Ok(Firmware { data_pack, sprite_pack, menu_strings, use_patch_header })
 }
 
 pub fn save_firmware(handle: &AppHandle, original_data: &[u8]) -> Result<Vec<u8>, Box<dyn Error>> {
@@ -63,9 +65,9 @@ pub fn save_firmware(handle: &AppHandle, original_data: &[u8]) -> Result<Vec<u8>
 		}
 	}
 
-	let use_gp_header = data_state.use_gp_header.lock().unwrap().clone();
-	let data_pack_start = if use_gp_header { 0x6CE000 } else { 0x6CE000 - 1024 };
-	let sprite_pack_start = if use_gp_header { 0x730000 } else { 0x730000 - 1024 };
+	let already_has_header = new_data.data.starts_with(&PATCH_HEADER_START);
+	let data_pack_start = if already_has_header { 0x6CE000 + 1024 } else { 0x6CE000 };
+	let sprite_pack_start = if already_has_header { 0x730000 + 1024 } else { 0x730000 };
 
 	if let Some(old_data_pack) = data_state.data_pack.lock().unwrap().as_ref() {
 		let data_pack_data_view = new_data.chunk(data_pack_start, FIRMWARE_DATA_PACK_SIZE);
@@ -83,13 +85,13 @@ pub fn save_firmware(handle: &AppHandle, original_data: &[u8]) -> Result<Vec<u8>
 		let _: Vec<_> = new_data.data.splice(sprite_pack_start..end_of_sprite_pack, new_sprite_pack_data).collect();
 	}
 
-	let already_has_header = new_data.data.starts_with("GP-SPIF-HEADER".as_bytes());
-	if use_gp_header && !already_has_header {
-		let gp_header_path = handle.path().resolve("resources/gp_header.bin", BaseDirectory::Resource)?;
-		let gp_header_file = fs::read(&gp_header_path)?;
-		let _: Vec<_> = new_data.data.splice(0..0, gp_header_file).collect();
+	let use_patch_header = data_state.use_patch_header.lock().unwrap().clone();
+	if use_patch_header && !already_has_header {
+		let header_path = handle.path().resolve("resources/patch_header.bin", BaseDirectory::Resource)?;
+		let header_file = fs::read(&header_path)?;
+		let _: Vec<_> = new_data.data.splice(0..0, header_file).collect();
 		let _: Vec<_> = new_data.data.splice((new_data.len() - 1024)..new_data.len(), Vec::new()).collect();
-	} else if !use_gp_header && already_has_header {
+	} else if !use_patch_header && already_has_header {
 		let padding = vec![0xFF; 1024];
 		let _: Vec<_> = new_data.data.splice(0..1024, Vec::new()).collect();
 		new_data.data.extend_from_slice(&padding);
@@ -171,7 +173,7 @@ pub fn save_menu_strings(font_state: State<FontState>, menu_strings: &[Text]) ->
 }
 
 #[tauri::command]
-pub fn set_gp_header(handle: AppHandle, enable: bool) {
+pub fn set_patch_header(handle: AppHandle, enable: bool) {
 	let data_state: State<DataState> = handle.state();
-	*data_state.use_gp_header.lock().unwrap() = enable;
+	*data_state.use_patch_header.lock().unwrap() = enable;
 }

@@ -54,7 +54,7 @@
 			"resources/font_small_en.png",
 			"resources/encoding_jp.json",
 			"resources/encoding_en.json",
-			"resources/gp_header.bin"
+			"resources/patch_header.bin"
 		],
 		"windows": {
 			"allowDowngrades": true,

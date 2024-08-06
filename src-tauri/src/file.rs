@@ -45,7 +45,7 @@ pub fn open_bin(handle: AppHandle) {
 					BinType::SmaCard => {
 						match read_card(&font_state, &data) {
 							Ok(card) => {
-								*data_state.use_gp_header.lock().unwrap() = false;
+								*data_state.use_patch_header.lock().unwrap() = false;
 								*data_state.data_pack.lock().unwrap() = Some(card.data_pack.clone());
 								*data_state.sprite_pack.lock().unwrap() = Some(card.sprite_pack.clone());
 								if let Ok(image_data) = get_image_data(&card.sprite_pack.clone()) {
@@ -60,7 +60,7 @@ pub fn open_bin(handle: AppHandle) {
 					BinType::Firmware => {
 						match read_firmware(&handle, &data) {
 							Ok(firmware) => {
-								*data_state.use_gp_header.lock().unwrap() = firmware.use_gp_header;
+								*data_state.use_patch_header.lock().unwrap() = firmware.use_patch_header;
 
 								*data_state.data_pack.lock().unwrap() = Some(firmware.data_pack.clone());
 
