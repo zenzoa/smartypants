@@ -1,7 +1,6 @@
 use std::error::Error;
 use std::fs;
 use std::path::PathBuf;
-use std::collections::HashMap;
 
 use image::io::Reader as ImageReader;
 use image::{ RgbaImage, GenericImageView };
@@ -13,7 +12,7 @@ use rfd::{ FileDialog, MessageButtons, MessageDialog, MessageDialogResult };
 
 use crate::{ DataState, BinType, ImageState, show_error_message, show_spinner, hide_spinner, update_window_title };
 use crate::sprite_pack::{ palette::Color, get_spritesheet_dims };
-use crate::text::{ Text, FontState, CharEncoding, re_decode_strings };
+use crate::text::{ FontState, CharEncoding, re_decode_strings };
 
 #[derive(Clone, Debug, serde::Deserialize)]
 struct TamaStringTranslation {
@@ -32,17 +31,16 @@ impl TamaStringTranslation {
 	}
 }
 
+enum StringType {
+	Unknown,
+	Menu,
+	Dialog,
+	Item,
+	Character,
+}
+
 #[tauri::command]
 pub fn import_strings(handle: AppHandle) {
-	import_strings_base(handle, import_strings_from);
-}
-
-#[tauri::command]
-pub fn import_menu_strings(handle: AppHandle) {
-	import_strings_base(handle, import_menu_strings_from);
-}
-
-pub fn import_strings_base(handle: AppHandle, callback: fn(&AppHandle, &PathBuf) -> Result<(), Box<dyn Error>>) {
 	spawn(async move {
 		let data_state: State<DataState> = handle.state();
 
@@ -62,7 +60,7 @@ pub fn import_strings_base(handle: AppHandle, callback: fn(&AppHandle, &PathBuf)
 
 			if let Some(path) = file_result {
 				show_spinner(&handle);
-				match callback(&handle, &path) {
+				match import_strings_from(&handle, &path) {
 					Ok(()) => {
 						*data_state.is_modified.lock().unwrap() = true;
 						update_window_title(&handle);
@@ -79,81 +77,106 @@ pub fn import_strings_from(handle: &AppHandle, path: &PathBuf) -> Result<(), Box
 	let data_state: State<DataState> = handle.state();
 	let font_state: State<FontState> = handle.state();
 
-	let translation_list = parse_csv(path)?;
+	let mut current_string_type = StringType::Unknown;
 
-	if let Some(data_pack) = data_state.data_pack.lock().unwrap().as_mut() {
-		for tamastring in data_pack.strings.iter_mut() {
-			if let Some(new_string) = translation_list.get(&tamastring.id.entity_id) {
-				tamastring.value.set_string(&font_state, &new_string.value);
-			}
-		}
-		handle.emit("update_strings", (data_pack.strings.clone(), true)).unwrap();
-	}
-
-	Ok(())
-}
-
-pub fn import_menu_strings_from(handle: &AppHandle, path: &PathBuf) -> Result<(), Box<dyn Error>> {
-	let data_state: State<DataState> = handle.state();
-	let font_state: State<FontState> = handle.state();
-
-	let translation_list = parse_csv(path)?;
-
-	let mut new_menu_strings = Vec::new();
-
-	if let Some(menu_strings) = data_state.menu_strings.lock().unwrap().as_ref() {
-		for i in 0..menu_strings.len() {
-			if let Some(new_string) = translation_list.get(&(i as u16)) {
-				new_menu_strings.push(Text::from_string(&font_state, &new_string.value));
-			} else {
-				return Err(format!("Missing menu string {}", i).into());
-			}
-		}
-		handle.emit("update_menu_strings", (&new_menu_strings, true)).unwrap();
-	}
-
-	*data_state.menu_strings.lock().unwrap() = Some(new_menu_strings);
-
-	Ok(())
-}
-
-fn parse_csv(path: &PathBuf) -> Result<HashMap<u16, TamaStringTranslation>, Box<dyn Error>> {
 	let mut csv_reader = csv::Reader::from_path(path)?;
-	let mut translation_list = HashMap::new();
 	let mut temp_translation = TamaStringTranslation::new(0);
+	let mut last_line = String::new();
+
+	let add_string = |string_type: &StringType, id: u16, new_string: &str| {
+		match string_type {
+			StringType::Menu => {
+				let mut menu_strings_opt = data_state.menu_strings.lock().unwrap();
+				if let Some(menu_strings) = menu_strings_opt.as_mut() {
+					if let Some(menu_string) = menu_strings.get_mut(id as usize) {
+						menu_string.set_string(&font_state, new_string);
+					}
+				}
+			},
+			StringType::Dialog => {
+				let mut data_pack_opt = data_state.data_pack.lock().unwrap();
+				if let Some(data_pack) = data_pack_opt.as_mut() {
+					if let Some(tamastring) = data_pack.strings.get_mut(id as usize) {
+						tamastring.value.set_string(&font_state, new_string);
+					}
+				}
+			},
+			StringType::Item => {
+				let mut data_pack_opt = data_state.data_pack.lock().unwrap();
+				if let Some(data_pack) = data_pack_opt.as_mut() {
+					if let Some(item) = data_pack.items.get_mut(id as usize) {
+						item.name.set_string(&font_state, new_string);
+					}
+				}
+			},
+			StringType::Character => {
+				let mut data_pack_opt = data_state.data_pack.lock().unwrap();
+				if let Some(data_pack) = data_pack_opt.as_mut() {
+					if let Some(character) = data_pack.characters.get_mut(id as usize) {
+						character.name.set_string(&font_state, new_string);
+					}
+				}
+			},
+			_ => {}
+		}
+	};
 
 	for result in csv_reader.records() {
 		let record = result?;
 
 		if let Some(id) = record.get(0) {
+
 			if let Ok(id) = id.parse::<u16>() {
 				if id > 0 {
-					translation_list.insert(temp_translation.id, temp_translation);
+					add_string(&current_string_type, temp_translation.id, &temp_translation.value);
 				}
 
 				temp_translation = TamaStringTranslation::new(id);
 				if let Some(line) = record.get(2) {
 					temp_translation.value = line.to_string();
+					last_line = line.to_string();
 				}
 
 			} else if !temp_translation.value.is_empty() {
 				if let Some(line) = record.get(2) {
 					if !line.is_empty() {
 						temp_translation.line_count += 1;
-						if temp_translation.line_count == 2 || temp_translation.line_count == 4 {
+						if last_line.is_empty() {
 							temp_translation.value = format!("{}<hr>{}", temp_translation.value, line);
 						} else {
 							temp_translation.value = format!("{}<br>{}", temp_translation.value, line);
 						}
 					}
+					last_line = line.to_string();
+				}
+
+			} else {
+				match id.to_uppercase().as_str() {
+					"MENUS" => current_string_type = StringType::Menu,
+					"STRINGS" => current_string_type = StringType::Dialog,
+					"ITEMS" => current_string_type = StringType::Item,
+					"CHARACTERS" => current_string_type = StringType::Character,
+					_ => {}
 				}
 			}
 		}
 	}
 
-	translation_list.insert(temp_translation.id, temp_translation);
+	add_string(&current_string_type, temp_translation.id, &temp_translation.value);
 
-	Ok(translation_list)
+	let mut menu_strings_opt = data_state.menu_strings.lock().unwrap();
+	if let Some(menu_strings) = menu_strings_opt.as_mut() {
+		handle.emit("update_menu_strings", (&menu_strings, false)).unwrap();
+	}
+
+	let mut data_pack_opt = data_state.data_pack.lock().unwrap();
+	if let Some(data_pack) = data_pack_opt.as_mut() {
+		handle.emit("update_strings", (&data_pack.strings, false)).unwrap();
+		handle.emit("update_items", (&data_pack.items, false)).unwrap();
+		handle.emit("update_characters", (&data_pack.characters, false)).unwrap();
+	}
+
+	Ok(())
 }
 
 #[tauri::command]

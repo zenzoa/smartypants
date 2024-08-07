@@ -29,7 +29,6 @@ use data_pack::DataPack;
 use sprite_pack::SpritePack;
 use text::{ Text, FontState, set_to_preset_encoding };
 use file::{ open_bin, save_bin, save_bin_as, continue_if_modified };
-use export::{ export_data, export_strings, export_images };
 use import::import_encoding;
 
 #[derive(Default)]
@@ -66,9 +65,8 @@ fn main() {
 			export::export_images,
 			export::export_image_spritesheet,
 			export::export_encoding,
-			import::import_image_spritesheet,
 			import::import_strings,
-			import::import_menu_strings,
+			import::import_image_spritesheet,
 			import::import_encoding,
 			try_quit,
 			firmware::set_patch_header,
@@ -93,6 +91,10 @@ fn main() {
 					&MenuItem::with_id(handle, "save", "Save", true, Some("CmdOrCtrl+S"))?,
 					&MenuItem::with_id(handle, "save_as", "Save As...", true, Some("CmdOrCtrl+Shift+S"))?,
 					&PredefinedMenuItem::separator(handle)?,
+
+					&Submenu::with_id_and_items(handle, "import", "Import", true, &[
+						&MenuItem::with_id(handle, "import_strings", "Import Strings", true, None::<&str>)?,
+					])?,
 
 					&Submenu::with_id_and_items(handle, "export", "Export", true, &[
 						&MenuItem::with_id(handle, "export_data", "Export Data", true, None::<&str>)?,
@@ -142,9 +144,13 @@ fn main() {
 					"open" => open_bin(handle),
 					"save" => save_bin(handle),
 					"save_as" => save_bin_as(handle),
-					"export_data" => export_data(handle),
-					"export_strings" => export_strings(handle),
-					"export_images" => export_images(handle),
+
+					"import_strings" => import::import_strings(handle),
+
+					"export_data" => export::export_data(handle),
+					"export_strings" => export::export_strings(handle),
+					"export_images" => export::export_images(handle),
+
 					"quit" => try_quit(handle),
 
 					"set_encoding_to_jp" => set_to_preset_encoding(handle, "jp"),
