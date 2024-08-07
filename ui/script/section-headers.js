@@ -23,21 +23,21 @@ const setupFirmwareHeader = () => {
 		div({className: 'table-title'}, 'Tamagotchi Smart Firmware'),
 		div({className: 'toggle-container'}, [
 			button({
-				className: cardData.use_gp_header ? 'toggle on' : 'toggle off',
-				onclick: () => tauri_invoke('set_gp_header', { enable: true }).then(() => {
-					cardData.use_gp_header = true
+				className: cardData.use_patch_header ? 'toggle on' : 'toggle off',
+				onclick: () => tauri_invoke('set_patch_header', { enable: true }).then(() => {
+					cardData.use_patch_header = true
 					sections.header = setupFirmwareHeader()
 					viewHeader()
 				})
-			}, 'Use GP Header (supports clip updates)'),
+			}, 'Use Patch Header (for updating firmware via SD Card)'),
 			button({
-				className: cardData.use_gp_header ? 'toggle off' : 'toggle on',
-				onclick: () => tauri_invoke('set_gp_header', { enable: false }).then(() => {
-					cardData.use_gp_header = false
+				className: cardData.use_patch_header ? 'toggle off' : 'toggle on',
+				onclick: () => tauri_invoke('set_patch_header', { enable: false }).then(() => {
+					cardData.use_patch_header = false
 					sections.header = setupFirmwareHeader()
 					viewHeader()
 				})
-			}, 'No GP Header (supports card updates)')
+			}, 'No Patch Header (for updating firmware via EEPROM Programmer)')
 		])
 	])
 }
