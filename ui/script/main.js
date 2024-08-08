@@ -35,7 +35,7 @@ window.addEventListener('load', () => {
 			table1: setupTable1(),
 			particleEmitters: setupParticleEmitters(),
 			scenes: setupScenes(),
-			strings: setupStrings(),
+			tamaStrings: setupTamaStrings(),
 			table9: setupTable9(),
 			items: setupItems(),
 			characters: setupCharacters(),
@@ -52,8 +52,8 @@ window.addEventListener('load', () => {
 				`Characters <span class="tag">${cardData.data_pack.characters.length}</span>`),
 			button({id: 'view-items-button', onclick: viewItems},
 				`Items <span class="tag">${cardData.data_pack.items.length}</span>`),
-			button({id: 'view-strings-button', onclick: viewStrings},
-				`Strings <span class="tag">${cardData.data_pack.strings.length}</span>`),
+			button({id: 'view-tamaStrings-button', onclick: viewTamaStrings},
+				`Strings <span class="tag">${cardData.data_pack.tamastrings.length}</span>`),
 			button({id: 'view-palettes-button', onclick: viewPalettes},
 				`Palettes <span class="tag">${Math.ceil(cardData.sprite_pack.palettes.length / 4)}</span>`),
 			button({id: 'view-sprites-button', onclick: viewSprites},
@@ -94,7 +94,7 @@ window.addEventListener('load', () => {
 			particleEmitters: setupParticleEmitters(),
 			scenes: setupScenes(),
 			menuStrings: setupMenuStrings(),
-			strings: setupStrings(),
+			tamaStrings: setupTamaStrings(),
 			table9: setupTable9(),
 			items: setupItems(),
 			characters: setupCharacters(),
@@ -113,8 +113,8 @@ window.addEventListener('load', () => {
 				`Items <span class="tag">${cardData.data_pack.items.length}</span>`),
 			button({id: 'view-menuStrings-button', onclick: viewMenuStrings},
 				`Menu Strings <span class="tag">${cardData.menu_strings.length}</span>`),
-			button({id: 'view-strings-button', onclick: viewStrings},
-				`Dialog Strings <span class="tag">${cardData.data_pack.strings.length}</span>`),
+			button({id: 'view-tamaStrings-button', onclick: viewTamaStrings},
+				`Dialog Strings <span class="tag">${cardData.data_pack.tamastrings.length}</span>`),
 			button({id: 'view-palettes-button', onclick: viewPalettes},
 				`Palettes <span class="tag">${Math.ceil(cardData.sprite_pack.palettes.length / 4)}</span>`),
 			button({id: 'view-sprites-button', onclick: viewSprites},
@@ -154,11 +154,11 @@ window.addEventListener('load', () => {
 		}
 	})
 
-	tauri_listen('update_strings', event => {
-		cardData.data_pack.strings = event.payload[0]
-		sections.strings = setupStrings()
+	tauri_listen('update_tamastrings', event => {
+		cardData.data_pack.tamastrings = event.payload[0]
+		sections.tamaStrings = setupTamaStrings()
 		if (event.payload[1]) {
-			viewStrings()
+			viewTamaStrings()
 		}
 	})
 

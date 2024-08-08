@@ -53,7 +53,6 @@ const editItemName = (i) => {
 		'Name:',
 		item.name.string,
 		(newValue) => {
-			item.name = newValue
 			tauri_invoke('update_item', { index: i, name: newValue }).then(result => {
 				if (result != null) item.name = result
 				const itemEl = document.getElementById(`item-${i}`)

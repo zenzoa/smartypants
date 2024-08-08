@@ -4,11 +4,11 @@ use std::error::Error;
 use tauri::{ AppHandle, State, Manager };
 use tauri::path::BaseDirectory;
 
-use crate::DataState;
+use crate::{ DataState, update_window_title };
 use crate::data_view::{ DataView, words_to_bytes };
 use crate::data_pack::{ DataPack, get_data_pack, save_data_pack };
 use crate::sprite_pack::{ SpritePack, get_sprite_pack, save_sprite_pack };
-use crate::text::{ Text, FontState, decode_string };
+use crate::text::{ Text, FontState };
 
 const FIRMWARE_DATA_PACK_SIZE: usize = 0x730000 - 0x6CE000;
 const PATCH_HEADER_START: [u8; 8] = [0x4F, 0x86, 0xA0, 0x86, 0x0A, 0xFE, 0x84, 0x30];
@@ -48,14 +48,13 @@ pub fn read_firmware(handle: &AppHandle, data: &DataView) -> Result<Firmware, Bo
 
 pub fn save_firmware(handle: &AppHandle, original_data: &[u8]) -> Result<Vec<u8>, Box<dyn Error>> {
 	let data_state: State<DataState> = handle.state();
-	let font_state: State<FontState> = handle.state();
 
 	let mut new_data = DataView::new(original_data);
 
 	if let Some(old_menu_strings) = data_state.menu_strings.lock().unwrap().as_ref() {
 		match new_data.find_bytes(&[0xF9, 0x01, 0xFB, 0x01]) {
 			Some(start_index) => {
-				let new_menu_strings_data = save_menu_strings(font_state.clone(), old_menu_strings)?;
+				let new_menu_strings_data = save_menu_strings(old_menu_strings)?;
 				let end_index = start_index + new_menu_strings_data.len();
 				let _: Vec<_> = new_data.data.splice(start_index..end_index, new_menu_strings_data).collect();
 			},
@@ -138,26 +137,24 @@ pub fn read_menu_strings(font_state: &FontState, data: &DataView) -> Result<Vec<
 	Ok(menu_strings)
 }
 
-pub fn save_menu_strings(font_state: State<FontState>, menu_strings: &[Text]) -> Result<Vec<u8>, Box<dyn Error>> {
+pub fn save_menu_strings(menu_strings: &[Text]) -> Result<Vec<u8>, Box<dyn Error>> {
 	let mut offsets: Vec<u16> = vec![menu_strings.len() as u16 + 2];
-	for (i, txt) in menu_strings.iter().enumerate() {
+	for (i, menu_string) in menu_strings.iter().enumerate() {
 		let last_offset = offsets[i];
-		let string_size = decode_string(&font_state, &txt.string).len() as u16;
+		let string_size = menu_string.data.len() as u16;
 		offsets.push(last_offset + string_size + 1);
 	}
 
-	let mut string_data: Vec<u16> = Vec::new();
-	for txt in menu_strings {
-		for word in decode_string(&font_state, &txt.string) {
-			string_data.push(word);
-		}
-		string_data.push(0);
+	let mut words: Vec<u16> = Vec::new();
+	for menu_string in menu_strings {
+		words = [words, menu_string.data.clone()].concat();
+		words.push(0);
 	}
 
 	let new_menu_strings_words = [
 		vec![menu_strings.len() as u16],
 		offsets,
-		string_data
+		words
 	].concat();
 	let new_menu_strings_data = words_to_bytes(&new_menu_strings_words);
 
@@ -170,6 +167,24 @@ pub fn save_menu_strings(font_state: State<FontState>, menu_strings: &[Text]) ->
 	let new_menu_strings_data = [new_menu_strings_data, padding].concat();
 
 	Ok(new_menu_strings_data)
+}
+
+#[tauri::command]
+pub fn update_menu_string(handle: AppHandle, index: usize, name: String) -> Option<Text> {
+	let data_state: State<DataState> = handle.state();
+	let font_state: State<FontState> = handle.state();
+
+	let mut menu_strings_opt = data_state.menu_strings.lock().unwrap();
+	if let Some(menu_strings) = menu_strings_opt.as_mut() {
+		if let Some(menu_string) = menu_strings.get_mut(index) {
+			menu_string.set_string(&font_state, &name);
+			*data_state.is_modified.lock().unwrap() = true;
+			update_window_title(&handle);
+			return Some(menu_string.clone());
+		}
+	}
+
+	None
 }
 
 #[tauri::command]

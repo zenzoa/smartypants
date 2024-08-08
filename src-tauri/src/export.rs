@@ -137,9 +137,9 @@ pub fn export_strings_to(handle: &AppHandle, path: &PathBuf) -> Result<(), Box<d
 		wtr.write_record(&["STRINGS", "", ""])?;
 		wtr.write_record(&blank_line)?;
 
-		for (i, str) in data_pack.strings.iter().enumerate() {
+		for (i, tamastring) in data_pack.tamastrings.iter().enumerate() {
 			let mut id_written = false;
-			let pages = str.value.string.split("<hr>");
+			let pages = tamastring.value.string.split("<hr>");
 			for page in pages {
 				let lines = page.split("<br>");
 				for line in lines {

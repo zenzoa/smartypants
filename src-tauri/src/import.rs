@@ -96,7 +96,7 @@ pub fn import_strings_from(handle: &AppHandle, path: &PathBuf) -> Result<(), Box
 			StringType::Dialog => {
 				let mut data_pack_opt = data_state.data_pack.lock().unwrap();
 				if let Some(data_pack) = data_pack_opt.as_mut() {
-					if let Some(tamastring) = data_pack.strings.get_mut(id as usize) {
+					if let Some(tamastring) = data_pack.tamastrings.get_mut(id as usize) {
 						tamastring.value.set_string(&font_state, new_string);
 					}
 				}
@@ -153,7 +153,7 @@ pub fn import_strings_from(handle: &AppHandle, path: &PathBuf) -> Result<(), Box
 			} else {
 				match id.to_uppercase().as_str() {
 					"MENUS" => current_string_type = StringType::Menu,
-					"STRINGS" => current_string_type = StringType::Dialog,
+					"DIALOG" | "STRINGS" => current_string_type = StringType::Dialog,
 					"ITEMS" => current_string_type = StringType::Item,
 					"CHARACTERS" => current_string_type = StringType::Character,
 					_ => {}
@@ -171,7 +171,7 @@ pub fn import_strings_from(handle: &AppHandle, path: &PathBuf) -> Result<(), Box
 
 	let mut data_pack_opt = data_state.data_pack.lock().unwrap();
 	if let Some(data_pack) = data_pack_opt.as_mut() {
-		handle.emit("update_strings", (&data_pack.strings, false)).unwrap();
+		handle.emit("update_tamastrings", (&data_pack.tamastrings, false)).unwrap();
 		handle.emit("update_items", (&data_pack.items, false)).unwrap();
 		handle.emit("update_characters", (&data_pack.characters, false)).unwrap();
 	}

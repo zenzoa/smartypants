@@ -418,11 +418,17 @@ hr {
 }
 
 .string-preview-container {
-	margin-top: 24px;
+	display: flex;
+	overflow: clip;
+	margin-top: 12px;
+	gap: 12px;
 }
 
 .string-preview {
 	display: flex;
+	flex-wrap: wrap;
+	flex-grow: 1;
+	overflow: auto;
 	border-radius: 6px;
 	margin-top: 6px;
 	padding: 6px;
@@ -438,6 +444,34 @@ hr {
 #preview-large-text .preview-letter {
 	width: 14px;
 	margin-left: -1px;
+}
+
+.preview-line-break, .preview-page-break {
+	width: 100%;
+}
+
+#preview-small-text .preview-page-break {
+	height: 8px;
+}
+
+#preview-large-text .preview-page-break {
+	height: 12px;
+}
+
+#preview-small-text .preview-blank {
+	width: 7px;
+	height: 8px;
+	margin-top: 4px;
+	margin-left: 2px;
+	background: #fff;
+}
+
+#preview-large-text .preview-blank {
+	width: 11px;
+	height: 12px;
+	margin-top: 3px;
+	margin-left: 1px;
+	background: #fff;
 }
 
 #encoding-dialog .dialog-content {

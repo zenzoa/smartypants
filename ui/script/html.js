@@ -41,6 +41,8 @@ const tbody = el.bind(this, 'tbody')
 const tr = el.bind(this, 'tr')
 const th = el.bind(this, 'th')
 const td = el.bind(this, 'td')
+const br = el.bind(this, 'br')
+const hr = el.bind(this, 'hr')
 
 const formatEntityId = (id) => {
 	const { card_id, entity_id } = id

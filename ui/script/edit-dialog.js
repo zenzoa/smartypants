@@ -68,7 +68,6 @@ class EditDialog {
 		inputEl.setAttribute('valid', false)
 
 		const previewEl = div({ className: 'string-preview-container' }, [
-			'Preview:',
 			div({ id: 'preview-small-text', className: 'string-preview' }),
 			div({ id: 'preview-large-text', className: 'string-preview' })
 		])
@@ -83,8 +82,25 @@ class EditDialog {
 				smallPreviewEl.replaceChildren()
 				largePreviewEl.replaceChildren()
 				result.forEach(i => {
-					smallPreviewEl.append(div({ className: 'preview-letter' }, [displayImage('smallfont', i-1)]))
-					largePreviewEl.append(div({ className: 'preview-letter' }, [displayImage('largefont', i-1)]))
+					if (i <= 256) {
+						smallPreviewEl.append(div({ className: 'preview-letter' }, [displayImage('smallfont', i-1)]))
+						largePreviewEl.append(div({ className: 'preview-letter' }, [displayImage('largefont', i-1)]))
+					} else if (i === 61440) { // line break
+						smallPreviewEl.append(div({ className: 'preview-line-break' }))
+						largePreviewEl.append(div({ className: 'preview-line-break' }))
+					} else if (i === 61441) { // page break
+						smallPreviewEl.append(div({ className: 'preview-page-break' }))
+						largePreviewEl.append(div({ className: 'preview-page-break' }))
+					} else if (i === 61442 || i ===  61443 || i === 61447 || i === 61448) { // {username} {charname} {variable} {pronoun}
+						Array(8).fill(0).forEach(_ => smallPreviewEl.append(div({ className: 'preview-blank' })))
+						Array(8).fill(0).forEach(_ => largePreviewEl.append(div({ className: 'preview-blank' })))
+					} else if (i === 61444 || i ===  61445 || i === 61446) { // {statement} {question1} {question2}
+						Array(4).fill(0).forEach(_ => smallPreviewEl.append(div({ className: 'preview-blank' })))
+						Array(4).fill(0).forEach(_ => largePreviewEl.append(div({ className: 'preview-blank' })))
+					} else if (i === 61449 || i ===  61450) { // {nickname} {friend}
+						Array(2).fill(0).forEach(_ => smallPreviewEl.append(div({ className: 'preview-blank' })))
+						Array(2).fill(0).forEach(_ => largePreviewEl.append(div({ className: 'preview-blank' })))
+					}
 				})
 			})
 		}
@@ -114,32 +130,3 @@ class EditDialog {
 
 	static callback() {}
 }
-
-// const ALLOWED_CHARACTERS = [
-// 	" ", "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "+", "-", "↵",
-// 	"あ", "い", "う", "え", "お", "か", "き", "く", "け", "こ",
-// 	"さ", "し", "す", "せ", "そ", "た", "ち", "つ", "て", "と",
-// 	"な", "に", "ぬ", "ね", "の", "は", "ひ", "ふ", "へ", "ほ",
-// 	"ま", "み", "む", "め", "も", "や", "ゆ", "よ",
-// 	"ら", "り", "る", "れ", "ろ", "わ", "を", "ん",
-// 	"ぁ", "ぃ", "ぅ", "ぇ", "ぉ", "っ", "ゃ", "ゅ", "ょ",
-// 	"が", "ぎ", "ぐ", "げ", "ご", "ざ", "じ", "ず", "ぜ", "ぞ",
-// 	"だ", "ぢ", "づ", "で", "ど", "ば", "び", "ぶ", "べ", "ぼ",
-// 	"ぱ", "ぴ", "ぷ", "ぺ", "ぽ",
-// 	"ア", "イ", "ウ", "エ", "オ", "カ", "キ", "ク", "ケ", "コ",
-// 	"サ", "シ", "ス", "セ", "ソ", "タ", "チ", "ツ", "テ", "ト",
-// 	"ナ", "ニ", "ヌ", "ネ", "ノ", "ハ", "ヒ", "フ", "ヘ", "ホ",
-// 	"マ", "ミ", "ム", "メ", "モ", "ヤ", "ユ", "ヨ",
-// 	"ラ", "リ", "ル", "レ", "ロ", "ワ", "ヲ", "ン",
-// 	"ァ", "ィ", "ゥ", "ェ", "ォ", "ッ", "ャ", "ュ", "ョ",
-// 	"ガ", "ギ", "グ", "ゲ", "ゴ", "ザ", "ジ", "ズ", "ゼ", "ゾ",
-// 	"ダ", "ヂ", "ヅ", "デ", "ド", "バ", "ビ", "ブ", "ベ", "ボ",
-// 	"パ", "ピ", "プ", "ペ", "ポ", "ヴ",
-// 	"ー", "～", "…", "、", "。", "(", ")", "「", "」", ".", "•", "!", "?", "&",
-// 	"○", "✕", "♥", "☼", "★", "🌀", "♪", "💢", "⤴", "⤵", "→", "←", "$", "%",
-// 	"A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M",
-// 	"N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z",
-// 	"¡", "_", "†", "😄", "😣", "😤", "😑", "😵", "😢", "🐱",
-// 	"⏱", "🎂", "🎁", "📱", "🏢", "💼", "🍙", "🍰", "✨", "🟥",
-// 	"'"
-// ]

@@ -298,10 +298,10 @@ pub fn re_decode_strings(handle: &AppHandle) {
 
 	let mut data_pack_opt = data_state.data_pack.lock().unwrap();
 	if let Some(data_pack) = data_pack_opt.as_mut() {
-		for tamastring in data_pack.strings.iter_mut() {
+		for tamastring in data_pack.tamastrings.iter_mut() {
 			tamastring.value.update_string(&font_state);
 		}
-		handle.emit("update_strings", (&data_pack.strings, false)).unwrap();
+		handle.emit("update_tamastrings", (&data_pack.tamastrings, false)).unwrap();
 
 		for item in data_pack.items.iter_mut() {
 			item.name.update_string(&font_state);

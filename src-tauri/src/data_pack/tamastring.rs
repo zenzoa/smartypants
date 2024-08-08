@@ -1,6 +1,8 @@
 use std::error::Error;
+use tauri::{ AppHandle, Manager, State };
 
 use super::EntityId;
+use crate::{ DataState, update_window_title };
 use crate::data_view::{ DataView, words_to_bytes };
 use crate::text::{ Text, FontState };
 
@@ -29,7 +31,7 @@ impl TamaString {
 	}
 }
 
-pub fn get_strings(font_state: &FontState, data: &DataView) -> Vec<TamaString> {
+pub fn get_tamastrings(font_state: &FontState, data: &DataView) -> Vec<TamaString> {
 	let mut strings = Vec::new();
 
 	let mut i = 0;
@@ -62,21 +64,39 @@ pub fn get_strings(font_state: &FontState, data: &DataView) -> Vec<TamaString> {
 	strings
 }
 
-pub fn save_strings(strings: &[TamaString]) -> Result<(Vec<u8>, Vec<u8>), Box<dyn Error>> {
+pub fn save_tamastrings(tamastrings: &[TamaString]) -> Result<(Vec<u8>, Vec<u8>), Box<dyn Error>> {
 	let mut words: Vec<u16> = Vec::new();
 	let mut offsets: Vec<u16> = Vec::new();
 
-	for string in strings {
+	for tamastring in tamastrings {
 		offsets.push(words.len() as u16);
-		words.push(string.id.to_word());
-		words.push(string.unknown1);
-		words.push(string.unknown2);
-		words.push(string.unknown3);
-		words = [words, string.value.data.clone()].concat();
+		words.push(tamastring.id.to_word());
+		words.push(tamastring.unknown1);
+		words.push(tamastring.unknown2);
+		words.push(tamastring.unknown3);
+		words = [words, tamastring.value.data.clone()].concat();
 		words.push(0);
 	}
 
 	offsets.push(0xFFFF);
 
 	Ok((words_to_bytes(&words), words_to_bytes(&offsets)))
+}
+
+#[tauri::command]
+pub fn update_tamastring(handle: AppHandle, index: usize, name: String) -> Option<Text> {
+	let data_state: State<DataState> = handle.state();
+	let font_state: State<FontState> = handle.state();
+
+	let mut data_pack_opt = data_state.data_pack.lock().unwrap();
+	if let Some(data_pack) = data_pack_opt.as_mut() {
+		if let Some(tamastring) = data_pack.tamastrings.get_mut(index) {
+			tamastring.value.set_string(&font_state, &name);
+			*data_state.is_modified.lock().unwrap() = true;
+			update_window_title(&handle);
+			return Some(tamastring.value.clone());
+		}
+	}
+
+	None
 }

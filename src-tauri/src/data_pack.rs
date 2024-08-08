@@ -48,7 +48,7 @@ pub struct DataPack {
 	pub table1: Vec<u16>,
 	pub particle_emitters: Vec<particle_emitter::ParticleEmitter>,
 	pub scenes: Vec<scene::Scene>,
-	pub strings: Vec<tamastring::TamaString>,
+	pub tamastrings: Vec<tamastring::TamaString>,
 	pub table9: Vec<Vec<u16>>,
 	pub items: Vec<item::Item>,
 	pub characters: Vec<character::Character>,
@@ -71,7 +71,7 @@ pub fn get_data_pack(font_state: &FontState, data: &DataView) -> Result<DataPack
 	let scene_layer_offsets = scene::get_scene_layer_offsets(&get_table_data(4), scene_offsets, scene_sizes);
 	let scenes = scene::get_scenes(&get_table_data(5), scene_layer_offsets);
 
-	let strings = tamastring::get_strings(font_state, &get_table_data(6));
+	let tamastrings = tamastring::get_tamastrings(font_state, &get_table_data(6));
 
 	let (table9_offsets, table9_sizes) = table9::get_entity_offsets(&get_table_data(8));
 	let table9 = table9::get_entities(&get_table_data(9), table9_offsets, table9_sizes);
@@ -90,7 +90,7 @@ pub fn get_data_pack(font_state: &FontState, data: &DataView) -> Result<DataPack
 		table1,
 		particle_emitters,
 		scenes,
-		strings,
+		tamastrings,
 		table9,
 		items,
 		characters,
@@ -139,7 +139,7 @@ pub fn save_data_pack(data_pack: &DataPack, original_data: &DataView) -> Result<
 		tables.push(table_data);
 	}
 
-	let (string_data, string_offsets) = tamastring::save_strings(&data_pack.strings)?;
+	let (string_data, string_offsets) = tamastring::save_tamastrings(&data_pack.tamastrings)?;
 	tables[6] = string_data;
 	tables[7] = string_offsets;
 

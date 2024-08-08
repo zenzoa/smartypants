@@ -34,7 +34,7 @@ const renderCharacter = (i, character) => {
 			span(character.name.string),
 			button({
 				className: 'edit',
-				onclick: editCharacterString.bind(this, i, 'Name', 'name')
+				onclick: editCharacterString.bind(this, i, 'Name', 'name', 8)
 			}, '✏️')
 		]),
 		td(displayImageWithLink(character.profile_image_id, 0)),
@@ -45,28 +45,28 @@ const renderCharacter = (i, character) => {
 			span(character.pronoun.string),
 			button({
 				className: 'edit',
-				onclick: editCharacterString.bind(this, i, 'Pronoun', 'pronoun')
+				onclick: editCharacterString.bind(this, i, 'Pronoun', 'pronoun', 8)
 			}, '✏️')
 		]),
 		td([
 			span(character.statement.string),
 			button({
 				className: 'edit',
-				onclick: editCharacterString.bind(this, i, 'Statement', 'statement')
+				onclick: editCharacterString.bind(this, i, 'Statement', 'statement', 4)
 			}, '✏️')
 		]),
 		td([
 			span(character.question1.string),
 			button({
 				className: 'edit',
-				onclick: editCharacterString.bind(this, i, 'Question 1', 'question1')
+				onclick: editCharacterString.bind(this, i, 'Question 1', 'question1', 4)
 			}, '✏️')
 		]),
 		td([
 			span(character.question2.string),
 			button({
 				className: 'edit',
-				onclick: editCharacterString.bind(this, i, 'Question 2', 'question2')
+				onclick: editCharacterString.bind(this, i, 'Question 2', 'question2', 4)
 			}, '✏️')
 		]),
 		td(character.unknown2),
@@ -85,7 +85,7 @@ const viewCharacters = () => {
 	contents.append(sections.characters)
 }
 
-const editCharacterString = (i, title, key) => {
+const editCharacterString = (i, title, key, maxLength) => {
 	const character = cardData.data_pack.characters[i]
 	EditDialog.openStringEditor(
 		`Edit Character ${i}: ${title}`,
@@ -105,6 +105,6 @@ const editCharacterString = (i, title, key) => {
 			})
 			EditDialog.close()
 		},
-		8
+		maxLength
 	)
 }
