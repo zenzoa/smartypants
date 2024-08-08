@@ -12,7 +12,7 @@ use rfd::{ FileDialog, MessageButtons, MessageDialog, MessageDialogResult };
 
 use crate::{ DataState, BinType, ImageState, show_error_message, show_spinner, hide_spinner, update_window_title };
 use crate::sprite_pack::{ palette::Color, get_spritesheet_dims };
-use crate::text::{ FontState, CharEncoding, re_decode_strings };
+use crate::text::{ FontState, CharEncoding, re_decode_strings, refresh_encoding_menu };
 
 #[derive(Clone, Debug, serde::Deserialize)]
 struct TamaStringTranslation {
@@ -316,8 +316,12 @@ pub fn import_encoding(handle: AppHandle) {
 
 			if let Some(path) = file_result {
 				show_spinner(&handle);
-				if let Err(why) = import_encoding_from(&handle, &path, true) {
-					show_error_message(why);
+				match import_encoding_from(&handle, &path, true) {
+					Ok(()) => {
+						re_decode_strings(&handle);
+						refresh_encoding_menu(&handle, "");
+					},
+					Err(why) => show_error_message(why)
 				}
 				hide_spinner(&handle);
 			}
@@ -334,8 +338,6 @@ pub fn import_encoding_from(handle: &AppHandle, path: &PathBuf, open_dialog: boo
 
 	*font_state.char_codes.lock().unwrap() = char_codes;
 	*font_state.is_custom.lock().unwrap() = true;
-
-	re_decode_strings(handle);
 
 	Ok(())
 }

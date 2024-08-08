@@ -99,7 +99,9 @@ pub fn char_code_to_word(font_state: &FontState, text: &str) -> Option<u16> {
 }
 
 #[tauri::command]
-pub fn update_char_codes(font_state: State<FontState>, new_char_codes: Vec<CharEncoding>) -> (Vec<CharEncoding>, Vec<u16>) {
+pub fn update_char_codes(handle: AppHandle, new_char_codes: Vec<CharEncoding>) -> (Vec<CharEncoding>, Vec<u16>) {
+	let font_state: State<FontState> = handle.state();
+
 	let mut problem_codes = Vec::new();
 	let mut has_duplicate = false;
 	let mut has_invalid = false;
@@ -130,12 +132,8 @@ pub fn update_char_codes(font_state: State<FontState>, new_char_codes: Vec<CharE
 			}
 		}
 		*font_state.is_custom.lock().unwrap() = true;
-
-		// TODO: re-decode all the strings
-		// tamastrings
-		// item name
-		// character name + pronoun + endings
-		// menu strings, if around
+		re_decode_strings(&handle);
+		refresh_encoding_menu(&handle, "");
 	}
 
 	problem_codes.sort();
@@ -251,18 +249,8 @@ pub fn set_to_preset_encoding(handle: AppHandle, name: &str) {
 						}
 					}
 
-					if let Some(menu) = handle.menu() {
-						if let Some(MenuItemKind::Submenu(text_menu)) = menu.get("text") {
-							if let Some(MenuItemKind::Submenu(change_encoding_menu)) = text_menu.get("change_encoding") {
-								if let Some(MenuItemKind::Check(menu_item_jp)) = change_encoding_menu.get("set_encoding_to_jp") {
-									menu_item_jp.set_checked(name == "jp").unwrap();
-								};
-								if let Some(MenuItemKind::Check(menu_item_en)) = change_encoding_menu.get("set_encoding_to_en") {
-									menu_item_en.set_checked(name == "en").unwrap();
-								};
-							}
-						}
-					}
+					re_decode_strings(&handle);
+					refresh_encoding_menu(&handle, name);
 				},
 
 				Err(why) => show_error_message(why)
@@ -281,6 +269,21 @@ pub fn set_to_preset_encoding(handle: AppHandle, name: &str) {
 		}
 	} else {
 		do_the_thing();
+	}
+}
+
+pub fn refresh_encoding_menu(handle: &AppHandle, encoding_name: &str) {
+	if let Some(menu) = handle.menu() {
+		if let Some(MenuItemKind::Submenu(text_menu)) = menu.get("text") {
+			if let Some(MenuItemKind::Submenu(change_encoding_menu)) = text_menu.get("change_encoding") {
+				if let Some(MenuItemKind::Check(menu_item_jp)) = change_encoding_menu.get("set_encoding_to_jp") {
+					menu_item_jp.set_checked(encoding_name == "jp").unwrap();
+				};
+				if let Some(MenuItemKind::Check(menu_item_en)) = change_encoding_menu.get("set_encoding_to_en") {
+					menu_item_en.set_checked(encoding_name == "en").unwrap();
+				};
+			}
+		}
 	}
 }
 
