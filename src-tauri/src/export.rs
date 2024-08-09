@@ -108,7 +108,7 @@ pub fn export_strings_to(handle: &AppHandle, path: &PathBuf) -> Result<(), Box<d
 	if let Some(menu_strings) = menu_strings_opt.as_ref() {
 
 		wtr.write_record(&blank_line)?;
-		wtr.write_record(&["MENU STRINGS", "", ""])?;
+		wtr.write_record(&["MENUS", "", ""])?;
 		wtr.write_record(&blank_line)?;
 
 		for (i, str) in menu_strings.iter().enumerate() {
@@ -170,10 +170,10 @@ pub fn export_strings_to(handle: &AppHandle, path: &PathBuf) -> Result<(), Box<d
 
 		for (i, char) in data_pack.characters.iter().enumerate() {
 			wtr.write_record(&[&i.to_string(), "Name:", &char.name.string])?;
-			wtr.write_record(&[&i.to_string(), "Pronoun:", &char.pronoun.string])?;
-			wtr.write_record(&[&i.to_string(), "Statement Ending:", &char.statement.string])?;
-			wtr.write_record(&[&i.to_string(), "Question Ending 1:", &char.question1.string])?;
-			wtr.write_record(&[&i.to_string(), "Question Ending 2:", &char.question2.string])?;
+			wtr.write_record(&["", "Pronoun:", &char.pronoun.string])?;
+			wtr.write_record(&["", "Statement Ending:", &char.statement.string])?;
+			wtr.write_record(&["", "Question Ending 1:", &char.question1.string])?;
+			wtr.write_record(&["", "Question Ending 2:", &char.question2.string])?;
 			wtr.write_record(&blank_line)?;
 		}
 	}

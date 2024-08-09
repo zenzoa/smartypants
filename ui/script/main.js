@@ -149,7 +149,7 @@ window.addEventListener('load', () => {
 	tauri_listen('update_menu_strings', event => {
 		cardData.menu_strings = event.payload[0]
 		sections.menuStrings = setupMenuStrings()
-		if (event.payload[1]) {
+		if (event.payload[1] || currentSection === 'menuStrings') {
 			viewMenuStrings()
 		}
 	})
@@ -157,7 +157,7 @@ window.addEventListener('load', () => {
 	tauri_listen('update_tamastrings', event => {
 		cardData.data_pack.tamastrings = event.payload[0]
 		sections.tamaStrings = setupTamaStrings()
-		if (event.payload[1]) {
+		if (event.payload[1] || currentSection === 'tamaStrings') {
 			viewTamaStrings()
 		}
 	})
@@ -165,7 +165,7 @@ window.addEventListener('load', () => {
 	tauri_listen('update_items', event => {
 		cardData.data_pack.items = event.payload[0]
 		sections.items = setupItems()
-		if (event.payload[1]) {
+		if (event.payload[1] || currentSection === 'items') {
 			viewItems()
 		}
 	})
@@ -173,7 +173,7 @@ window.addEventListener('load', () => {
 	tauri_listen('update_characters', event => {
 		cardData.data_pack.characters = event.payload[0]
 		sections.characters = setupCharacters()
-		if (event.payload[1]) {
+		if (event.payload[1] || currentSection === 'characters') {
 			viewCharacters()
 		}
 	})

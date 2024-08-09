@@ -93,6 +93,7 @@ pub fn import_strings_from(handle: &AppHandle, path: &PathBuf) -> Result<(), Box
 					}
 				}
 			},
+
 			StringType::Dialog => {
 				let mut data_pack_opt = data_state.data_pack.lock().unwrap();
 				if let Some(data_pack) = data_pack_opt.as_mut() {
@@ -101,6 +102,7 @@ pub fn import_strings_from(handle: &AppHandle, path: &PathBuf) -> Result<(), Box
 					}
 				}
 			},
+
 			StringType::Item => {
 				let mut data_pack_opt = data_state.data_pack.lock().unwrap();
 				if let Some(data_pack) = data_pack_opt.as_mut() {
@@ -109,11 +111,35 @@ pub fn import_strings_from(handle: &AppHandle, path: &PathBuf) -> Result<(), Box
 					}
 				}
 			},
+
 			StringType::Character => {
+				let substrings = new_string.split("<br>");
+
+				let mut new_name = String::new();
+				let mut new_pronoun = String::new();
+				let mut new_statement = String::new();
+				let mut new_question1 = String::new();
+				let mut new_question2 = String::new();
+
+				for (i, substring) in substrings.enumerate() {
+					match i {
+						0 => new_name = substring.to_string(),
+						1 => new_pronoun = substring.to_string(),
+						2 => new_statement = substring.to_string(),
+						3 => new_question1 = substring.to_string(),
+						4 => new_question2 = substring.to_string(),
+						_ => {}
+					}
+				}
+
 				let mut data_pack_opt = data_state.data_pack.lock().unwrap();
 				if let Some(data_pack) = data_pack_opt.as_mut() {
 					if let Some(character) = data_pack.characters.get_mut(id as usize) {
-						character.name.set_string(&font_state, new_string);
+						character.name.set_string(&font_state, &new_name);
+						character.pronoun.set_string(&font_state, &new_pronoun);
+						character.statement.set_string(&font_state, &new_statement);
+						character.question1.set_string(&font_state, &new_question1);
+						character.question2.set_string(&font_state, &new_question2);
 					}
 				}
 			},
@@ -137,26 +163,28 @@ pub fn import_strings_from(handle: &AppHandle, path: &PathBuf) -> Result<(), Box
 					last_line = line.to_string();
 				}
 
-			} else if !temp_translation.value.is_empty() {
-				if let Some(line) = record.get(2) {
-					if !line.is_empty() {
-						temp_translation.line_count += 1;
-						if last_line.is_empty() {
-							temp_translation.value = format!("{}<hr>{}", temp_translation.value, line);
-						} else {
-							temp_translation.value = format!("{}<br>{}", temp_translation.value, line);
-						}
-					}
-					last_line = line.to_string();
-				}
-
 			} else {
-				match id.to_uppercase().as_str() {
-					"MENUS" => current_string_type = StringType::Menu,
-					"DIALOG" | "STRINGS" => current_string_type = StringType::Dialog,
-					"ITEMS" => current_string_type = StringType::Item,
-					"CHARACTERS" => current_string_type = StringType::Character,
-					_ => {}
+				if id.is_empty() && !temp_translation.value.is_empty() {
+					if let Some(line) = record.get(2) {
+						if !line.is_empty() {
+							temp_translation.line_count += 1;
+							if last_line.is_empty() {
+								temp_translation.value = format!("{}<hr>{}", temp_translation.value, line);
+							} else {
+								temp_translation.value = format!("{}<br>{}", temp_translation.value, line);
+							}
+						}
+						last_line = line.to_string();
+					}
+				} else {
+					add_string(&current_string_type, temp_translation.id, &temp_translation.value);
+					match id.to_uppercase().as_str() {
+						"MENUS" => current_string_type = StringType::Menu,
+						"DIALOG" | "STRINGS" => current_string_type = StringType::Dialog,
+						"ITEMS" => current_string_type = StringType::Item,
+						"CHARACTERS" => current_string_type = StringType::Character,
+						_ => {}
+					}
 				}
 			}
 		}
