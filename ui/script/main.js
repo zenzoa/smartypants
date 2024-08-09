@@ -13,6 +13,12 @@ let currentSection = ''
 let sections = {}
 
 window.addEventListener('load', () => {
+	// disable context menu
+	document.body.addEventListener('contextmenu', event => {
+		event.preventDefault()
+		return false
+	}, false)
+
 	setupDialogs()
 
 	document.getElementById('open-button').addEventListener('click', openBin)
