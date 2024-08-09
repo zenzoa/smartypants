@@ -55,7 +55,7 @@ const formatHexCode = (byte) => {
 
 const linkToCharacter = (characterIndex) => {
 	if (cardData.data_pack.characters[characterIndex] != null) {
-		const characterName = cardData.data_pack.characters[characterIndex].name
+		const characterName = cardData.data_pack.characters[characterIndex].name.string
 		const link = button(characterName)
 		link.addEventListener('click', () => {
 			viewCharacters()
