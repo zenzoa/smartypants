@@ -274,7 +274,7 @@ fn replace_image_data(handle: &AppHandle, image_index: usize, subimage_index: us
 			let colors = &sprite_pack.palettes[first_color_index..];
 
 			let sprites_per_subimage = image_def.width_in_sprites as usize * image_def.height_in_sprites as usize;
-			let first_sprite_index = image_def.first_sprite_index as usize + (subimage_index / sprites_per_subimage);
+			let first_sprite_index = image_def.first_sprite_index as usize + (subimage_index * sprites_per_subimage);
 
 			let subimage_width = img.width() / image_def.width_in_sprites as u32;
 			let subimage_height = img.height() / image_def.height_in_sprites as u32;
