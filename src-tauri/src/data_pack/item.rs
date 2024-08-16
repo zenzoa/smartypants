@@ -177,17 +177,48 @@ pub fn save_items(items: &[Item]) -> Result<Vec<u8>, Box<dyn Error>> {
 }
 
 #[tauri::command]
-pub fn update_item(handle: AppHandle, index: usize, name: String) -> Option<Text> {
+pub fn update_item(handle: AppHandle, index: usize, property_name: String, new_value: String) -> Option<Item> {
 	let data_state: State<DataState> = handle.state();
 	let font_state: State<FontState> = handle.state();
 
 	let mut data_pack_opt = data_state.data_pack.lock().unwrap();
 	if let Some(data_pack) = data_pack_opt.as_mut() {
 		if let Some(item) = data_pack.items.get_mut(index) {
-			item.name.set_string(&font_state, &name);
+			match property_name.as_str() {
+				"name" => {
+					item.name.set_string(&font_state, &new_value)
+				},
+				"unknown1" => {
+					if let Ok(n) = u16::from_str_radix(&new_value, 10) {
+						item.unknown1 = n;
+					}
+				},
+				"price" => {
+					if let Ok(n) = u16::from_str_radix(&new_value, 10) {
+						item.price = n;
+					}
+				},
+				"unknown2" => {
+					if let Ok(n) = u16::from_str_radix(&new_value, 10) {
+						item.unknown2 = n;
+					}
+				},
+				"unknown3" => {
+					if let Ok(n) = u16::from_str_radix(&new_value, 10) {
+						item.unknown3 = n;
+					}
+				},
+				"unknown4" => {
+					if let Ok(n) = u16::from_str_radix(&new_value, 10) {
+						item.unknown4 = n;
+					}
+				},
+				_ => {}
+			}
+
 			*data_state.is_modified.lock().unwrap() = true;
 			update_window_title(&handle);
-			return Some(item.name.clone());
+			return Some(item.clone());
 		}
 	}
 

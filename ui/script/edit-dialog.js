@@ -39,6 +39,8 @@ class EditDialog {
 			const intValue = parseInt(newValue)
 			if (intValue === parseFloat(newValue) && intValue >= min && intValue <= max) {
 				fn(intValue)
+			} else {
+				inputEl.classList.add('invalid')
 			}
 		}
 
@@ -48,6 +50,22 @@ class EditDialog {
 		inputEl.setAttribute('min', min)
 		inputEl.setAttribute('max', max)
 		inputEl.setAttribute('step', 1)
+		inputEl.classList.remove('invalid')
+	}
+
+	static openHexEditor(title, inputLabel, value, fn) {
+		const onchange = (newValue) => {
+			const intValue = parseInt(newValue, 16)
+			if (!isNaN(intValue)) {
+				fn(intValue)
+			} else {
+				inputEl.classList.add('invalid')
+			}
+		}
+		const inputEl = EditDialog.open(title, inputLabel, value, onchange)
+
+		inputEl.setAttribute('type', 'text')
+		inputEl.classList.remove('invalid')
 	}
 
 	static openStringEditor(title, inputLabel, value, fn, maxLength) {
@@ -65,7 +83,7 @@ class EditDialog {
 		const inputEl = EditDialog.open(title, inputLabel, value, onchange)
 
 		inputEl.setAttribute('type', 'text')
-		inputEl.setAttribute('valid', false)
+		inputEl.classList.remove('invalid')
 
 		const previewEl = div({ className: 'string-preview-container' }, [
 			div({ id: 'preview-small-text', className: 'string-preview' }),
