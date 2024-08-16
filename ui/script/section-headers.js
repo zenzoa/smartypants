@@ -1,5 +1,13 @@
+const setupHeader = () => {
+	if (cardData.bin_type === "Firmware") {
+		return setupFirmwareHeader()
+	} else {
+		return setupCardHeader()
+	}
+}
+
 const setupCardHeader = () => {
-	const header = cardData.header
+	const header = cardData.card_header
 	return div([
 		div({className: 'table-title'}, 'Tamagotchi Sma Card'),
 		table([
@@ -14,7 +22,8 @@ const setupCardHeader = () => {
 				tr([th('Build Date'), td(`${header.year}-${header.month}-${header.day} revision ${header.revision}`)]),
 				tr([th('MD5'), td(header.md5)])
 			])
-		])
+		]),
+		showEncodingInfo()
 	])
 }
 
@@ -38,11 +47,38 @@ const setupFirmwareHeader = () => {
 					viewHeader()
 				})
 			}, 'No Patch Header (for updating firmware via EEPROM Programmer)')
-		])
+		]),
+		showEncodingInfo()
 	])
 }
 
 const viewHeader = () => {
 	selectSection('header')
 	contents.append(sections.header)
+}
+
+const showEncodingInfo = () => {
+	return div([
+		div({className: 'table-title'}, 'Text Encoding'),
+		div({className: 'toggle-container'}, [
+			button({
+				className:  cardData.encoding_language === 'Japanese' ? 'toggle on' : 'toggle off',
+				onclick: () => tauri_invoke('set_to_preset_encoding', { name: 'jp' })
+			}, 'Japanese'),
+			button({
+				className:  cardData.encoding_language === 'EnglishLatin' ? 'toggle on' : 'toggle off',
+				onclick: () => tauri_invoke('set_to_preset_encoding', { name: 'en' })
+			}, 'English/Latin'),
+			div([
+				button({
+					className:  cardData.encoding_language === 'Custom' ? 'toggle on' : 'toggle off',
+					onclick: () => tauri_invoke('import_encoding', { name: 'custom' }).then(() => {
+						sections.header = setupHeader()
+						viewHeader()
+					})
+				}, 'Custom'),
+				button({ className: 'text' }, 'Edit')
+			])
+		])
+	])
 }

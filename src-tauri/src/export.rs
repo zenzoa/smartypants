@@ -12,10 +12,12 @@ use rfd::FileDialog;
 use crate::{ DataState, ImageState, show_error_message, show_spinner, hide_spinner };
 use crate::sprite_pack::get_spritesheet_dims;
 use crate::text::FontState;
+use crate::file::FileState;
 
 #[tauri::command]
 pub fn export_data(handle: AppHandle) {
 	spawn(async move {
+		let file_state: State<FileState> = handle.state();
 		let data_state: State<DataState> = handle.state();
 
 		let no_data = data_state.data_pack.lock().unwrap().is_none();
@@ -26,11 +28,11 @@ pub fn export_data(handle: AppHandle) {
 			let mut file_dialog = FileDialog::new()
 				.add_filter("JSON", &["json"]);
 
-			if let Some(base_path) = data_state.base_path.lock().unwrap().as_ref() {
+			if let Some(base_path) = file_state.base_path.lock().unwrap().as_ref() {
 				file_dialog = file_dialog.set_directory(base_path);
 			}
 
-			if let Some(file_path) = data_state.file_path.lock().unwrap().as_ref() {
+			if let Some(file_path) = file_state.file_path.lock().unwrap().as_ref() {
 				if let Some(file_stem) = file_path.file_stem() {
 					file_dialog = file_dialog.set_file_name(format!("{}.json", file_stem.to_string_lossy()));
 				}
@@ -63,6 +65,7 @@ pub fn export_data_to(data_state: &DataState, path: &PathBuf) -> Result<(), Box<
 #[tauri::command]
 pub fn export_strings(handle: AppHandle) {
 	spawn(async move {
+		let file_state: State<FileState> = handle.state();
 		let data_state: State<DataState> = handle.state();
 
 		let no_data = data_state.data_pack.lock().unwrap().is_none();
@@ -73,11 +76,11 @@ pub fn export_strings(handle: AppHandle) {
 			let mut file_dialog = FileDialog::new()
 				.add_filter("CSV", &["csv"]);
 
-			if let Some(base_path) = data_state.base_path.lock().unwrap().as_ref() {
+			if let Some(base_path) = file_state.base_path.lock().unwrap().as_ref() {
 				file_dialog = file_dialog.set_directory(base_path);
 			}
 
-			if let Some(file_path) = data_state.file_path.lock().unwrap().as_ref() {
+			if let Some(file_path) = file_state.file_path.lock().unwrap().as_ref() {
 				if let Some(file_stem) = file_path.file_stem() {
 					file_dialog = file_dialog.set_file_name(format!("{}.csv", file_stem.to_string_lossy()));
 				}
@@ -185,7 +188,7 @@ pub fn export_strings_to(handle: &AppHandle, path: &PathBuf) -> Result<(), Box<d
 #[tauri::command]
 pub fn export_images(handle: AppHandle) {
 	spawn(async move {
-		let data_state: State<DataState> = handle.state();
+		let file_state: State<FileState> = handle.state();
 		let image_state: State<ImageState> = handle.state();
 
 		if image_state.images.lock().unwrap().is_empty() || image_state.images.lock().unwrap()[0].is_empty() {
@@ -195,11 +198,11 @@ pub fn export_images(handle: AppHandle) {
 			let mut file_dialog = FileDialog::new()
 				.add_filter("PNG image", &["png"]);
 
-			if let Some(base_path) = data_state.base_path.lock().unwrap().as_ref() {
+			if let Some(base_path) = file_state.base_path.lock().unwrap().as_ref() {
 				file_dialog = file_dialog.set_directory(base_path);
 			}
 
-			if let Some(file_path) = data_state.file_path.lock().unwrap().as_ref() {
+			if let Some(file_path) = file_state.file_path.lock().unwrap().as_ref() {
 				if let Some(file_stem) = file_path.file_stem() {
 					file_dialog = file_dialog.set_file_name(format!("{}.png", file_stem.to_string_lossy()));
 				}
@@ -239,16 +242,16 @@ pub fn export_images_to(image_state: &ImageState, path: &Path) -> Result<(), Box
 #[tauri::command]
 pub fn export_image_spritesheet(handle: AppHandle, image_index: usize) {
 	spawn(async move {
-		let data_state: State<DataState> = handle.state();
+		let file_state: State<FileState> = handle.state();
 
 		let mut file_dialog = FileDialog::new()
 			.add_filter("PNG image", &["png"]);
 
-		if let Some(base_path) = data_state.base_path.lock().unwrap().as_ref() {
+		if let Some(base_path) = file_state.base_path.lock().unwrap().as_ref() {
 			file_dialog = file_dialog.set_directory(base_path);
 		}
 
-		if let Some(file_path) = data_state.file_path.lock().unwrap().as_ref() {
+		if let Some(file_path) = file_state.file_path.lock().unwrap().as_ref() {
 			if let Some(file_stem) = file_path.file_stem() {
 				file_dialog = file_dialog.set_file_name(format!("{}-{}.png", file_stem.to_string_lossy(), image_index));
 			}
@@ -286,13 +289,13 @@ fn export_image_spritesheet_to(handle: &AppHandle, image_index: usize, path: &Pa
 #[tauri::command]
 pub fn export_encoding(handle: AppHandle) {
 	spawn(async move {
-		let data_state: State<DataState> = handle.state();
+		let file_state: State<FileState> = handle.state();
 		let font_state: State<FontState> = handle.state();
 
 		let mut file_dialog = FileDialog::new()
 			.add_filter("JSON", &["json"]);
 
-		if let Some(base_path) = data_state.base_path.lock().unwrap().as_ref() {
+		if let Some(base_path) = file_state.base_path.lock().unwrap().as_ref() {
 			file_dialog = file_dialog.set_directory(base_path);
 		}
 

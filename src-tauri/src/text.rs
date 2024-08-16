@@ -52,7 +52,7 @@ impl Text {
 
 pub struct FontState {
 	pub char_codes: Mutex<Vec<CharEncoding>>,
-	pub is_custom: Mutex<bool>,
+	pub encoding_language: Mutex<EncodingLanguage>,
 	pub small_font_images: Mutex<Vec<image::RgbaImage>>,
 	pub large_font_images: Mutex<Vec<image::RgbaImage>>
 }
@@ -61,7 +61,7 @@ impl Default for FontState {
 	fn default() -> FontState {
 		FontState{
 			char_codes: Mutex::new(get_default_char_codes()),
-			is_custom: Mutex::new(false),
+			encoding_language: Mutex::new(EncodingLanguage::Japanese),
 			small_font_images: Mutex::new(Vec::new()),
 			large_font_images: Mutex::new(Vec::new())
 		}
@@ -72,6 +72,13 @@ impl Default for FontState {
 pub struct CharEncoding {
 	data: u16,
 	text: Vec<String>
+}
+
+#[derive(Clone, PartialEq, serde::Serialize)]
+pub enum EncodingLanguage {
+	Custom,
+	Japanese,
+	EnglishLatin
 }
 
 pub fn word_to_char_code(font_state: &FontState, word: u16) -> Option<String> {
@@ -131,9 +138,9 @@ pub fn update_char_codes(handle: AppHandle, new_char_codes: Vec<CharEncoding>) -
 				}
 			}
 		}
-		*font_state.is_custom.lock().unwrap() = true;
+		*font_state.encoding_language.lock().unwrap() = EncodingLanguage::Custom;
 		re_decode_strings(&handle);
-		refresh_encoding_menu(&handle, "");
+		refresh_encoding_menu(&handle);
 	}
 
 	problem_codes.sort();
@@ -226,6 +233,7 @@ pub fn load_font(path: &PathBuf) -> Result<Vec<RgbaImage>, Box<dyn Error>> {
 	Ok(subimages)
 }
 
+#[tauri::command]
 pub fn set_to_preset_encoding(handle: AppHandle, name: &str) {
 	let data_state: State<DataState> = handle.state();
 	let font_state: State<FontState> = handle.state();
@@ -234,7 +242,11 @@ pub fn set_to_preset_encoding(handle: AppHandle, name: &str) {
 		if let Ok(encoding_path) = handle.path().resolve(format!("resources/encoding_{}.json", name), BaseDirectory::Resource) {
 			match import_encoding_from(&handle, &encoding_path, false) {
 				Ok(()) => {
-					*font_state.is_custom.lock().unwrap() = false;
+					*font_state.encoding_language.lock().unwrap() = match name {
+						"jp" => EncodingLanguage::Japanese,
+						"en" => EncodingLanguage::EnglishLatin,
+						_ => EncodingLanguage::Custom
+					};
 
 					if let Some(BinType::SmaCard) = *data_state.bin_type.lock().unwrap() {
 						if let Ok(small_font_path) = handle.path().resolve(format!("resources/font_small_{}.png", name), BaseDirectory::Resource) {
@@ -250,7 +262,6 @@ pub fn set_to_preset_encoding(handle: AppHandle, name: &str) {
 					}
 
 					re_decode_strings(&handle);
-					refresh_encoding_menu(&handle, name);
 				},
 
 				Err(why) => show_error_message(why)
@@ -258,7 +269,7 @@ pub fn set_to_preset_encoding(handle: AppHandle, name: &str) {
 		}
 	};
 
-	if *font_state.is_custom.lock().unwrap() {
+	if *font_state.encoding_language.lock().unwrap() == EncodingLanguage::Custom {
 		let dialog_result = MessageDialog::new()
 			.set_title("Change Text Encoding")
 			.set_description("This will overwrite your existing text encoding. Are you sure you want to continue?")
@@ -270,21 +281,29 @@ pub fn set_to_preset_encoding(handle: AppHandle, name: &str) {
 	} else {
 		do_the_thing();
 	}
+
+	refresh_encoding_menu(&handle);
 }
 
-pub fn refresh_encoding_menu(handle: &AppHandle, encoding_name: &str) {
+pub fn refresh_encoding_menu(handle: &AppHandle) {
+	let font_state: State<FontState> = handle.state();
+	let encoding_language = font_state.encoding_language.lock().unwrap();
+
 	if let Some(menu) = handle.menu() {
-		if let Some(MenuItemKind::Submenu(text_menu)) = menu.get("text") {
-			if let Some(MenuItemKind::Submenu(change_encoding_menu)) = text_menu.get("change_encoding") {
-				if let Some(MenuItemKind::Check(menu_item_jp)) = change_encoding_menu.get("set_encoding_to_jp") {
-					menu_item_jp.set_checked(encoding_name == "jp").unwrap();
-				};
-				if let Some(MenuItemKind::Check(menu_item_en)) = change_encoding_menu.get("set_encoding_to_en") {
-					menu_item_en.set_checked(encoding_name == "en").unwrap();
-				};
+		if let Some(MenuItemKind::Submenu(text_encoding_menu)) = menu.get("text_encoding") {
+			if let Some(MenuItemKind::Check(menu_item_jp)) = text_encoding_menu.get("encoding_jp") {
+				menu_item_jp.set_checked(*encoding_language == EncodingLanguage::Japanese).unwrap();
+			}
+			if let Some(MenuItemKind::Check(menu_item_en)) = text_encoding_menu.get("encoding_en") {
+				menu_item_en.set_checked(*encoding_language == EncodingLanguage::EnglishLatin).unwrap();
+			}
+			if let Some(MenuItemKind::Check(menu_item_en)) = text_encoding_menu.get("encoding_custom") {
+				menu_item_en.set_checked(*encoding_language == EncodingLanguage::Custom).unwrap();
 			}
 		}
 	}
+
+	handle.emit("update_encoding_language", encoding_language.clone()).unwrap();
 }
 
 pub fn re_decode_strings(handle: &AppHandle) {

@@ -2,7 +2,6 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 use std::error::Error;
-use std::path::PathBuf;
 use std::sync::Mutex;
 use std::io::Cursor;
 
@@ -28,15 +27,13 @@ use data_view::DataView;
 use data_pack::DataPack;
 use sprite_pack::SpritePack;
 use text::{ Text, FontState, set_to_preset_encoding };
-use file::{ open_bin, save_bin, save_bin_as, continue_if_modified };
+use file::{ FileState, open_bin, save_bin, save_bin_as, continue_if_modified };
 use import::import_encoding;
 
-#[derive(Default)]
+#[derive(Default, serde::Serialize)]
 pub struct DataState {
-	pub is_modified: Mutex<bool>,
 	pub bin_type: Mutex<Option<BinType>>,
-	pub file_path: Mutex<Option<PathBuf>>,
-	pub base_path: Mutex<Option<PathBuf>>,
+	pub card_header: Mutex<Option<smacard::CardHeader>>,
 	pub data_pack: Mutex<Option<DataPack>>,
 	pub sprite_pack: Mutex<Option<SpritePack>>,
 	pub menu_strings: Mutex<Option<Vec<Text>>>,
@@ -49,6 +46,7 @@ pub struct ImageState {
 	pub images: Mutex<Vec<Vec<image::RgbaImage>>>
 }
 
+#[derive(Clone, serde::Serialize)]
 pub enum BinType {
 	SmaCard,
 	Firmware
@@ -78,9 +76,11 @@ fn main() {
 			text::validate_string,
 			text::decode_string_js,
 			text::get_default_char_codes,
-			text::update_char_codes
+			text::update_char_codes,
+			text::set_to_preset_encoding
 		])
 
+		.manage(FileState::default())
 		.manage(DataState::default())
 		.manage(ImageState::default())
 		.manage(FontState::default())
@@ -108,13 +108,12 @@ fn main() {
 					&MenuItem::with_id(handle, "quit", "Quit", true, Some("CmdOrCtrl+Q"))?,
 				])?,
 
-				&Submenu::with_id_and_items(handle, "text", "Text", true, &[
-					&Submenu::with_id_and_items(handle, "change_encoding", "Change Encoding", true, &[
-						&CheckMenuItem::with_id(handle, "set_encoding_to_jp", "Japanese", true, true, None::<&str>)?,
-						&CheckMenuItem::with_id(handle, "set_encoding_to_en", "English/Latin", true, false, None::<&str>)?,
-						&MenuItem::with_id(handle, "import_encoding", "Import...", true, None::<&str>)?,
-					])?,
-					&MenuItem::with_id(handle, "edit_encoding", "Edit Encoding", true, None::<&str>)?,
+				&Submenu::with_id_and_items(handle, "text_encoding", "Encoding", true, &[
+					&CheckMenuItem::with_id(handle, "encoding_jp", "Japanese", true, true, None::<&str>)?,
+					&CheckMenuItem::with_id(handle, "encoding_en", "English/Latin", true, false, None::<&str>)?,
+					&CheckMenuItem::with_id(handle, "encoding_custom", "Custom", true, false, None::<&str>)?,
+					&PredefinedMenuItem::separator(handle)?,
+					&MenuItem::with_id(handle, "edit_encoding", "Edit Encoding...", true, None::<&str>)?,
 				])?,
 
 				&Submenu::with_id_and_items(handle, "help", "Help", true, &[
@@ -155,9 +154,9 @@ fn main() {
 
 					"quit" => try_quit(handle),
 
-					"set_encoding_to_jp" => set_to_preset_encoding(handle, "jp"),
-					"set_encoding_to_en" => set_to_preset_encoding(handle, "en"),
-					"import_encoding" => import_encoding(handle),
+					"encoding_jp" => set_to_preset_encoding(handle, "jp"),
+					"encoding_en" => set_to_preset_encoding(handle, "en"),
+					"encoding_custom" => import_encoding(handle),
 					"edit_encoding" => handle.emit("show_encoding_dialog", "").unwrap(),
 
 					"about" => handle.emit("show_about_dialog", "").unwrap(),
@@ -262,10 +261,10 @@ fn try_quit(handle: AppHandle) {
 
 pub fn update_window_title(handle: &AppHandle) {
 	let window = handle.get_webview_window("main").unwrap();
-	let data_state: State<DataState> = handle.state();
-	let file_path_opt = data_state.file_path.lock().unwrap();
+	let file_state: State<FileState> = handle.state();
+	let file_path_opt = file_state.file_path.lock().unwrap();
 
-	let modified_indicator = if *data_state.is_modified.lock().unwrap() { "*" } else { "" };
+	let modified_indicator = if *file_state.is_modified.lock().unwrap() { "*" } else { "" };
 
 	let file_name = match file_path_opt.as_ref() {
 		Some(file_path) => file_path.file_name().map(|file_name| file_name.to_string_lossy()),

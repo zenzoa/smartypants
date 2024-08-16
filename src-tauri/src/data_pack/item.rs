@@ -5,6 +5,7 @@ use super::EntityId;
 use crate::{ DataState, update_window_title };
 use crate::data_view::{ DataView, words_to_bytes, resize_words };
 use crate::text::{ Text, FontState };
+use crate::file::set_file_modified;
 
 #[derive(Clone, serde::Serialize)]
 pub struct Item {
@@ -216,7 +217,7 @@ pub fn update_item(handle: AppHandle, index: usize, property_name: String, new_v
 				_ => {}
 			}
 
-			*data_state.is_modified.lock().unwrap() = true;
+			set_file_modified(&handle, true);
 			update_window_title(&handle);
 			return Some(item.clone());
 		}

@@ -4,11 +4,12 @@ use std::error::Error;
 use tauri::{ AppHandle, State, Manager };
 use tauri::path::BaseDirectory;
 
-use crate::{ DataState, update_window_title };
+use crate::DataState;
 use crate::data_view::{ DataView, words_to_bytes };
 use crate::data_pack::{ DataPack, get_data_pack, save_data_pack };
 use crate::sprite_pack::{ SpritePack, get_sprite_pack, save_sprite_pack };
 use crate::text::{ Text, FontState };
+use crate::file::set_file_modified;
 
 const FIRMWARE_DATA_PACK_SIZE: usize = 0x730000 - 0x6CE000;
 const PATCH_HEADER_START: [u8; 8] = [0x4F, 0x86, 0xA0, 0x86, 0x0A, 0xFE, 0x84, 0x30];
@@ -178,8 +179,7 @@ pub fn update_menu_string(handle: AppHandle, index: usize, name: String) -> Opti
 	if let Some(menu_strings) = menu_strings_opt.as_mut() {
 		if let Some(menu_string) = menu_strings.get_mut(index) {
 			menu_string.set_string(&font_state, &name);
-			*data_state.is_modified.lock().unwrap() = true;
-			update_window_title(&handle);
+			set_file_modified(&handle, true);
 			return Some(menu_string.clone());
 		}
 	}

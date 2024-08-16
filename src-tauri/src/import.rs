@@ -10,9 +10,10 @@ use tauri::async_runtime::spawn;
 
 use rfd::{ FileDialog, MessageButtons, MessageDialog, MessageDialogResult };
 
-use crate::{ DataState, BinType, ImageState, show_error_message, show_spinner, hide_spinner, update_window_title };
+use crate::{ DataState, BinType, ImageState, show_error_message, show_spinner, hide_spinner };
 use crate::sprite_pack::{ palette::Color, get_spritesheet_dims };
-use crate::text::{ FontState, CharEncoding, re_decode_strings, refresh_encoding_menu };
+use crate::text::{ FontState, CharEncoding, EncodingLanguage, re_decode_strings, refresh_encoding_menu };
+use crate::file::{ FileState, set_file_modified };
 
 #[derive(Clone, Debug, serde::Deserialize)]
 struct TamaStringTranslation {
@@ -42,6 +43,7 @@ enum StringType {
 #[tauri::command]
 pub fn import_strings(handle: AppHandle) {
 	spawn(async move {
+		let file_state: State<FileState> = handle.state();
 		let data_state: State<DataState> = handle.state();
 
 		let no_data = data_state.data_pack.lock().unwrap().is_none();
@@ -52,7 +54,7 @@ pub fn import_strings(handle: AppHandle) {
 			let mut file_dialog = FileDialog::new()
 				.add_filter("CSV", &["csv"]);
 
-			if let Some(base_path) = data_state.base_path.lock().unwrap().as_ref() {
+			if let Some(base_path) = file_state.base_path.lock().unwrap().as_ref() {
 				file_dialog = file_dialog.set_directory(base_path);
 			}
 
@@ -61,10 +63,7 @@ pub fn import_strings(handle: AppHandle) {
 			if let Some(path) = file_result {
 				show_spinner(&handle);
 				match import_strings_from(&handle, &path) {
-					Ok(()) => {
-						*data_state.is_modified.lock().unwrap() = true;
-						update_window_title(&handle);
-					}
+					Ok(()) => set_file_modified(&handle, true),
 					Err(why) => show_error_message(why)
 				}
 				hide_spinner(&handle);
@@ -210,12 +209,12 @@ pub fn import_strings_from(handle: &AppHandle, path: &PathBuf) -> Result<(), Box
 #[tauri::command]
 pub fn import_image_spritesheet(handle: AppHandle, image_index: usize) {
 	spawn(async move {
-		let data_state: State<DataState> = handle.state();
+		let file_state: State<FileState> = handle.state();
 
 		let mut file_dialog = FileDialog::new()
 			.add_filter("PNG", &["png"]);
 
-		if let Some(base_path) = data_state.base_path.lock().unwrap().as_ref() {
+		if let Some(base_path) = file_state.base_path.lock().unwrap().as_ref() {
 			file_dialog = file_dialog.set_directory(base_path);
 		}
 
@@ -331,12 +330,12 @@ pub fn import_encoding(handle: AppHandle) {
 		.show();
 	if dialog_result == MessageDialogResult::Yes {
 		spawn(async move {
-			let data_state: State<DataState> = handle.state();
+			let file_state: State<FileState> = handle.state();
 
 			let mut file_dialog = FileDialog::new()
 				.add_filter("JSON", &["json"]);
 
-			if let Some(base_path) = data_state.base_path.lock().unwrap().as_ref() {
+			if let Some(base_path) = file_state.base_path.lock().unwrap().as_ref() {
 				file_dialog = file_dialog.set_directory(base_path);
 			}
 
@@ -347,13 +346,16 @@ pub fn import_encoding(handle: AppHandle) {
 				match import_encoding_from(&handle, &path, true) {
 					Ok(()) => {
 						re_decode_strings(&handle);
-						refresh_encoding_menu(&handle, "");
 					},
 					Err(why) => show_error_message(why)
 				}
 				hide_spinner(&handle);
 			}
+
+			refresh_encoding_menu(&handle);
 		});
+	} else {
+		refresh_encoding_menu(&handle);
 	}
 }
 
@@ -365,7 +367,7 @@ pub fn import_encoding_from(handle: &AppHandle, path: &PathBuf, open_dialog: boo
 	handle.emit("update_char_codes", (char_codes.clone(), open_dialog)).unwrap();
 
 	*font_state.char_codes.lock().unwrap() = char_codes;
-	*font_state.is_custom.lock().unwrap() = true;
+	*font_state.encoding_language.lock().unwrap() = EncodingLanguage::Custom;
 
 	Ok(())
 }

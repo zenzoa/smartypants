@@ -28,7 +28,7 @@ window.addEventListener('load', () => {
 	document.getElementById('export-strings-button').addEventListener('click', exportStrings)
 	document.getElementById('export-images-button').addEventListener('click', exportImages)
 
-	tauri_listen('show_card', event => {
+	tauri_listen('update_data', event => {
 		cardData = event.payload
 
 		timestamp = Date.now()
@@ -37,10 +37,11 @@ window.addEventListener('load', () => {
 		main.replaceChildren()
 
 		sections = {
-			header: setupCardHeader(),
+			header: setupHeader(),
 			table1: setupTable1(),
 			particleEmitters: setupParticleEmitters(),
 			scenes: setupScenes(),
+			menuStrings: cardData.bin_type === "Firmware" ? setupMenuStrings() : null,
 			tamaStrings: setupTamaStrings(),
 			table9: setupTable9(),
 			items: setupItems(),
@@ -58,67 +59,8 @@ window.addEventListener('load', () => {
 				`Characters <span class="tag">${cardData.data_pack.characters.length}</span>`),
 			button({id: 'view-items-button', onclick: viewItems},
 				`Items <span class="tag">${cardData.data_pack.items.length}</span>`),
-			button({id: 'view-tamaStrings-button', onclick: viewTamaStrings},
-				`Strings <span class="tag">${cardData.data_pack.tamastrings.length}</span>`),
-			button({id: 'view-palettes-button', onclick: viewPalettes},
-				`Palettes <span class="tag">${Math.ceil(cardData.sprite_pack.palettes.length / 4)}</span>`),
-			button({id: 'view-sprites-button', onclick: viewSprites},
-				`Images <span class="tag">${cardData.sprite_pack.image_defs.length}</span>`),
-			button({id: 'view-frames-button', onclick: viewFrames},
-				`Frames <span class="tag">${cardData.data_pack.frame_groups.length}</span>`),
-			button({id: 'view-scenes-button', onclick: viewScenes},
-				`Scenes <span class="tag">${cardData.data_pack.scenes.length}</span>`),
-			button({id: 'view-animations-button', onclick: viewAnimations},
-				`Animations <span class="tag">${cardData.data_pack.graphics_nodes.length}</span>`),
-			button({id: 'view-particleEmitters-button', onclick: viewParticleEmitters},
-				`Particle Emitters <span class="tag">${cardData.data_pack.particle_emitters.length}</span>`),
-			button({id: 'view-table1-button', onclick: viewTable1},
-				`Unknown 1 <span class="tag">${cardData.data_pack.table1.length}</span>`),
-			button({id: 'view-table9-button', onclick: viewTable9},
-				`Unknown 2 <span class="tag">${cardData.data_pack.table9.length}</span>`)
-		])
-
-		contents = div({id: 'contents'})
-
-		main.append(nav)
-		main.append(contents)
-
-		viewHeader()
-	})
-
-	tauri_listen('show_firmware', event => {
-		cardData = event.payload
-
-		timestamp = Date.now()
-
-		const main = document.getElementById('main')
-		main.replaceChildren()
-
-		sections = {
-			header: setupFirmwareHeader(),
-			table1: setupTable1(),
-			particleEmitters: setupParticleEmitters(),
-			scenes: setupScenes(),
-			menuStrings: setupMenuStrings(),
-			tamaStrings: setupTamaStrings(),
-			table9: setupTable9(),
-			items: setupItems(),
-			characters: setupCharacters(),
-			animations: setupAnimations(),
-			frames: setupFrames(),
-			sprites: setupSprites(),
-			palettes: setupPalettes()
-		}
-
-		const nav = div({id: 'sidebar'}, [
-			button({id: 'view-header-button', onclick: viewHeader},
-				'Header'),
-			button({id: 'view-characters-button', onclick: viewCharacters},
-				`Characters <span class="tag">${cardData.data_pack.characters.length}</span>`),
-			button({id: 'view-items-button', onclick: viewItems},
-				`Items <span class="tag">${cardData.data_pack.items.length}</span>`),
-			button({id: 'view-menuStrings-button', onclick: viewMenuStrings},
-				`Menu Strings <span class="tag">${cardData.menu_strings.length}</span>`),
+			cardData.bin_type === "Firmware" ? button({id: 'view-menuStrings-button', onclick: viewMenuStrings},
+				`Menu Strings <span class="tag">${cardData.menu_strings.length}</span>`) : '',
 			button({id: 'view-tamaStrings-button', onclick: viewTamaStrings},
 				`Dialog Strings <span class="tag">${cardData.data_pack.tamastrings.length}</span>`),
 			button({id: 'view-palettes-button', onclick: viewPalettes},
@@ -202,6 +144,14 @@ window.addEventListener('load', () => {
 		sections.characters = setupCharacters()
 		sections.animations = setupAnimations()
 		sections.frames = setupFrames()
+	})
+
+	tauri_listen('update_encoding_language', event => {
+		cardData.encoding_language = event.payload
+		sections.header = setupHeader()
+		if (currentSection === 'header') {
+			viewHeader()
+		}
 	})
 
 	tauri_listen('show_spinner', () => {

@@ -2,9 +2,10 @@ use std::error::Error;
 use tauri::{ AppHandle, Manager, State };
 
 use super::EntityId;
-use crate::{ DataState, update_window_title };
+use crate::DataState;
 use crate::data_view::{ DataView, words_to_bytes };
 use crate::text::{ Text, FontState };
+use crate::file::set_file_modified;
 
 #[derive(Clone, serde::Serialize)]
 pub struct TamaString {
@@ -92,8 +93,7 @@ pub fn update_tamastring(handle: AppHandle, index: usize, name: String) -> Optio
 	if let Some(data_pack) = data_pack_opt.as_mut() {
 		if let Some(tamastring) = data_pack.tamastrings.get_mut(index) {
 			tamastring.value.set_string(&font_state, &name);
-			*data_state.is_modified.lock().unwrap() = true;
-			update_window_title(&handle);
+			set_file_modified(&handle, true);
 			return Some(tamastring.value.clone());
 		}
 	}
