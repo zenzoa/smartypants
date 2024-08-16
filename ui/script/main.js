@@ -21,12 +21,26 @@ window.addEventListener('load', () => {
 
 	setupDialogs()
 
-	document.getElementById('open-button').addEventListener('click', openBin)
-	document.getElementById('save-button').addEventListener('click', saveBin)
-	document.getElementById('save-as-button').addEventListener('click', saveBinAs)
-	document.getElementById('export-data-button').addEventListener('click', exportData)
-	document.getElementById('export-strings-button').addEventListener('click', exportStrings)
-	document.getElementById('export-images-button').addEventListener('click', exportImages)
+	document.getElementById('open-button')
+		.addEventListener('click', () => tauri_invoke('open_bin'))
+
+	document.getElementById('save-button')
+		.addEventListener('click', () => tauri_invoke('save_bin'))
+
+	document.getElementById('save-as-button')
+		.addEventListener('click', () => tauri_invoke('save_bin_as'))
+
+	document.getElementById('import-strings-button')
+		.addEventListener('click', () => tauri_invoke('import_strings'))
+
+	document.getElementById('export-data-button')
+		.addEventListener('click', () => tauri_invoke('export_data'))
+
+	document.getElementById('export-strings-button')
+		.addEventListener('click', () => tauri_invoke('export_strings'))
+
+	document.getElementById('export-images-button')
+		.addEventListener('click', () => tauri_invoke('export_images'))
 
 	tauri_listen('update_data', event => {
 		cardData = event.payload
@@ -204,30 +218,6 @@ const closeDialogs = () => {
 	EditDialog.close()
 	AboutDialog.close()
 	EncodingDialog.close()
-}
-
-const openBin = () => {
-	tauri_invoke('open_bin')
-}
-
-const saveBin = () => {
-	tauri_invoke('save_bin')
-}
-
-const saveBinAs = () => {
-	tauri_invoke('save_bin_as')
-}
-
-const exportData = () => {
-	tauri_invoke('export_data')
-}
-
-const exportStrings = () => {
-	tauri_invoke('export_strings')
-}
-
-const exportImages = () => {
-	tauri_invoke('export_images')
 }
 
 const importImageSpritesheet = (imageIndex) => {
