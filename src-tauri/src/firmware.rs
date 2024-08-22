@@ -57,7 +57,7 @@ pub fn save_firmware(handle: &AppHandle, original_data: &[u8]) -> Result<Vec<u8>
 			Some(start_index) => {
 				let new_menu_strings_data = save_menu_strings(old_menu_strings)?;
 				let end_index = start_index + new_menu_strings_data.len();
-				let _: Vec<_> = new_data.data.splice(start_index..end_index, new_menu_strings_data).collect();
+				new_data.data.splice(start_index..end_index, new_menu_strings_data);
 			},
 			None => {
 				return Err("Can't find menu strings".into());
@@ -69,31 +69,33 @@ pub fn save_firmware(handle: &AppHandle, original_data: &[u8]) -> Result<Vec<u8>
 	let data_pack_start = if already_has_header { 0x6CE000 + 1024 } else { 0x6CE000 };
 	let sprite_pack_start = if already_has_header { 0x730000 + 1024 } else { 0x730000 };
 
-	if let Some(old_data_pack) = data_state.data_pack.lock().unwrap().as_ref() {
-		let data_pack_data_view = new_data.chunk(data_pack_start, FIRMWARE_DATA_PACK_SIZE);
-		let new_data_pack_data = save_data_pack(old_data_pack, &data_pack_data_view)?;
-		let padding_size = FIRMWARE_DATA_PACK_SIZE - new_data_pack_data.len();
+	if let Some(data_pack) = data_state.data_pack.lock().unwrap().as_ref() {
+		let mut data_pack_data = save_data_pack(data_pack)?;
+		if data_pack_data[77893] == 0x09 {
+			data_pack_data[77893] = 0x89; // Fix a probably irrelevant discrepancy at the end of table 13 (graphic node offsets)
+		}
+		let padding_size = FIRMWARE_DATA_PACK_SIZE - data_pack_data.len();
 		let padding = vec![0; padding_size];
-		let new_data_pack_data = [new_data_pack_data, padding].concat();
+		data_pack_data.extend_from_slice(&padding);
 		let end_of_data_pack = data_pack_start + FIRMWARE_DATA_PACK_SIZE;
-		let _: Vec<_> = new_data.data.splice(data_pack_start..end_of_data_pack, new_data_pack_data).collect();
+		new_data.data.splice(data_pack_start..end_of_data_pack, data_pack_data);
 	}
 
-	if let Some(old_sprite_pack) = data_state.sprite_pack.lock().unwrap().as_ref() {
-		let new_sprite_pack_data = save_sprite_pack(old_sprite_pack)?;
-		let end_of_sprite_pack = sprite_pack_start + new_sprite_pack_data.len();
-		let _: Vec<_> = new_data.data.splice(sprite_pack_start..end_of_sprite_pack, new_sprite_pack_data).collect();
+	if let Some(sprite_pack) = data_state.sprite_pack.lock().unwrap().as_ref() {
+		let sprite_pack_data = save_sprite_pack(sprite_pack)?;
+		let end_of_sprite_pack = sprite_pack_start + sprite_pack_data.len();
+		new_data.data.splice(sprite_pack_start..end_of_sprite_pack, sprite_pack_data);
 	}
 
 	let use_patch_header = data_state.use_patch_header.lock().unwrap().clone();
 	if use_patch_header && !already_has_header {
 		let header_path = handle.path().resolve("resources/patch_header.bin", BaseDirectory::Resource)?;
 		let header_file = fs::read(&header_path)?;
-		let _: Vec<_> = new_data.data.splice(0..0, header_file).collect();
-		let _: Vec<_> = new_data.data.splice((new_data.len() - 1024)..new_data.len(), Vec::new()).collect();
+		new_data.data.splice(0..0, header_file);
+		new_data.data.splice((new_data.len() - 1024)..new_data.len(), Vec::new());
 	} else if !use_patch_header && already_has_header {
 		let padding = vec![0xFF; 1024];
-		let _: Vec<_> = new_data.data.splice(0..1024, Vec::new()).collect();
+		new_data.data.splice(0..1024, Vec::new());
 		new_data.data.extend_from_slice(&padding);
 	}
 

@@ -1,5 +1,6 @@
-// use super::EntityId;
-use crate::data_view::DataView;
+use std::error::Error;
+
+use crate::data_view::{ DataView, words_to_bytes };
 
 #[derive(Clone, serde::Serialize)]
 pub struct GraphicsNode {
@@ -36,4 +37,19 @@ pub fn get_graphics_nodes(data: &DataView, offsets: Vec<usize>, sizes: Vec<usize
 	}
 
 	graphics_nodes
+}
+
+pub fn save_graphics_nodes(graphics_nodes: &[GraphicsNode]) -> Result<(Vec<u8>, Vec<u8>), Box<dyn Error>> {
+	let mut offsets = Vec::new();
+	let mut data = Vec::new();
+
+	for graphics_node in graphics_nodes {
+		let offset = data.len() / 4;
+		offsets.extend_from_slice(&(offset as u16).to_le_bytes());
+		data.extend_from_slice(&words_to_bytes(&graphics_node.data));
+	}
+
+	offsets.extend_from_slice(&(data.len() as u16 / 4).to_le_bytes());
+
+	Ok((offsets, data))
 }

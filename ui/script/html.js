@@ -83,19 +83,15 @@ const linkToFrame = (frameId) => {
 }
 
 const linkToImage = (imageId) => {
-	if (imageId.card_id != null) {
-		const link = button(formatEntityId(imageId))
-		link.addEventListener('click', () => {
-			viewSprites()
-			const imageEl = document.getElementById(`image-${imageId.entity_id}`)
-			if (imageEl != null) {
-				imageEl.scrollIntoView()
-			}
-		})
-		return [link]
-	} else {
-		return '-'
-	}
+	const link = button(formatEntityId(imageId))
+	link.addEventListener('click', () => {
+		viewSprites()
+		const imageEl = document.getElementById(`image-${imageId.entity_id}`)
+		if (imageEl != null) {
+			imageEl.scrollIntoView()
+		}
+	})
+	return [link]
 }
 
 const linkToSubimage = (imageId, subimageIndex) => {

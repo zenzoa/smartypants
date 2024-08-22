@@ -1,4 +1,6 @@
-use crate::data_view::DataView;
+use std::error::Error;
+
+use crate::data_view::{ DataView, words_to_bytes };
 
 pub fn get_entity_offsets(data: &DataView) -> (Vec<usize>, Vec<usize>) {
 	let mut offsets = Vec::new();
@@ -31,4 +33,20 @@ pub fn get_entities(data: &DataView, offsets: Vec<usize>, sizes: Vec<usize>) -> 
 	}
 
 	entities
+}
+
+pub fn save_entities(entities: &[Vec<u16>]) -> Result<(Vec<u8>, Vec<u8>), Box<dyn Error>> {
+	let mut offsets = Vec::new();
+	let mut data = Vec::new();
+
+	for entity in entities {
+		offsets.extend_from_slice(&(data.len() as u16 / 2).to_le_bytes());
+		data.extend_from_slice(&words_to_bytes(entity));
+	}
+
+	if !entities.is_empty() {
+		offsets.extend_from_slice(&(data.len() as u16 / 2).to_le_bytes());
+	}
+
+	Ok((offsets, data))
 }

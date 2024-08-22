@@ -75,13 +75,13 @@ pub fn save_tamastrings(tamastrings: &[TamaString]) -> Result<(Vec<u8>, Vec<u8>)
 		words.push(tamastring.unknown1);
 		words.push(tamastring.unknown2);
 		words.push(tamastring.unknown3);
-		words = [words, tamastring.value.data.clone()].concat();
+		words.extend_from_slice(&tamastring.value.data);
 		words.push(0);
 	}
 
 	offsets.push(0xFFFF);
 
-	Ok((words_to_bytes(&words), words_to_bytes(&offsets)))
+	Ok((words_to_bytes(&offsets), words_to_bytes(&words)))
 }
 
 #[tauri::command]

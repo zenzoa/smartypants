@@ -23,7 +23,6 @@ mod file;
 mod export;
 mod import;
 
-use data_view::DataView;
 use data_pack::DataPack;
 use sprite_pack::SpritePack;
 use text::{ Text, FontState, set_to_preset_encoding };
@@ -46,7 +45,7 @@ pub struct ImageState {
 	pub images: Mutex<Vec<Vec<image::RgbaImage>>>
 }
 
-#[derive(Clone, serde::Serialize)]
+#[derive(Debug, Clone, serde::Serialize)]
 pub enum BinType {
 	SmaCard,
 	Firmware

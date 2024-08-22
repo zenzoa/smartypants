@@ -20,7 +20,7 @@ const setupCardHeader = () => {
 				tr([th('Card Type'), td(header.card_type)]),
 				tr([th('Card ID'), td(header.card_id)]),
 				tr([th('Build Date'), td(`${header.year}-${header.month}-${header.day} revision ${header.revision}`)]),
-				tr([th('MD5'), td(header.md5)])
+				tr([th('MD5'), td(header.md5.map(x => x.toString(16).padStart(2, 0)).reduce((prev, curr) => `${prev}${curr}`))])
 			])
 		]),
 		showEncodingInfo()

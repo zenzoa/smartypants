@@ -1,7 +1,7 @@
 use std::error::Error;
 
 use crate::text::FontState;
-use crate::data_view::DataView;
+use crate::data_view::{ DataView, words_to_bytes };
 
 pub mod table1;
 pub mod particle_emitter;
@@ -45,6 +45,7 @@ impl EntityId {
 
 #[derive(Clone, serde::Serialize)]
 pub struct DataPack {
+	pub table0: Vec<u16>,
 	pub table1: Vec<u16>,
 	pub particle_emitters: Vec<particle_emitter::ParticleEmitter>,
 	pub scenes: Vec<scene::Scene>,
@@ -53,7 +54,10 @@ pub struct DataPack {
 	pub items: Vec<item::Item>,
 	pub characters: Vec<character::Character>,
 	pub graphics_nodes: Vec<graphics_node::GraphicsNode>,
-	pub frame_groups: Vec<frame::FrameGroup>
+	pub frame_groups: Vec<frame::FrameGroup>,
+	pub card_id: u16,
+	pub table12_len: usize,
+	pub table17_len: usize
 }
 
 pub fn get_data_pack(font_state: &FontState, data: &DataView) -> Result<DataPack, Box<dyn Error>> {
@@ -62,6 +66,8 @@ pub fn get_data_pack(font_state: &FontState, data: &DataView) -> Result<DataPack
 	let get_table_data = |i: usize| -> DataView {
 		data.chunk(table_offsets[i], table_sizes[i])
 	};
+
+	let table0 = get_table_data(0).to_words();
 
 	let table1 = get_table_data(1).to_words();
 
@@ -86,7 +92,13 @@ pub fn get_data_pack(font_state: &FontState, data: &DataView) -> Result<DataPack
 	let frame_layers = frame::get_frame_layers(&get_table_data(15));
 	let frame_groups = frame::get_frame_groups(&get_table_data(18), frame_layers);
 
+	let card_id = get_table_data(19).get_u16(0);
+
+	let table12_len = get_table_data(12).len();
+	let table17_len = get_table_data(17).len();
+
 	let data_pack = DataPack {
+		table0,
 		table1,
 		particle_emitters,
 		scenes,
@@ -95,7 +107,10 @@ pub fn get_data_pack(font_state: &FontState, data: &DataView) -> Result<DataPack
 		items,
 		characters,
 		graphics_nodes,
-		frame_groups
+		frame_groups,
+		card_id,
+		table12_len,
+		table17_len
 	};
 
 	Ok(data_pack)
@@ -123,47 +138,64 @@ pub fn get_table_offsets(data: &DataView) -> Result<(Vec<usize>, Vec<usize>), Bo
 			if data.len() < table_offsets[i] {
 				return Err("Unable to read data table offsets: invalid offsets".into());
 			}
-			table_sizes.push(0);
+			table_sizes.push(2);
 		}
 	}
 
 	Ok((table_offsets, table_sizes))
 }
 
-pub fn save_data_pack(data_pack: &DataPack, original_data: &DataView) -> Result<Vec<u8>, Box<dyn Error>> {
-	let (table_offsets, table_sizes) = get_table_offsets(original_data)?;
+pub fn save_data_pack(data_pack: &DataPack) -> Result<Vec<u8>, Box<dyn Error>> {
+	let mut tables: Vec<Vec<u8>> = vec![vec![]; 20];
 
-	let mut tables: Vec<Vec<u8>> = Vec::new();
-	for i in 0..20 {
-		let table_data = original_data.chunk(table_offsets[i], table_sizes[i]).data;
-		tables.push(table_data);
-	}
+	tables[0] = words_to_bytes(&data_pack.table0);
+	tables[1] = words_to_bytes(&data_pack.table1);
+	tables[2] = particle_emitter::save_particle_emitters(&data_pack.particle_emitters)?;
 
-	let (string_data, string_offsets) = tamastring::save_tamastrings(&data_pack.tamastrings)?;
+	let (scene_offsets, scene_layer_offsets, scene_data) = scene::save_scenes(&data_pack.scenes)?;
+	tables[3] = scene_offsets;
+	tables[4] = scene_layer_offsets;
+	tables[5] = scene_data;
+
+	let (string_offsets, string_data) = tamastring::save_tamastrings(&data_pack.tamastrings)?;
 	tables[6] = string_data;
 	tables[7] = string_offsets;
+
+	let (table9_offsets, table9_data) = table9::save_entities(&data_pack.table9)?;
+	tables[8] = table9_offsets;
+	tables[9] = table9_data;
 
 	tables[10] = item::save_items(&data_pack.items)?;
 
 	tables[11] = character::save_characters(&data_pack.characters)?;
 
-	let mut table_offset_data: Vec<u8> = Vec::new();
-	let mut new_table_offsets: Vec<u32> = Vec::new();
-	let mut last_offset: u32 = 80;
-	for table in &tables {
-		new_table_offsets.push(last_offset);
-		for byte in u32::to_le_bytes(last_offset / 2) {
-			table_offset_data.push(byte);
-		}
-		let table_size = table.len() as u32;
-		last_offset += table_size;
+	tables[12] = vec![0_u8; data_pack.table12_len];
+
+	let (graphics_node_offsets, graphics_node_data) = graphics_node::save_graphics_nodes(&data_pack.graphics_nodes)?;
+	tables[13] = graphics_node_offsets;
+	tables[14] = graphics_node_data;
+
+	let (frame_layer_offsets, frame_layer_data, frame_group_data) = frame::save_frame_groups(&data_pack.frame_groups)?;
+	tables[15] = frame_layer_data;
+	tables[16] = frame_layer_offsets;
+	tables[18] = frame_group_data;
+
+	tables[17] = vec![0_u8; data_pack.table17_len];
+
+	tables[19] = data_pack.card_id.to_le_bytes().to_vec();
+
+	let mut real_offsets = Vec::new(); // TEMP
+	let mut sizes = Vec::new();
+	let mut offsets = Vec::new();
+	let mut data = vec![0; 80];
+	for table in tables {
+		real_offsets.push(data.len() / 2);
+		sizes.push(table.len());
+		offsets.extend_from_slice(&(data.len() as u32 / 2).to_le_bytes());
+		data.extend_from_slice(&table);
 	}
 
-	let data = [
-			table_offset_data,
-			tables[..].concat(),
-			// vec![2, 0]
-		].concat();
+	data.splice(0..80, offsets.into_iter());
 
 	Ok(data)
 }

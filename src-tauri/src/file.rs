@@ -13,7 +13,7 @@ use crate::data_view::DataView;
 use crate::data_pack::DataPack;
 use crate::sprite_pack::{ SpritePack, get_image_data };
 use crate::text::{ Text, FontState, CharEncoding, EncodingLanguage };
-use crate::smacard::{ CardHeader, read_card };
+use crate::smacard::{ CardHeader, read_card, save_card };
 use crate::firmware::{ read_firmware, save_firmware };
 
 #[derive(Default)]
@@ -75,6 +75,22 @@ pub fn open_bin(handle: AppHandle) {
 								if let Ok(image_data) = get_image_data(&card.sprite_pack.clone()) {
 									*image_state.images.lock().unwrap() = image_data;
 								}
+
+								// if let Ok(temp_save) = save_card(&handle) {
+								// 	println!("Faking a save to see if the output is the same...");
+								// 	if temp_save == data.data {
+								// 		println!("YAY! The output is the same! All is well");
+								// 	} else {
+								// 		println!("WARNING: The output is not the same!");
+								// 		for i in 1000..temp_save.len() {
+								// 			if temp_save[i] != data.data[i] {
+								// 				println!("Discrepency at byte {}: old {} vs new {}", i, data.data[i], temp_save[i]);
+								// 				break;
+								// 			}
+								// 		}
+								// 	}
+								// }
+
 								send_data_to_frontend(&handle);
 							},
 							Err(why) => show_error_message(why)
@@ -101,20 +117,20 @@ pub fn open_bin(handle: AppHandle) {
 
 								*data_state.menu_strings.lock().unwrap() = Some(firmware.menu_strings.clone());
 
-								if let Ok(temp_save) = save_firmware(&handle, &data.data) {
-									println!("Faking a save to see if the output is the same...");
-									if temp_save == data.data {
-										println!("YAY! The output is the same! All is well");
-									} else {
-										println!("WARNING: The output is not the same!");
-										for i in 0..temp_save.len() {
-											if temp_save[i] != data.data[i] {
-												println!("Discrepency at byte {:x}", i);
-												break;
-											}
-										}
-									}
-								}
+								// if let Ok(temp_save) = save_firmware(&handle, &data.data) {
+								// 	println!("Faking a save to see if the output is the same...");
+								// 	if temp_save == data.data {
+								// 		println!("YAY! The output is the same! All is well");
+								// 	} else {
+								// 		println!("WARNING: The output is not the same!");
+								// 		for i in 0..temp_save.len() {
+								// 			if temp_save[i] != data.data[i] {
+								// 				println!("Discrepency at byte {:x}: {} vs {}", i, temp_save[i], data.data[i]);
+								// 				break;
+								// 			}
+								// 		}
+								// 	}
+								// }
 
 								send_data_to_frontend(&handle);
 							},
@@ -184,7 +200,7 @@ pub fn save_bin_as(handle: AppHandle) {
 
 		} else {
 			let mut file_dialog = FileDialog::new()
-				.add_filter("firmware dump", &["bin"]);
+				.add_filter("tama smart data dump", &["bin"]);
 
 			if let Some(base_path) = file_state.base_path.lock().unwrap().as_ref() {
 				file_dialog = file_dialog.set_directory(base_path);
@@ -215,23 +231,25 @@ pub fn save_bin_as(handle: AppHandle) {
 pub fn save(handle: &AppHandle, path: &PathBuf) -> Result<(), Box<dyn Error>> {
 	let data_state: State<DataState> = handle.state();
 
-	if let Some(bin_type) = data_state.bin_type.lock().unwrap().as_ref() {
-		match bin_type {
-			BinType::Firmware => {
-				match data_state.original_data.lock().unwrap().as_ref() {
-					Some(original_data) => {
-						let new_data = save_firmware(handle, original_data)?;
-						if original_data.len() == new_data.len() {
-							fs::write(path, &new_data)?;
-							set_file_modified(handle, false);
-						} else {
-							return Err(format!("New data is {} bytes, but original is {} bytes", new_data.len(), original_data.len()).into());
-						}
-					},
-					None => return Err("No original data found for current file".into())
-				}
-			},
-			_ => return Err("Can only save firmware currently".into())
+	let bin_type_base = data_state.bin_type.lock().unwrap();
+	let bin_type = bin_type_base.as_ref().ok_or("Invalid bin type")?;
+	match bin_type {
+		BinType::Firmware => {
+			let original_data_base = data_state.original_data.lock().unwrap();
+			let original_data = original_data_base.as_ref().ok_or("No original data found for current file")?;
+			let new_data = save_firmware(handle, original_data)?;
+			if original_data.len() == new_data.len() {
+				fs::write(path, &new_data)?;
+				set_file_modified(handle, false);
+			} else {
+				return Err(format!("New data is {} bytes, but original is {} bytes", new_data.len(), original_data.len()).into());
+			}
+		},
+
+		BinType::SmaCard => {
+			let new_data = save_card(handle)?;
+			fs::write(path, &new_data)?;
+			set_file_modified(handle, false);
 		}
 	}
 

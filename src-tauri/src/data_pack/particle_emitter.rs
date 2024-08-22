@@ -1,5 +1,6 @@
-// use super::EntityId;
-use crate::data_view::DataView;
+use std::error::Error;
+
+use crate::data_view::{ DataView, words_to_bytes };
 
 #[derive(Clone, serde::Serialize)]
 pub struct ParticleEmitter {
@@ -7,7 +8,7 @@ pub struct ParticleEmitter {
 }
 
 pub fn get_particle_emitters(data: &DataView) -> Vec<ParticleEmitter> {
-	let mut particle_emitters: Vec<ParticleEmitter> = Vec::new();
+	let mut particle_emitters = Vec::new();
 
 	let row_count = data.len() / 66;
 	for i in 0..row_count {
@@ -19,4 +20,14 @@ pub fn get_particle_emitters(data: &DataView) -> Vec<ParticleEmitter> {
 	}
 
 	particle_emitters
+}
+
+pub fn save_particle_emitters(particle_emitters: &[ParticleEmitter]) -> Result<Vec<u8>, Box<dyn Error>> {
+	let mut data = Vec::new();
+
+	for particle_emitter in particle_emitters {
+		data.extend_from_slice(&words_to_bytes(&particle_emitter.data));
+	}
+
+	Ok(data)
 }

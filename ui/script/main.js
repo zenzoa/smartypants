@@ -33,8 +33,8 @@ window.addEventListener('load', () => {
 	document.getElementById('import-strings-button')
 		.addEventListener('click', () => tauri_invoke('import_strings'))
 
-	document.getElementById('export-data-button')
-		.addEventListener('click', () => tauri_invoke('export_data'))
+	// document.getElementById('export-data-button')
+	// 	.addEventListener('click', () => tauri_invoke('export_data'))
 
 	document.getElementById('export-strings-button')
 		.addEventListener('click', () => tauri_invoke('export_strings'))

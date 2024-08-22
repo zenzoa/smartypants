@@ -47,11 +47,7 @@ impl DataView {
 	}
 
 	pub fn to_words(&self) -> Vec<u16> {
-		let mut words = Vec::new();
-		for i in 0..self.len()/2 {
-			words.push(self.get_u16(i*2));
-		}
-		words
+		bytes_to_words(&self.data)
 	}
 
 	pub fn get_text(&self, font_state: &FontState, i: usize, len: usize) -> Text {
@@ -70,6 +66,17 @@ impl DataView {
 	pub fn find_bytes(&self, bytes: &[u8]) -> Option<usize> {
 		(0..self.data.len()).find(|&i| self.data[i..].starts_with(bytes))
 	}
+}
+
+pub fn bytes_to_words(bytes: &[u8]) -> Vec<u16> {
+	let mut words = Vec::new();
+	let mut i = 0;
+	while i + 1 < bytes.len() {
+		let word = u16::from_le_bytes([bytes[i], bytes[i+1]]);
+		words.push(word);
+		i += 2;
+	}
+	words
 }
 
 pub fn words_to_bytes(words: &[u16]) -> Vec<u8> {
