@@ -88,8 +88,8 @@ pub fn read_card_header(data: &DataView) -> Result<CardHeader, Box<dyn Error>> {
 	let revision = data.get_u16(60);
 
 	let mut md5 = [0; 16];
-	for i in 0..md5.len() {
-		md5[i] = data.get_u8(i+64);
+	for (i, byte) in md5.iter_mut().enumerate() {
+		*byte = data.get_u8(i+64);
 	}
 
 	Ok(CardHeader { sector_count, checksum, device_ids, vendor_id, product_id, card_type, card_id, year, month, day, revision, md5 })
@@ -142,12 +142,12 @@ pub fn save_card(handle: &AppHandle) -> Result<Vec<u8>, Box<dyn Error>> {
 
 	let data_pack_opt = data_state.data_pack.lock().unwrap();
 	let data_pack = data_pack_opt.as_ref().ok_or("Unable to save Sma Card: missing data pack")?;
-	let mut data_pack_data = save_data_pack(&data_pack)?;
+	let mut data_pack_data = save_data_pack(data_pack)?;
 	data_pack_data.extend_from_slice(&[0, 0]);
 
 	let sprite_pack_opt = data_state.sprite_pack.lock().unwrap();
 	let sprite_pack = sprite_pack_opt.as_ref().ok_or("Unable to save Sma Card: missing sprite pack")?;
-	let sprite_pack_data = save_sprite_pack(&sprite_pack)?;
+	let sprite_pack_data = save_sprite_pack(sprite_pack)?;
 
 	let mut sprite_pack_offset = 68 + data_pack_data.len();
 	while sprite_pack_offset % 32 != 0 {
@@ -160,7 +160,7 @@ pub fn save_card(handle: &AppHandle) -> Result<Vec<u8>, Box<dyn Error>> {
 	pack_summary.extend_from_slice(&4_u16.to_le_bytes());
 
 	pack_summary.extend_from_slice(&[0, 0, 0, 0]);
-	pack_summary.extend_from_slice(&(68 as u32).to_le_bytes());
+	pack_summary.extend_from_slice(&(68_u32).to_le_bytes());
 	pack_summary.extend_from_slice(&(data_pack_data.len() as u32).to_le_bytes());
 	pack_summary.extend_from_slice(&(data_pack_data.len() as u32 - 2).to_le_bytes());
 
@@ -175,7 +175,7 @@ pub fn save_card(handle: &AppHandle) -> Result<Vec<u8>, Box<dyn Error>> {
 
 	let mut header_opt = data_state.card_header.lock().unwrap();
 	let header = header_opt.as_mut().ok_or("Unable to save Sma Card: missing header")?;
-	let header_data = save_card_header(&header)?;
+	let header_data = save_card_header(header)?;
 
 	let mut data = [header_data, pack_data].concat();
 
@@ -212,8 +212,8 @@ pub fn save_card_header(header: &CardHeader) -> Result<Vec<u8>, Box<dyn Error>> 
 	data.extend_from_slice(&header.device_ids[0].to_le_bytes());
 	data.extend_from_slice(&header.device_ids[1].to_le_bytes());
 	data.extend_from_slice(&header.device_ids[2].to_le_bytes());
-	data.extend_from_slice(&header.vendor_id.as_bytes());
-	data.extend_from_slice(&header.product_id.as_bytes());
+	data.extend_from_slice(header.vendor_id.as_bytes());
+	data.extend_from_slice(header.product_id.as_bytes());
 
 	let card_type = match header.card_type {
 		CardType::TamaSmaCard => 0_u16,

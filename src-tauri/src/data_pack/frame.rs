@@ -48,8 +48,8 @@ pub fn get_frame_layers(data: &DataView) -> Vec<FrameLayer> {
 
 		let bitmask = data.get_u16(i);
 		let mut flags = [false; 16];
-		for i in 0..flags.len() {
-			flags[i] = bitmask & (1 << i) != 0;
+		for (i, flag) in flags.iter_mut().enumerate() {
+			*flag = bitmask & (1 << i) != 0;
 		}
 
 		if flags[0] {
@@ -186,37 +186,37 @@ fn save_frame_layer(frame_layer: &FrameLayer) -> Result<Vec<u8>, Box<dyn Error>>
 	let mut data = vec![0, 0];
 
 	if let Some(x) = frame_layer.x {
-		bitmask = bitmask | (1 << 0);
+		bitmask |= 1 << 0;
 		data.extend_from_slice(&x.to_le_bytes());
 	}
 
 	if let Some(y) = frame_layer.y {
-		bitmask = bitmask | (1 << 1);
+		bitmask |= 1 << 1;
 		data.extend_from_slice(&y.to_le_bytes());
 	}
 
 	if let Some(subimage_index) = frame_layer.subimage_index {
-		bitmask = bitmask | (1 << 2);
+		bitmask |= 1 << 2;
 		data.extend_from_slice(&subimage_index.to_le_bytes());
 	}
 
 	if let Some(unknown1) = frame_layer.unknown1 {
-		bitmask = bitmask | (1 << 4);
+		bitmask |= 1 << 4;
 		data.extend_from_slice(&unknown1.to_le_bytes());
 	}
 
 	if let Some(unknown2) = frame_layer.unknown2 {
-		bitmask = bitmask | (1 << 5);
+		bitmask |= 1 << 5;
 		data.extend_from_slice(&unknown2.to_le_bytes());
 	}
 
 	if let Some(unknown3) = frame_layer.unknown3 {
-		bitmask = bitmask | (1 << 8);
+		bitmask |= 1 << 8;
 		data.extend_from_slice(&unknown3.to_le_bytes());
 	}
 
 	if let Some(layer_type) = &frame_layer.layer_type {
-		bitmask = bitmask | (1 << 9);
+		bitmask |= 1 << 9;
 		let layer_id: u16 = match layer_type {
 			FrameLayerType::Face => 1,
 			FrameLayerType::Npc => 2,
@@ -232,11 +232,11 @@ fn save_frame_layer(frame_layer: &FrameLayer) -> Result<Vec<u8>, Box<dyn Error>>
 	}
 
 	if let Some(image_id) = &frame_layer.image_id {
-		bitmask = bitmask | (1 << 10);
+		bitmask |= 1 << 10;
 		data.extend_from_slice(&image_id.to_word().to_le_bytes());
 	}
 
-	data.splice(0..2, bitmask.to_le_bytes().into_iter());
+	data.splice(0..2, bitmask.to_le_bytes());
 
 	Ok(data)
 }

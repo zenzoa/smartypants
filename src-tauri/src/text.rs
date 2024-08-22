@@ -173,14 +173,14 @@ pub fn decode_string(font_state: &FontState, string: &str) -> Vec<u16> {
 			},
 			'}' | '>' => {
 				var_name.push(ch);
-				if let Some(word) = char_code_to_word(&font_state, &var_name.to_lowercase()) {
+				if let Some(word) = char_code_to_word(font_state, &var_name.to_lowercase()) {
 					data.push(word);
 				}
 				var_name = String::new();
 			},
 			_ => {
 				if var_name.is_empty() {
-					if let Some(word) = char_code_to_word(&font_state, &ch.to_string()) {
+					if let Some(word) = char_code_to_word(font_state, &ch.to_string()) {
 						data.push(word);
 					}
 				} else {
@@ -340,7 +340,7 @@ pub fn re_decode_strings(handle: &AppHandle) {
 		handle.emit("update_characters", (&data_pack.characters, false)).unwrap();
 	}
 
-	handle.emit("refresh_tab", {}).unwrap();
+	handle.emit("refresh_tab", ()).unwrap();
 }
 
 #[tauri::command]

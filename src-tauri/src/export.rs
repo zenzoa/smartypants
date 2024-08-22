@@ -105,14 +105,14 @@ pub fn export_strings_to(handle: &AppHandle, path: &PathBuf) -> Result<(), Box<d
 
 	let blank_line = ["", "", ""];
 
-	wtr.write_record(&["ID", "Field", "Original Text"])?;
+	wtr.write_record(["ID", "Field", "Original Text"])?;
 
 	let menu_strings_opt = data_state.menu_strings.lock().unwrap();
 	if let Some(menu_strings) = menu_strings_opt.as_ref() {
 
-		wtr.write_record(&blank_line)?;
-		wtr.write_record(&["MENUS", "", ""])?;
-		wtr.write_record(&blank_line)?;
+		wtr.write_record(blank_line)?;
+		wtr.write_record(["MENUS", "", ""])?;
+		wtr.write_record(blank_line)?;
 
 		for (i, str) in menu_strings.iter().enumerate() {
 			let mut id_written = false;
@@ -121,24 +121,24 @@ pub fn export_strings_to(handle: &AppHandle, path: &PathBuf) -> Result<(), Box<d
 				let lines = page.split("<br>");
 				for line in lines {
 					if id_written {
-						wtr.write_record(&["", "", &line])?;
+						wtr.write_record(["", "", line])?;
 					} else {
-						wtr.write_record(&[&i.to_string(), "", &line])?;
+						wtr.write_record([&i.to_string(), "", line])?;
 						id_written = true;
 					}
 				}
-				wtr.write_record(&blank_line)?;
+				wtr.write_record(blank_line)?;
 			}
-			wtr.write_record(&blank_line)?;
+			wtr.write_record(blank_line)?;
 		}
 	}
 
 	let data_pack_opt = data_state.data_pack.lock().unwrap();
 	if let Some(data_pack) = data_pack_opt.as_ref() {
 
-		wtr.write_record(&blank_line)?;
-		wtr.write_record(&["STRINGS", "", ""])?;
-		wtr.write_record(&blank_line)?;
+		wtr.write_record(blank_line)?;
+		wtr.write_record(["STRINGS", "", ""])?;
+		wtr.write_record(blank_line)?;
 
 		for (i, tamastring) in data_pack.tamastrings.iter().enumerate() {
 			let mut id_written = false;
@@ -147,37 +147,37 @@ pub fn export_strings_to(handle: &AppHandle, path: &PathBuf) -> Result<(), Box<d
 				let lines = page.split("<br>");
 				for line in lines {
 					if id_written {
-						wtr.write_record(&["", "", &line])?;
+						wtr.write_record(["", "", line])?;
 					} else {
-						wtr.write_record(&[&i.to_string(), "", &line])?;
+						wtr.write_record([&i.to_string(), "", line])?;
 						id_written = true;
 					}
 				}
-				wtr.write_record(&blank_line)?;
+				wtr.write_record(blank_line)?;
 			}
-			wtr.write_record(&blank_line)?;
+			wtr.write_record(blank_line)?;
 		}
 
-		wtr.write_record(&blank_line)?;
-		wtr.write_record(&["ITEMS", "", ""])?;
-		wtr.write_record(&blank_line)?;
+		wtr.write_record(blank_line)?;
+		wtr.write_record(["ITEMS", "", ""])?;
+		wtr.write_record(blank_line)?;
 
 		for (i, item) in data_pack.items.iter().enumerate() {
-			wtr.write_record(&[&i.to_string(), "Name:", &item.name.string])?;
-			wtr.write_record(&blank_line)?;
+			wtr.write_record([&i.to_string(), "Name:", &item.name.string])?;
+			wtr.write_record(blank_line)?;
 		}
 
-		wtr.write_record(&blank_line)?;
-		wtr.write_record(&["CHARACTERS", "", ""])?;
-		wtr.write_record(&blank_line)?;
+		wtr.write_record(blank_line)?;
+		wtr.write_record(["CHARACTERS", "", ""])?;
+		wtr.write_record(blank_line)?;
 
 		for (i, char) in data_pack.characters.iter().enumerate() {
-			wtr.write_record(&[&i.to_string(), "Name:", &char.name.string])?;
-			wtr.write_record(&["", "Pronoun:", &char.pronoun.string])?;
-			wtr.write_record(&["", "Statement Ending:", &char.statement.string])?;
-			wtr.write_record(&["", "Question Ending 1:", &char.question1.string])?;
-			wtr.write_record(&["", "Question Ending 2:", &char.question2.string])?;
-			wtr.write_record(&blank_line)?;
+			wtr.write_record([&i.to_string(), "Name:", &char.name.string])?;
+			wtr.write_record(["", "Pronoun:", &char.pronoun.string])?;
+			wtr.write_record(["", "Statement Ending:", &char.statement.string])?;
+			wtr.write_record(["", "Question Ending 1:", &char.question1.string])?;
+			wtr.write_record(["", "Question Ending 2:", &char.question2.string])?;
+			wtr.write_record(blank_line)?;
 		}
 	}
 

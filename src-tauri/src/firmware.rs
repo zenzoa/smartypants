@@ -87,10 +87,10 @@ pub fn save_firmware(handle: &AppHandle, original_data: &[u8]) -> Result<Vec<u8>
 		new_data.data.splice(sprite_pack_start..end_of_sprite_pack, sprite_pack_data);
 	}
 
-	let use_patch_header = data_state.use_patch_header.lock().unwrap().clone();
+	let use_patch_header = *data_state.use_patch_header.lock().unwrap();
 	if use_patch_header && !already_has_header {
 		let header_path = handle.path().resolve("resources/patch_header.bin", BaseDirectory::Resource)?;
-		let header_file = fs::read(&header_path)?;
+		let header_file = fs::read(header_path)?;
 		new_data.data.splice(0..0, header_file);
 		new_data.data.splice((new_data.len() - 1024)..new_data.len(), Vec::new());
 	} else if !use_patch_header && already_has_header {

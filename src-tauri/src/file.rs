@@ -162,7 +162,7 @@ fn send_data_to_frontend(handle: &AppHandle) {
 		data_pack: data_state.data_pack.lock().unwrap().clone(),
 		sprite_pack: data_state.sprite_pack.lock().unwrap().clone(),
 		menu_strings: data_state.menu_strings.lock().unwrap().clone(),
-		use_patch_header: data_state.use_patch_header.lock().unwrap().clone()
+		use_patch_header: *data_state.use_patch_header.lock().unwrap()
 	};
 	handle.emit("update_data", frontend_data).unwrap();
 }
@@ -248,7 +248,7 @@ pub fn save(handle: &AppHandle, path: &PathBuf) -> Result<(), Box<dyn Error>> {
 
 		BinType::SmaCard => {
 			let new_data = save_card(handle)?;
-			fs::write(path, &new_data)?;
+			fs::write(path, new_data)?;
 			set_file_modified(handle, false);
 		}
 	}

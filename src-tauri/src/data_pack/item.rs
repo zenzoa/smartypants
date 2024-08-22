@@ -190,27 +190,27 @@ pub fn update_item(handle: AppHandle, index: usize, property_name: String, new_v
 					item.name.set_string(&font_state, &new_value)
 				},
 				"unknown1" => {
-					if let Ok(n) = u16::from_str_radix(&new_value, 10) {
+					if let Ok(n) = new_value.parse::<u16>() {
 						item.unknown1 = n;
 					}
 				},
 				"price" => {
-					if let Ok(n) = u16::from_str_radix(&new_value, 10) {
+					if let Ok(n) = new_value.parse::<u16>() {
 						item.price = n;
 					}
 				},
 				"unknown2" => {
-					if let Ok(n) = u16::from_str_radix(&new_value, 10) {
+					if let Ok(n) = new_value.parse::<u16>() {
 						item.unknown2 = n;
 					}
 				},
 				"unknown3" => {
-					if let Ok(n) = u16::from_str_radix(&new_value, 10) {
+					if let Ok(n) = new_value.parse::<u16>() {
 						item.unknown3 = n;
 					}
 				},
 				"unknown4" => {
-					if let Ok(n) = u16::from_str_radix(&new_value, 10) {
+					if let Ok(n) = new_value.parse::<u16>() {
 						item.unknown4 = n;
 					}
 				},

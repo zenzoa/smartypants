@@ -162,28 +162,26 @@ pub fn import_strings_from(handle: &AppHandle, path: &PathBuf) -> Result<(), Box
 					last_line = line.to_string();
 				}
 
-			} else {
-				if id.is_empty() && !temp_translation.value.is_empty() {
-					if let Some(line) = record.get(2) {
-						if !line.is_empty() {
-							temp_translation.line_count += 1;
-							if last_line.is_empty() {
-								temp_translation.value = format!("{}<hr>{}", temp_translation.value, line);
-							} else {
-								temp_translation.value = format!("{}<br>{}", temp_translation.value, line);
-							}
+			} else if id.is_empty() && !temp_translation.value.is_empty() {
+				if let Some(line) = record.get(2) {
+					if !line.is_empty() {
+						temp_translation.line_count += 1;
+						if last_line.is_empty() {
+							temp_translation.value = format!("{}<hr>{}", temp_translation.value, line);
+						} else {
+							temp_translation.value = format!("{}<br>{}", temp_translation.value, line);
 						}
-						last_line = line.to_string();
 					}
-				} else {
-					add_string(&current_string_type, temp_translation.id, &temp_translation.value);
-					match id.to_uppercase().as_str() {
-						"MENUS" => current_string_type = StringType::Menu,
-						"DIALOG" | "STRINGS" => current_string_type = StringType::Dialog,
-						"ITEMS" => current_string_type = StringType::Item,
-						"CHARACTERS" => current_string_type = StringType::Character,
-						_ => {}
-					}
+					last_line = line.to_string();
+				}
+			} else {
+				add_string(&current_string_type, temp_translation.id, &temp_translation.value);
+				match id.to_uppercase().as_str() {
+					"MENUS" => current_string_type = StringType::Menu,
+					"DIALOG" | "STRINGS" => current_string_type = StringType::Dialog,
+					"ITEMS" => current_string_type = StringType::Item,
+					"CHARACTERS" => current_string_type = StringType::Character,
+					_ => {}
 				}
 			}
 		}

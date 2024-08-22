@@ -195,7 +195,7 @@ pub fn save_data_pack(data_pack: &DataPack) -> Result<Vec<u8>, Box<dyn Error>> {
 		data.extend_from_slice(&table);
 	}
 
-	data.splice(0..80, offsets.into_iter());
+	data.splice(0..80, offsets);
 
 	Ok(data)
 }
