@@ -613,6 +613,6 @@ pub fn get_default_char_codes() -> Vec<CharEncoding> {
 		CharEncoding { data: 61447u16, text: vec![String::from("{variable}")] },
 		CharEncoding { data: 61448u16, text: vec![String::from("{pronoun}")] },
 		CharEncoding { data: 61449u16, text: vec![String::from("{nickname}")] },
-		CharEncoding { data: 61450u16, text: vec![String::from("{friend}")] }
+		CharEncoding { data: 61450u16, text: vec![String::from("{owner}")] }
 	]
 }
