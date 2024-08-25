@@ -70,7 +70,7 @@ checksum = "25bdb32cbbdce2b519a9cd7df3a678443100e265d5e25ca763b7572a5104f5f3"
 
 [[package]]
 name = "app"
-version = "0.2.2"
+version = "0.2.4"
 dependencies = [
  "csv",
  "http",

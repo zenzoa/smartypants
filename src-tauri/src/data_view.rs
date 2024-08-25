@@ -46,10 +46,6 @@ impl DataView {
 		bits
 	}
 
-	pub fn to_words(&self) -> Vec<u16> {
-		bytes_to_words(&self.data)
-	}
-
 	pub fn get_text(&self, font_state: &FontState, i: usize, len: usize) -> Text {
 		let mut words: Vec<u16> = Vec::new();
 		for j in 0..len {

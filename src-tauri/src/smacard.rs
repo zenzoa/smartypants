@@ -92,7 +92,20 @@ pub fn read_card_header(data: &DataView) -> Result<CardHeader, Box<dyn Error>> {
 		*byte = data.get_u8(i+64);
 	}
 
-	Ok(CardHeader { sector_count, checksum, device_ids, vendor_id, product_id, card_type, card_id, year, month, day, revision, md5 })
+	Ok(CardHeader {
+		sector_count,
+		checksum,
+		device_ids,
+		vendor_id,
+		product_id,
+		card_type,
+		card_id,
+		year,
+		month,
+		day,
+		revision,
+		md5
+	})
 }
 
 pub fn read_card_packs(font_state: &FontState, data: &DataView) -> Result<(DataPack, SpritePack), Box<dyn Error>> {
@@ -115,12 +128,8 @@ pub fn read_card_packs(font_state: &FontState, data: &DataView) -> Result<(DataP
 		if pack_offset > 0 && pack_size > 0 {
 			let pack_data = data.chunk(pack_offset, pack_size);
 			match i {
-				0 => {
-					data_pack_opt = Some(get_data_pack(font_state, &pack_data)?);
-				},
-				1 => {
-					sprite_pack_opt = Some(get_sprite_pack(&pack_data)?);
-				},
+				0 => data_pack_opt = Some(get_data_pack(font_state, &pack_data)?),
+				1 => sprite_pack_opt = Some(get_sprite_pack(&pack_data)?),
 				_ => {}
 			}
 		}
@@ -142,7 +151,7 @@ pub fn save_card(handle: &AppHandle) -> Result<Vec<u8>, Box<dyn Error>> {
 
 	let data_pack_opt = data_state.data_pack.lock().unwrap();
 	let data_pack = data_pack_opt.as_ref().ok_or("Unable to save Sma Card: missing data pack")?;
-	let mut data_pack_data = save_data_pack(data_pack)?;
+	let mut data_pack_data = save_data_pack(data_pack, 68)?;
 	data_pack_data.extend_from_slice(&[0, 0]);
 
 	let sprite_pack_opt = data_state.sprite_pack.lock().unwrap();

@@ -26,7 +26,6 @@ pub fn read_firmware(handle: &AppHandle, data: &DataView) -> Result<Firmware, Bo
 	let font_state: State<FontState> = handle.state();
 
 	let use_patch_header = data.data.starts_with(&PATCH_HEADER_START);
-	println!("Using patch header: {}", use_patch_header);
 
 	let data_pack_start = if use_patch_header { 0x6CE000 + 1024 } else { 0x6CE000 };
 	let sprite_pack_start = if use_patch_header { 0x730000 + 1024 } else { 0x730000 };
@@ -70,7 +69,7 @@ pub fn save_firmware(handle: &AppHandle, original_data: &[u8]) -> Result<Vec<u8>
 	let sprite_pack_start = if already_has_header { 0x730000 + 1024 } else { 0x730000 };
 
 	if let Some(data_pack) = data_state.data_pack.lock().unwrap().as_ref() {
-		let mut data_pack_data = save_data_pack(data_pack)?;
+		let mut data_pack_data = save_data_pack(data_pack, data_pack_start)?;
 		if data_pack_data[77893] == 0x09 {
 			data_pack_data[77893] = 0x89; // Fix a probably irrelevant discrepancy at the end of table 13 (graphic node offsets)
 		}
