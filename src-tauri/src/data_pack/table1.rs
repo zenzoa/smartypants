@@ -9,8 +9,6 @@ pub fn get_entity_offsets(data: &DataView) -> Vec<usize> {
 		offsets.push(offset);
 	}
 
-	println!("\noffsets: {:?}", &offsets);
-
 	offsets
 }
 
@@ -28,7 +26,6 @@ pub fn get_entities(data: &DataView, offsets: Vec<usize>) -> Vec<Vec<u16>> {
 		for j in 0..(entity_data.len()/2) {
 			entity_words.push(entity_data.get_u16(j*2));
 		}
-		println!("\nentity {}: {:?}", i, &entity_words.iter().map(|x| format!("0x{:x}", x)).collect::<Vec<String>>());
 		entities.push(entity_words)
 	}
 
