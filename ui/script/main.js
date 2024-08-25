@@ -242,14 +242,14 @@ const setupTable1 = () => {
 	const entities = cardData.data_pack.table1
 	if (entities.length === 0) {
 		return div('[empty]')
-	}
-	return table([
-		tbody([
-			tr([
-				td(entities.map(b => formatHexCode(b) + ' '))
-			])
+	} else {
+		return table([
+			tbody(entities.map((entity, i) => tr({}, [
+				th(i),
+				td(entity.map(b => formatHexCode(b)).join(' '))
+			])))
 		])
-	])
+	}
 }
 const viewTable1 = () => {
 	selectSection('table1')
@@ -258,12 +258,16 @@ const viewTable1 = () => {
 
 const setupTable9 = () => {
 	const entities = cardData.data_pack.table9
-	return table([
-		tbody(entities.map((entity, i) => tr({}, [
-			th(i),
-			td(entity.map(b => formatHexCode(b)).join(' '))
-		])))
-	])
+	if (entities.length === 0) {
+		return div('[empty]')
+	} else {
+		return table([
+			tbody(entities.map((entity, i) => tr({}, [
+				th(i),
+				td(entity.map(b => formatHexCode(b)).join(' '))
+			])))
+		])
+	}
 }
 const viewTable9 = () => {
 	selectSection('table9')

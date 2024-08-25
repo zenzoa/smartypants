@@ -1,7 +1,7 @@
 use std::error::Error;
 
 use crate::text::FontState;
-use crate::data_view::{ DataView, words_to_bytes };
+use crate::data_view::DataView;
 
 pub mod table1;
 pub mod particle_emitter;
@@ -45,8 +45,7 @@ impl EntityId {
 
 #[derive(Clone, serde::Serialize)]
 pub struct DataPack {
-	pub table0: Vec<u16>,
-	pub table1: Vec<u16>,
+	pub table1: Vec<Vec<u16>>,
 	pub particle_emitters: Vec<particle_emitter::ParticleEmitter>,
 	pub scenes: Vec<scene::Scene>,
 	pub tamastrings: Vec<tamastring::TamaString>,
@@ -67,9 +66,8 @@ pub fn get_data_pack(font_state: &FontState, data: &DataView) -> Result<DataPack
 		data.chunk(table_offsets[i], table_sizes[i])
 	};
 
-	let table0 = get_table_data(0).to_words();
-
-	let table1 = get_table_data(1).to_words();
+	let table1_offsets = table1::get_entity_offsets(&get_table_data(0));
+	let table1 = table1::get_entities(&get_table_data(1), table1_offsets);
 
 	let particle_emitters = particle_emitter::get_particle_emitters(&get_table_data(2));
 
@@ -98,7 +96,6 @@ pub fn get_data_pack(font_state: &FontState, data: &DataView) -> Result<DataPack
 	let table17_len = get_table_data(17).len();
 
 	let data_pack = DataPack {
-		table0,
 		table1,
 		particle_emitters,
 		scenes,
@@ -148,8 +145,10 @@ pub fn get_table_offsets(data: &DataView) -> Result<(Vec<usize>, Vec<usize>), Bo
 pub fn save_data_pack(data_pack: &DataPack) -> Result<Vec<u8>, Box<dyn Error>> {
 	let mut tables: Vec<Vec<u8>> = vec![vec![]; 20];
 
-	tables[0] = words_to_bytes(&data_pack.table0);
-	tables[1] = words_to_bytes(&data_pack.table1);
+	let (table1_offsets, table1_data) = table1::save_entities(&data_pack.table1)?;
+	tables[0] = table1_offsets;
+	tables[1] = table1_data;
+
 	tables[2] = particle_emitter::save_particle_emitters(&data_pack.particle_emitters)?;
 
 	let (scene_offsets, scene_layer_offsets, scene_data) = scene::save_scenes(&data_pack.scenes)?;
