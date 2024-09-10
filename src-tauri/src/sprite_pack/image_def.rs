@@ -1,6 +1,9 @@
 use std::error::Error;
+use image::{ RgbaImage, GenericImage };
 use tauri::{ AppHandle, Manager, State };
 
+use super::Sprite;
+use super::palette::Color;
 use crate::DataState;
 use crate::data_view::DataView;
 
@@ -11,7 +14,73 @@ pub struct ImageDef {
 	pub width_in_sprites: u8,
 	pub height_in_sprites: u8,
 	pub first_palette_index: u16,
-	pub subimage_count: usize
+	pub subimage_count: usize,
+	pub colors_used: Vec<Color>,
+	pub subimage_width: u32,
+	pub subimage_height: u32
+}
+
+impl ImageDef {
+	pub fn to_images(&self, sprites: &[Sprite], colors: &[Color]) -> Result<Vec<RgbaImage>, Box<dyn Error>> {
+		let first_color_index = self.first_palette_index as usize * 4;
+		let colors_in_image = &colors[first_color_index..];
+
+		let first_sprite = sprites.get(self.first_sprite_index as usize)
+			.ok_or("Unable to find first sprite for image def")?;
+		let sprite_width = first_sprite.width as u32;
+		let sprite_height = first_sprite.height as u32;
+		let subimage_width = sprite_width * self.width_in_sprites as u32;
+		let subimage_height = sprite_height * self.height_in_sprites as u32;
+
+		let mut subimages = Vec::new();
+		let sprites_per_subimage = self.width_in_sprites as usize * self.height_in_sprites as usize;
+		for i in 0..self.subimage_count {
+			let mut img = RgbaImage::new(subimage_width, subimage_height);
+			for j in 0..sprites_per_subimage {
+				let sprite_index = self.first_sprite_index as usize + i*sprites_per_subimage + j;
+				let sprite = sprites.get(sprite_index)
+					.ok_or(format!("Sprite {} not found", sprite_index))?;
+				let sprite_img = sprite.to_image(colors_in_image);
+				let x = (j as u32 % self.width_in_sprites as u32) * sprite_width;
+				let y = (j as u32 / self.width_in_sprites as u32) * sprite_height;
+				img.copy_from(&sprite_img, x, y)?;
+			}
+			subimages.push(img);
+		}
+
+		Ok(subimages)
+	}
+
+	pub fn to_spritesheet(&self, sprites: &[Sprite], colors: &[Color]) -> Result<RgbaImage, Box<dyn Error>> {
+		let subimages = self.to_images(sprites, colors)?;
+		let first_subimage = subimages.first().ok_or("No subimages found")?;
+		let spritesheet_width = first_subimage.width() * self.subimage_count as u32;
+		let mut spritesheet = RgbaImage::new(spritesheet_width, first_subimage.height());
+		let mut x = 0;
+		for subimage in subimages {
+			spritesheet.copy_from(&subimage, x, 0)?;
+			x += subimage.width();
+		}
+		Ok(spritesheet)
+	}
+
+	pub fn update_first_palette_index(&mut self, colors: &[Color]) -> Result<(), Box<dyn Error>> {
+		let mut i = 0;
+		let mut palette_found = false;
+		while i < colors.len() {
+			if colors[i..].starts_with(&self.colors_used) {
+				palette_found = true;
+				self.first_palette_index = i as u16 / 4;
+				break;
+			}
+			i += 4;
+		}
+		if palette_found {
+			Ok(())
+		} else {
+			Err("Unable to find first palette index".into())
+		}
+	}
 }
 
 pub fn get_image_defs(data: &DataView) -> Result<Vec<ImageDef>, Box<dyn Error>> {
@@ -25,7 +94,10 @@ pub fn get_image_defs(data: &DataView) -> Result<Vec<ImageDef>, Box<dyn Error>> 
 			width_in_sprites: data.get_u8(i + 2),
 			height_in_sprites: data.get_u8(i + 3),
 			first_palette_index: data.get_u16(i + 4),
-			subimage_count: 0
+			subimage_count: 0,
+			colors_used: Vec::new(),
+			subimage_width: 0,
+			subimage_height: 0
 		});
 		i += 6;
 	}

@@ -1,5 +1,9 @@
 use std::error::Error;
+use std::cmp::Ordering;
+use image::RgbaImage;
+
 use crate::data_view::{ DataView, BitWriter, words_to_bytes };
+use super::palette::Color;
 
 #[derive(Clone, serde::Serialize)]
 pub struct Sprite {
@@ -18,8 +22,76 @@ pub struct Sprite {
 	pub pixels: Vec<u16>
 }
 
+impl Sprite {
+	pub fn to_image(&self, colors: &[Color]) -> RgbaImage {
+		let mut img = RgbaImage::new(self.width as u32, self.height as u32);
+		for (i, pixel) in self.pixels.iter().enumerate() {
+			let x = i % self.width as usize;
+			let y = i / self.width as usize;
+			let color = colors.get(*pixel as usize).cloned().unwrap_or(Color::default());
+			img.put_pixel(x as u32, y as u32, color.as_rgba());
+		}
+		img
+	}
+
+	pub fn update_from_image(&mut self, img: &RgbaImage, colors: &[Color], bpp: Option<u8>) -> Result<(), Box<dyn Error>> {
+		if img.width() != self.width as u32 || img.height() != self.height as u32 {
+			return Err(format!("Image is not the right dimensions for this sprite: {}x{} instead of {}x{}", img.width(), img.height(), self.width, self.height).into());
+		}
+		let mut new_pixels = Vec::new();
+		let mut largest_color_index = 0;
+		for pixel in img.pixels() {
+			let color = Color::from_rgba(pixel);
+			let color_index = colors.iter().position(|c| *c == color || (c.a == 0 && color.a == 0))
+				.ok_or(format!("Color index not found for {:?}", color))?;
+			if color_index > largest_color_index {
+				largest_color_index = color_index;
+			}
+			new_pixels.push(color_index as u16);
+		}
+
+		if let Some(new_bpp) = bpp {
+			self.bits_per_pixel = new_bpp;
+		}
+
+		self.pixels = new_pixels;
+
+		Ok(())
+	}
+
+	pub fn get_pixel_data(&self) -> Vec<u8> {
+		let mut bits = BitWriter::new();
+		for pixel in &self.pixels {
+			bits.write_bits(*pixel as u32, self.bits_per_pixel as usize);
+		}
+		bits.end();
+		bits.bytes
+	}
+}
+
+#[derive(PartialEq, Eq)]
+struct PixelDataChunk {
+	start: usize,
+	end: usize,
+	data: Vec<u8>
+}
+
+impl Ord for PixelDataChunk {
+	fn cmp(&self, other: &Self) -> Ordering {
+		self.start.cmp(&other.start)
+	}
+}
+
+impl PartialOrd for PixelDataChunk {
+	fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+		Some(self.cmp(other))
+	}
+}
+
 pub fn get_sprites(def_data: &DataView, pixel_data: &DataView) -> Result<Vec<Sprite>, Box<dyn Error>> {
 	let mut sprites = Vec::new();
+
+	let mut max_index = 0;
 
 	let mut i = 0;
 	while i + 8 <= def_data.len() {
@@ -41,6 +113,10 @@ pub fn get_sprites(def_data: &DataView, pixel_data: &DataView) -> Result<Vec<Spr
 		let byte_count = sprite_size * (bits_per_pixel as usize) / 8;
 		let pixel_data_offset = byte_count * (pixel_data_index as usize);
 		let bits = pixel_data.get_bits(pixel_data_offset, byte_count);
+
+		if pixel_data_index > max_index {
+			max_index = pixel_data_index;
+		}
 
 		let mut pixels = Vec::new();
 		for i in 0..sprite_size {
@@ -70,14 +146,19 @@ pub fn get_sprites(def_data: &DataView, pixel_data: &DataView) -> Result<Vec<Spr
 		i += 8;
 	}
 
+	println!("max pixel data index: {}", max_index);
+
 	Ok(sprites)
 }
 
-pub fn save_sprites(sprites: &[Sprite]) -> Result<(Vec<u8>, Vec<u8>), Box<dyn Error>> {
+pub fn save_sprites(sprites: &mut [Sprite]) -> Result<(Vec<u8>, Vec<u8>), Box<dyn Error>> {
 	let mut sprite_defs: Vec<u16> = Vec::new();
+	let mut pixel_data_parts: Vec<Vec<u8>> = Vec::new();
 	let mut pixel_data_len: usize = 0;
 
-	for sprite in sprites {
+	let pixel_data = save_pixel_data(sprites);
+
+	for sprite in sprites.iter_mut() {
 		sprite_defs.push(sprite.pixel_data_index);
 		sprite_defs.push(sprite.offset_x);
 		sprite_defs.push(sprite.offset_y);
@@ -112,6 +193,13 @@ pub fn save_sprites(sprites: &[Sprite]) -> Result<(Vec<u8>, Vec<u8>), Box<dyn Er
 		let props = bits_per_pixel | is_flipped | width | height | palette_bank | draw_depth | blend_enabled | is_quadrupled;
 		sprite_defs.push(props);
 
+		let mut bits = BitWriter::new();
+		for pixel in &sprite.pixels {
+			bits.write_bits(*pixel as u32, sprite.bits_per_pixel as usize);
+		}
+		bits.end();
+		pixel_data_parts.push(bits.bytes);
+
 		let byte_count = (sprite.width as usize) * (sprite.height as usize) * (sprite.bits_per_pixel as usize) / 8;
 		let min_len = sprite.pixel_data_offset + byte_count;
 		if pixel_data_len < min_len {
@@ -119,18 +207,73 @@ pub fn save_sprites(sprites: &[Sprite]) -> Result<(Vec<u8>, Vec<u8>), Box<dyn Er
 		}
 	}
 
-	let mut pixel_data = vec![0; pixel_data_len];
-	for sprite in sprites {
-		let mut bits = BitWriter::new();
-		let bpp = sprite.bits_per_pixel;
-		for pixel in &sprite.pixels {
-			bits.write_bits(*pixel as u32, bpp as usize);
+	Ok((words_to_bytes(&sprite_defs), pixel_data))
+}
+
+fn save_pixel_data(sprites: &mut [Sprite]) -> Vec<u8> {
+	let mut chunks: Vec<PixelDataChunk> = Vec::new();
+
+	let mut max_index = 0;
+
+	let mut sorted_sprites = sprites.iter_mut().collect::<Vec<&mut Sprite>>();
+	sorted_sprites.sort_by(|a, b| {
+		a.pixels.len().cmp(&b.pixels.len())
+	});
+
+	for sprite in sorted_sprites {
+		let mut offset = 0;
+
+		let pixel_data = sprite.get_pixel_data();
+		let byte_len = pixel_data.len();
+		let mut add_chunk = true;
+
+		for (i, chunk) in chunks.iter().enumerate() {
+			offset = find_next_offset(chunk.start, byte_len);
+			if offset + byte_len < chunk.end && chunk.data[(offset - chunk.start)..].starts_with(&pixel_data) {
+				add_chunk = false;
+				break;
+			} else {
+				offset = find_next_offset(chunk.end, byte_len);
+				if i+1 < chunks.len() && chunks[i+1].start > offset + byte_len {
+					break;
+				}
+			}
 		}
-		bits.end();
-		for (i, byte) in bits.bytes.iter().enumerate() {
-			pixel_data[sprite.pixel_data_offset + i] = *byte;
+
+		if add_chunk {
+			chunks.push(PixelDataChunk{
+				start: offset,
+				end: offset + byte_len,
+				data: sprite.get_pixel_data()
+			});
+			chunks.sort();
+		}
+
+		sprite.pixel_data_offset = offset;
+		sprite.pixel_data_index = (offset / byte_len) as u16;
+
+		if sprite.pixel_data_index > max_index {
+			max_index = sprite.pixel_data_index;
 		}
 	}
 
-	Ok((words_to_bytes(&sprite_defs), pixel_data))
+	let mut data = Vec::new();
+	for (i, chunk) in chunks.iter().enumerate() {
+		let end = if i > 0 { chunks[i-1].end } else { 0 };
+		let padding = chunk.start - end;
+		data.extend_from_slice(&vec![0_u8; padding]);
+		data.extend_from_slice(&chunk.data);
+	}
+
+	println!("max pixel data index: {}", max_index);
+
+	data
+}
+
+fn find_next_offset(start: usize, byte_len: usize) -> usize {
+	let mut offset = start;
+	while offset % byte_len != 0 {
+		offset += 1;
+	}
+	offset
 }

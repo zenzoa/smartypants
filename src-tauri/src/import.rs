@@ -2,8 +2,8 @@ use std::error::Error;
 use std::fs;
 use std::path::PathBuf;
 
-use image::io::Reader as ImageReader;
-use image::{ RgbaImage, GenericImageView };
+use image::ImageReader;
+use image::GenericImageView;
 
 use tauri::{ AppHandle, Manager, State };
 use tauri::async_runtime::spawn;
@@ -11,7 +11,7 @@ use tauri::async_runtime::spawn;
 use rfd::{ FileDialog, MessageButtons, MessageDialog, MessageDialogResult };
 
 use crate::{ DataState, BinType, ImageState, show_error_message, show_spinner, hide_spinner };
-use crate::sprite_pack::{ palette::Color, get_spritesheet_dims };
+use crate::sprite_pack::get_colors_in_image;
 use crate::text::{ FontState, CharEncoding, EncodingLanguage, re_decode_strings, refresh_encoding_menu };
 use crate::file::{ FileState, set_file_modified };
 
@@ -234,87 +234,49 @@ fn import_image_spritesheet_from(handle: &AppHandle, image_index: usize, path: &
 	let font_state: State<FontState> = handle.state();
 	let image_state: State<ImageState> = handle.state();
 
-	if let Some(subimages) = image_state.images.lock().unwrap().get_mut(image_index) {
-		let (width, height) = get_spritesheet_dims(subimages);
-		if spritesheet.width() != width || spritesheet.height() != height {
-			return Err(format!("Spritesheet does not match expected dimensions: {}x{}", width, height).into());
-		}
+	let mut images = image_state.images.lock().unwrap();
+	let subimages = images.get_mut(image_index)
+		.ok_or(format!("Can't find subimages for image {}", image_index))?;
 
-		let mut x = 0;
-		for (i, subimage) in subimages.iter_mut().enumerate() {
-			let new_subimage = spritesheet.view(x, 0, subimage.width(), subimage.height()).to_image();
-			replace_image_data(handle, image_index, i, &new_subimage)?;
-			*subimage = new_subimage;
-			x += subimage.width();
-		}
-
-		if let Some(BinType::Firmware) = *data_state.bin_type.lock().unwrap() {
-			match image_index {
-				98 => font_state.small_font_images.lock().unwrap().clone_from(subimages),
-				99 => font_state.large_font_images.lock().unwrap().clone_from(subimages),
-				_ => {}
-			}
-		}
-
-		handle.emit("update_image", image_index).unwrap();
-	}
-
-	Ok(())
-}
-
-fn replace_image_data(handle: &AppHandle, image_index: usize, subimage_index: usize, img: &RgbaImage) -> Result<(), Box<dyn Error>> {
-	let data_state: State<DataState> = handle.state();
 	let mut sprite_pack_opt = data_state.sprite_pack.lock().unwrap();
-	if let Some(sprite_pack) = sprite_pack_opt.as_mut() {
-		if let Some(image_def) = sprite_pack.image_defs.get(image_index) {
-			let first_color_index = image_def.first_palette_index as usize * 4;
-			let colors = &sprite_pack.palettes[first_color_index..];
+	let sprite_pack = sprite_pack_opt.as_mut().ok_or("Can't find sprite pack")?;
+	let image_def = sprite_pack.image_defs.get_mut(image_index)
+		.ok_or(format!("Can't find image def for image {}", image_index))?;
 
-			let sprites_per_subimage = image_def.width_in_sprites as usize * image_def.height_in_sprites as usize;
-			let first_sprite_index = image_def.first_sprite_index as usize + (subimage_index * sprites_per_subimage);
+	let expected_width = image_def.subimage_width * image_def.subimage_count as u32;
+	let expected_height = image_def.subimage_height;
+	if spritesheet.width() != expected_width || spritesheet.height() != expected_height {
+		return Err(format!("Spritesheet does not match expected dimensions: {}x{}", expected_width, expected_height).into());
+	}
 
-			let subimage_width = img.width() / image_def.width_in_sprites as u32;
-			let subimage_height = img.height() / image_def.height_in_sprites as u32;
-			let mut img_views = Vec::new();
-			for row in 0..image_def.height_in_sprites as u32 {
-				for col in 0..image_def.width_in_sprites as u32 {
-					let x = col * subimage_width;
-					let y = row * subimage_height;
-					let img_view = img.view(x, y, subimage_width, subimage_height);
-					img_views.push(img_view);
-				}
-			}
+	let colors_in_spritesheet = get_colors_in_image(&spritesheet.to_rgba8());
+	if colors_in_spritesheet.len() > 16 {
+		return Err(format!("Spritesheet uses too many colors (the maximum is 16): {}", colors_in_spritesheet.len()).into());
+	}
+	if *data_state.lock_colors.lock().unwrap() {
+		if image_def.colors_used != colors_in_spritesheet {
+			return Err("Spritesheet uses colors not in original image. Try unlocking colors first.".into());
+		}
+	} else {
+		image_def.colors_used = colors_in_spritesheet;
+	}
 
-			for (i, img_view) in img_views.iter().enumerate().take(sprites_per_subimage) {
-				if let Some(sprite) = sprite_pack.sprites.get_mut(first_sprite_index + i) {
-					let sprite_width = sprite.width as u32;
-					let sprite_height = sprite.height as u32;
-					if img_view.width() == sprite_width && img_view.height() == sprite_height {
-						let mut new_pixels: Vec<u16> = Vec::new();
-						for y in 0..sprite_height {
-							for x in 0..sprite_width {
-								let pixel = img_view.get_pixel(x, y);
-								let color = Color::from_rgba(pixel);
-								match colors.iter().position(|&x| x == color || (color.a == 0 && x.a == 0)) {
-									Some(color_index) => {
-										new_pixels.push(color_index as u16);
-									},
-									None => {
-										println!("r: {}, g: {}, b: {}, a: {}", color.r, color.g, color.b, color.a);
-										return Err(format!("New image uses color not in the original at ({}, {}).", x, y).into());
-									}
-								}
-							}
-						}
-						sprite.pixels = new_pixels;
-					} else {
-						return Err("New image's dimensions do not match the original's dimensions.".into());
-					}
-				}
-			}
+	let mut x = 0;
+	for subimage in subimages.iter_mut() {
+		let new_subimage = spritesheet.view(x, 0, subimage.width(), subimage.height()).to_image();
+		*subimage = new_subimage;
+		x += subimage.width();
+	}
 
+	if let Some(BinType::Firmware) = *data_state.bin_type.lock().unwrap() {
+		match image_index {
+			98 => font_state.small_font_images.lock().unwrap().clone_from(subimages),
+			99 => font_state.large_font_images.lock().unwrap().clone_from(subimages),
+			_ => {}
 		}
 	}
+
+	handle.emit("update_image", image_index).unwrap();
 
 	Ok(())
 }

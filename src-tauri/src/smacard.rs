@@ -5,10 +5,10 @@ use md5::{ Md5, Digest };
 
 use tauri::{ AppHandle, State, Manager };
 
-use crate::DataState;
+use crate::{ DataState, ImageState, BinSize };
 use crate::data_view::{ DataView, bytes_to_words };
 use crate::data_pack::{ DataPack, get_data_pack, save_data_pack };
-use crate::sprite_pack::{ SpritePack, get_sprite_pack, save_sprite_pack };
+use crate::sprite_pack::SpritePack;
 use crate::text::FontState;
 
 #[derive(Clone, serde::Serialize)]
@@ -109,7 +109,7 @@ pub fn read_card_header(data: &DataView) -> Result<CardHeader, Box<dyn Error>> {
 }
 
 pub fn read_card_packs(font_state: &FontState, data: &DataView) -> Result<(DataPack, SpritePack), Box<dyn Error>> {
-	if data.len() < 66 {
+	if data.len() < 68 {
 		return Err("Unable to read card data: too short for pack info".into());
 	}
 
@@ -129,7 +129,7 @@ pub fn read_card_packs(font_state: &FontState, data: &DataView) -> Result<(DataP
 			let pack_data = data.chunk(pack_offset, pack_size);
 			match i {
 				0 => data_pack_opt = Some(get_data_pack(font_state, &pack_data)?),
-				1 => sprite_pack_opt = Some(get_sprite_pack(&pack_data)?),
+				1 => sprite_pack_opt = Some(SpritePack::from_data(&pack_data)?),
 				_ => {}
 			}
 		}
@@ -148,28 +148,32 @@ pub fn read_card_packs(font_state: &FontState, data: &DataView) -> Result<(DataP
 
 pub fn save_card(handle: &AppHandle) -> Result<Vec<u8>, Box<dyn Error>> {
 	let data_state: State<DataState> = handle.state();
+	let image_state: State<ImageState> = handle.state();
 
+	let data_pack_offset = 68;
 	let data_pack_opt = data_state.data_pack.lock().unwrap();
 	let data_pack = data_pack_opt.as_ref().ok_or("Unable to save Sma Card: missing data pack")?;
-	let mut data_pack_data = save_data_pack(data_pack, 68)?;
+	let mut data_pack_data = save_data_pack(data_pack, data_pack_offset)?;
 	data_pack_data.extend_from_slice(&[0, 0]);
 
-	let sprite_pack_opt = data_state.sprite_pack.lock().unwrap();
-	let sprite_pack = sprite_pack_opt.as_ref().ok_or("Unable to save Sma Card: missing sprite pack")?;
-	let sprite_pack_data = save_sprite_pack(sprite_pack)?;
+	let mut sprite_pack_opt = data_state.sprite_pack.lock().unwrap();
+	let sprite_pack = sprite_pack_opt.as_mut().ok_or("Unable to save Sma Card: missing sprite pack")?;
+	let images = image_state.images.lock().unwrap();
+	sprite_pack.update_image_data(&images, *data_state.lock_colors.lock().unwrap())?;
+	let sprite_pack_data = sprite_pack.as_bytes()?;
 
-	let mut sprite_pack_offset = 68 + data_pack_data.len();
+	let mut sprite_pack_offset = data_pack_offset + data_pack_data.len();
 	while sprite_pack_offset % 32 != 0 {
 		sprite_pack_offset += 1;
 	}
-	let between_pack_padding_len = sprite_pack_offset - data_pack_data.len() - 68;
-	let between_pack_padding = vec![0; between_pack_padding_len];
+	let padded_data_pack_size = sprite_pack_offset - data_pack_offset;
+	data_pack_data.resize(padded_data_pack_size, 0);
 
 	let mut pack_summary = 0x3232_u16.to_le_bytes().to_vec();
 	pack_summary.extend_from_slice(&4_u16.to_le_bytes());
 
 	pack_summary.extend_from_slice(&[0, 0, 0, 0]);
-	pack_summary.extend_from_slice(&(68_u32).to_le_bytes());
+	pack_summary.extend_from_slice(&(data_pack_offset as u32).to_le_bytes());
 	pack_summary.extend_from_slice(&(data_pack_data.len() as u32).to_le_bytes());
 	pack_summary.extend_from_slice(&(data_pack_data.len() as u32 - 2).to_le_bytes());
 
@@ -180,7 +184,7 @@ pub fn save_card(handle: &AppHandle) -> Result<Vec<u8>, Box<dyn Error>> {
 
 	pack_summary.extend_from_slice(&[0; 32]);
 
-	let pack_data = [pack_summary, data_pack_data, between_pack_padding, sprite_pack_data].concat();
+	let pack_data = [pack_summary, data_pack_data, sprite_pack_data].concat();
 
 	let mut header_opt = data_state.card_header.lock().unwrap();
 	let header = header_opt.as_mut().ok_or("Unable to save Sma Card: missing header")?;
@@ -188,15 +192,15 @@ pub fn save_card(handle: &AppHandle) -> Result<Vec<u8>, Box<dyn Error>> {
 
 	let mut data = [header_data, pack_data].concat();
 
-	let padding_len = if data.len() < 0x20000 {
-		0x20000 - 16
-	} else if data.len() < 0x100000 {
-		0x100000 - 16
-	} else if data.len() < 0x200000 {
-		0x200000 - 16
-	} else {
-		return Err("Data is too large to fit onto Sma Card".into());
+	let padding_len = match data_state.bin_size.lock().unwrap().as_ref().ok_or("Undefined card size")? {
+		BinSize::Card128KB => 0x20000 - 16,
+		BinSize::Card1MB => 0x100000 - 16,
+		BinSize::Card2MB => 0x200000 - 16,
+		_ => return Err("Invalid TamaSma card size".into())
 	};
+	if padding_len < data.len() {
+		return Err("Data is too large to fit onto Sma Card".into());
+	}
 	let padding = vec![0_u8; padding_len - data.len()];
 	data.extend_from_slice(&padding);
 

@@ -1,137 +1,178 @@
 use std::error::Error;
-use image::RgbaImage;
+use image::{ RgbaImage, GenericImageView };
+
 use crate::data_view::DataView;
 
 pub mod image_def;
 pub mod palette;
 pub mod sprite;
 
+use image_def::{ ImageDef, get_image_defs, save_image_defs, calc_subimage_counts };
+use palette::{ Color, get_palettes, save_palettes, generate_palettes };
+use sprite::{ Sprite, get_sprites };
+
 #[derive(Clone, serde::Serialize)]
 pub struct SpritePack {
-	pub image_defs: Vec<image_def::ImageDef>,
-	pub palettes: Vec<palette::Color>,
-	pub sprites: Vec<sprite::Sprite>
+	pub image_defs: Vec<ImageDef>,
+	pub palettes: Vec<Color>,
+	pub sprites: Vec<Sprite>
 }
 
-pub fn get_sprite_pack(data: &DataView) -> Result<SpritePack, Box<dyn Error>> {
-	let image_defs_offset = data.get_u32(0) as usize;
-	let sprite_defs_offset = data.get_u32(4) as usize;
-	let palettes_offset = data.get_u32(8) as usize;
-	let pixel_data_offset = data.get_u32(12) as usize;
+impl SpritePack {
+	pub fn from_data(data: &DataView) -> Result<Self, Box<dyn Error>> {
+		let image_defs_offset = data.get_u32(0) as usize;
+		let sprite_defs_offset = data.get_u32(4) as usize;
+		let palettes_offset = data.get_u32(8) as usize;
+		let pixel_data_offset = data.get_u32(12) as usize;
 
-	let image_def_data = data.chunk(image_defs_offset, sprite_defs_offset - image_defs_offset);
-	let mut image_defs = image_def::get_image_defs(&image_def_data)?;
+		let mut image_defs = get_image_defs(
+			&data.chunk(image_defs_offset, sprite_defs_offset-image_defs_offset)
+		)?;
 
-	let palette_data = data.chunk(palettes_offset, pixel_data_offset - palettes_offset);
-	let palettes = palette::get_palettes(&palette_data)?;
+		let palettes = get_palettes(
+			&data.data[palettes_offset..pixel_data_offset]
+		)?;
 
-	let sprite_def_data = data.chunk(sprite_defs_offset, palettes_offset - sprite_defs_offset);
-	let pixel_data = data.chunk(pixel_data_offset, data.len() - pixel_data_offset);
-	let sprites = sprite::get_sprites(&sprite_def_data, &pixel_data)?;
+		let sprites = get_sprites(
+			&data.chunk(sprite_defs_offset, palettes_offset-sprite_defs_offset),
+			&data.chunk(pixel_data_offset, data.len()-pixel_data_offset)
+		)?;
 
-	image_def::calc_subimage_counts(&mut image_defs, sprites.len());
+		calc_subimage_counts(&mut image_defs, sprites.len());
 
-	let sprite_pack = SpritePack { image_defs, palettes, sprites };
+		let sprite_pack = Self { image_defs, palettes, sprites };
 
-	Ok(sprite_pack)
-}
+		Ok(sprite_pack)
+	}
 
-pub fn get_image_data(sprite_pack: &SpritePack) -> Result<Vec<Vec<RgbaImage>>, Box<dyn Error>> {
-	let image_defs = &sprite_pack.image_defs;
-	let palettes = &sprite_pack.palettes;
-	let sprites = &sprite_pack.sprites;
+	pub fn as_bytes(&mut self) -> Result<Vec<u8>, Box<dyn Error>> {
+		let image_def_data = save_image_defs(&self.image_defs)?;
+		let mut palette_data = save_palettes(&self.palettes)?;
+		let (sprite_def_data, pixel_data) = sprite::save_sprites(&mut self.sprites)?;
 
-	let mut images = Vec::new();
+		let image_defs_offset = 16;
+		let sprite_defs_offset = image_defs_offset + image_def_data.len();
+		let palettes_offset = sprite_defs_offset + sprite_def_data.len();
+		let mut pixel_data_offset = palettes_offset + palette_data.len();
 
-	for i in 0..image_defs.len() {
-		let image_def = &image_defs[i];
+		while pixel_data_offset % 32 != 0 {
+			pixel_data_offset += 1;
+		}
+		let padded_palette_size = pixel_data_offset - palettes_offset;
+		palette_data.resize(padded_palette_size, 0);
 
-		let first_sprite_index = image_def.first_sprite_index as usize;
-		let next_sprite_index = if i+1 < image_defs.len() {
-			image_defs[i+1].first_sprite_index as usize
-		} else {
-			sprites.len()
-		};
-		let image_sprites = &sprites[first_sprite_index..next_sprite_index];
-		let sprites_per_subimage = image_def.width_in_sprites as usize * image_def.height_in_sprites as usize;
-		let subimage_count = image_sprites.len() / sprites_per_subimage;
+		let mut data: Vec<u8> = Vec::new();
 
-		let image_colors = &palettes[(4 * image_def.first_palette_index as usize)..];
+		data.extend_from_slice(&u32::to_le_bytes(image_defs_offset as u32));
+		data.extend_from_slice(&u32::to_le_bytes(sprite_defs_offset as u32));
+		data.extend_from_slice(&u32::to_le_bytes(palettes_offset as u32));
+		data.extend_from_slice(&u32::to_le_bytes(pixel_data_offset as u32));
 
-		let mut subimages = Vec::new();
+		data.extend_from_slice(&image_def_data);
+		data.extend_from_slice(&sprite_def_data);
+		data.extend_from_slice(&palette_data);
+		data.extend_from_slice(&pixel_data);
 
-		for j in 0..subimage_count {
-			let first_subimage_sprite_index = sprites_per_subimage * j;
-			let first_subimage_sprite = &image_sprites[first_subimage_sprite_index];
-			let subimage_width = image_def.width_in_sprites as u32 * first_subimage_sprite.width as u32;
-			let subimage_height = image_def.height_in_sprites as u32 * first_subimage_sprite.height as u32;
+		Ok(data)
+	}
 
-			let mut img = RgbaImage::new(subimage_width, subimage_height);
-			for row in 0..image_def.height_in_sprites as usize {
-				for col in 0..image_def.width_in_sprites as usize {
-					let sprite_index = first_subimage_sprite_index + (row * image_def.width_in_sprites as usize) + col;
-					let sprite = &image_sprites[sprite_index];
-					let sprite_width = sprite.width as usize;
-					let sprite_height = sprite.height as usize;
-					for y in 0..sprite_height {
-						for x in 0..sprite_width {
-							let adj_x = x + (col * sprite_width);
-							let adj_y = y + (row * sprite_height);
-							let color_index = sprite.pixels.get(y * sprite_width + x).ok_or("pixel data not found")?;
-							let color = image_colors.get(*color_index as usize).ok_or("color not found")?;
-							img.put_pixel(adj_x as u32, adj_y as u32, color.as_rgba());
-						}
+	pub fn get_image_data(&mut self) -> Result<Vec<Vec<RgbaImage>>, Box<dyn Error>> {
+		let palettes = &self.palettes;
+		let sprites = &self.sprites;
+
+		let mut images = Vec::new();
+
+		for (i, image_def) in self.image_defs.iter_mut().enumerate() {
+			let subimages = match image_def.to_images(sprites, palettes) {
+				Ok(subimages) => subimages,
+				Err(why) => return Err(format!("Image Def {}: {}", i, why).into())
+			};
+			image_def.colors_used = get_colors_in_images(&subimages);
+			image_def.subimage_width = subimages.first().unwrap().width();
+			image_def.subimage_height = subimages.first().unwrap().height();
+			images.push(subimages);
+		}
+
+		Ok(images)
+	}
+
+	pub fn update_image_data(&mut self, images: &[Vec<RgbaImage>], lock_colors: bool) -> Result<(), Box<dyn Error>> {
+		if !lock_colors {
+			self.palettes = generate_palettes(images);
+		}
+
+		for (i, image_def) in self.image_defs.iter_mut().enumerate() {
+			let subimages = images.get(i)
+				.ok_or(format!("Image corresponding to image def {} not found", i))?;
+
+			let mut bpp = None;
+
+			if !lock_colors {
+				if let Err(why) = image_def.update_first_palette_index(&self.palettes) {
+					return Err(format!("Image Def {}: {}", i, why).into());
+				}
+				let color_count = get_colors_in_images(subimages).len();
+				bpp = Some(if color_count <= 4 {
+					2
+				} else if color_count <= 16 {
+					4
+				} else if color_count <= 64 {
+					6
+				} else if color_count <= 256 {
+					8
+				} else {
+					return Err(format!("Too many colors used ({})", color_count).into())
+				});
+			}
+
+			let palette = &self.palettes[image_def.first_palette_index as usize * 4..];
+			let sprites_per_subimage = image_def.width_in_sprites as usize * image_def.height_in_sprites as usize;
+			for (j, subimage) in subimages.iter().enumerate() {
+				let sprite_images = divide_image(subimage, image_def.width_in_sprites as u32, image_def.height_in_sprites as u32);
+				for (k, sprite_image) in sprite_images.iter().enumerate() {
+					let sprite_index = image_def.first_sprite_index as usize + j*sprites_per_subimage + k;
+					if let Err(why) = self.sprites[sprite_index].update_from_image(sprite_image, palette, bpp) {
+						return Err(format!("Sprite {}-{}: {}", i, j, why).into());
 					}
 				}
 			}
-
-			subimages.push(img);
 		}
 
-		images.push(subimages);
+		Ok(())
 	}
-
-	Ok(images)
 }
 
-pub fn save_sprite_pack(sprite_pack: &SpritePack) -> Result<Vec<u8>, Box<dyn Error>> {
-	let mut data: Vec<u8> = Vec::new();
-
-	let image_def_data = image_def::save_image_defs(&sprite_pack.image_defs)?;
-	let palette_data = palette::save_palettes(&sprite_pack.palettes)?;
-	let (sprite_def_data, pixel_data) = sprite::save_sprites(&sprite_pack.sprites)?;
-
-	let image_defs_offset = 16;
-	let sprite_defs_offset = image_defs_offset + image_def_data.len();
-	let palettes_offset = sprite_defs_offset + sprite_def_data.len();
-	let pixel_data_offset = palettes_offset + palette_data.len();
-
-	for bytes in u32::to_le_bytes(image_defs_offset as u32) {
-		data.push(bytes);
-	}
-	for bytes in u32::to_le_bytes(sprite_defs_offset as u32) {
-		data.push(bytes);
-	}
-	for bytes in u32::to_le_bytes(palettes_offset as u32) {
-		data.push(bytes);
-	}
-	for bytes in u32::to_le_bytes(pixel_data_offset as u32) {
-		data.push(bytes);
-	}
-
-	data = [data, image_def_data, sprite_def_data, palette_data, pixel_data].concat();
-
-	Ok(data)
-}
-
-pub fn get_spritesheet_dims(subimages: &[RgbaImage]) -> (u32, u32) {
-	let mut width = 0;
-	let mut height = 0;
-	for subimage in subimages {
-		width += subimage.width();
-		if subimage.height() > height {
-			height = subimage.height();
+pub fn get_colors_in_image(img: &RgbaImage) -> Vec<Color> {
+	let mut colors = Vec::new();
+	for pixel in img.pixels() {
+		let color = Color::from_rgba(pixel);
+		if !colors.contains(&color) {
+			colors.push(color);
 		}
 	}
-	(width, height)
+	colors.sort();
+	colors
+}
+
+pub fn get_colors_in_images(images: &[RgbaImage]) -> Vec<Color> {
+	let mut colors = Vec::new();
+	for img in images {
+		colors.extend_from_slice(&get_colors_in_image(img));
+	}
+	colors.sort();
+	colors.dedup();
+	colors
+}
+
+pub fn divide_image(img: &RgbaImage, cols: u32, rows: u32) -> Vec<RgbaImage> {
+	let mut subimages = Vec::new();
+	let sub_width = img.width() / cols;
+	let sub_height = img.height() / rows;
+	for row in 0..rows {
+		for col in 0..cols {
+			let subimage = img.view(col * sub_width, row * sub_height, sub_width, sub_height);
+			subimages.push(subimage.to_image());
+		}
+	}
+	subimages
 }

@@ -2,7 +2,6 @@ use std::error::Error;
 use std::path::{ PathBuf, Path };
 use std::fs::File;
 use std::io::prelude::*;
-use image::{ RgbaImage, GenericImage };
 
 use tauri::{ AppHandle, Manager, State };
 use tauri::async_runtime::spawn;
@@ -10,7 +9,6 @@ use tauri::async_runtime::spawn;
 use rfd::FileDialog;
 
 use crate::{ DataState, ImageState, show_error_message, show_spinner, hide_spinner };
-use crate::sprite_pack::get_spritesheet_dims;
 use crate::text::FontState;
 use crate::file::FileState;
 
@@ -270,19 +268,16 @@ pub fn export_image_spritesheet(handle: AppHandle, image_index: usize) {
 }
 
 fn export_image_spritesheet_to(handle: &AppHandle, image_index: usize, path: &Path) -> Result<(), Box<dyn Error>> {
-	let image_state: State<ImageState> = handle.state();
-	if let Some(subimages) = image_state.images.lock().unwrap().get(image_index) {
-		let (width, height) = get_spritesheet_dims(subimages);
-
-		let mut spritesheet = RgbaImage::new(width, height);
-		let mut x = 0;
-		for subimage in subimages {
-			spritesheet.copy_from(subimage, x, 0)?;
-			x += subimage.width();
-		}
-
-		spritesheet.save(path)?;
-	}
+	let data_state: State<DataState> = handle.state();
+	let sprite_pack_guard = data_state.sprite_pack.lock().unwrap();
+	let sprite_pack = sprite_pack_guard.as_ref().ok_or("No sprite pack found")?;
+	let image_def = sprite_pack.image_defs.get(image_index)
+		.ok_or(format!("Unable to find image definition {}", image_index))?;
+	let spritesheet = match image_def.to_spritesheet(&sprite_pack.sprites, &sprite_pack.palettes) {
+		Ok(spritesheet) => spritesheet,
+		Err(why) => return Err(format!("Image Def {}: {}", image_index, why).into())
+	};
+	spritesheet.save(path)?;
 	Ok(())
 }
 

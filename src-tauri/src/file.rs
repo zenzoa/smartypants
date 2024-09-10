@@ -8,10 +8,10 @@ use tauri::async_runtime::spawn;
 
 use rfd::{ FileDialog, MessageButtons, MessageDialog, MessageDialogResult };
 
-use crate::{ DataState, ImageState, BinType, show_spinner, hide_spinner, show_error_message, update_window_title };
+use crate::{ DataState, ImageState, BinType, BinSize, show_spinner, hide_spinner, show_error_message, update_window_title, set_lock_colors, update_card_size_menu };
 use crate::data_view::DataView;
 use crate::data_pack::DataPack;
-use crate::sprite_pack::{ SpritePack, get_image_data };
+use crate::sprite_pack::SpritePack;
 use crate::text::{ Text, FontState, CharEncoding, EncodingLanguage };
 use crate::smacard::{ CardHeader, read_card, save_card };
 use crate::firmware::{ read_firmware, save_firmware };
@@ -69,27 +69,28 @@ pub fn open_bin(handle: AppHandle) {
 						match read_card(&font_state, &data) {
 							Ok(card) => {
 								*data_state.card_header.lock().unwrap() = Some(card.header.clone());
-								*data_state.use_patch_header.lock().unwrap() = false;
-								*data_state.data_pack.lock().unwrap() = Some(card.data_pack.clone());
-								*data_state.sprite_pack.lock().unwrap() = Some(card.sprite_pack.clone());
-								if let Ok(image_data) = get_image_data(&card.sprite_pack.clone()) {
-									*image_state.images.lock().unwrap() = image_data;
-								}
 
-								// if let Ok(temp_save) = save_card(&handle) {
-								// 	println!("Faking a save to see if the output is the same...");
-								// 	if temp_save == data.data {
-								// 		println!("YAY! The output is the same! All is well");
-								// 	} else {
-								// 		println!("WARNING: The output is not the same!");
-								// 		for i in 1000..temp_save.len() {
-								// 			if temp_save[i] != data.data[i] {
-								// 				println!("Discrepency at byte {}: old {} vs new {}", i, data.data[i], temp_save[i]);
-								// 				break;
-								// 			}
-								// 		}
-								// 	}
-								// }
+								*data_state.use_patch_header.lock().unwrap() = false;
+
+								*data_state.data_pack.lock().unwrap() = Some(card.data_pack.clone());
+
+								let mut sprite_pack = card.sprite_pack;
+								match sprite_pack.get_image_data() {
+									Ok(image_data) => *image_state.images.lock().unwrap() = image_data,
+									Err(why) => show_error_message(why)
+								}
+								*data_state.sprite_pack.lock().unwrap() = Some(sprite_pack);
+
+								*data_state.bin_size.lock().unwrap() = Some(if data.len() <= 0x20000 {
+									BinSize::Card128KB
+								} else if data.len() <= 0x100000 {
+									BinSize::Card1MB
+								} else if data.len() <= 0x200000 {
+									BinSize::Card2MB
+								} else {
+									BinSize::TooBig
+								});
+								update_card_size_menu(&handle);
 
 								send_data_to_frontend(&handle);
 							},
@@ -99,15 +100,17 @@ pub fn open_bin(handle: AppHandle) {
 
 					BinType::Firmware => {
 						match read_firmware(&handle, &data) {
-							Ok(firmware) => {
+							Ok(mut firmware) => {
 								*data_state.use_patch_header.lock().unwrap() = firmware.use_patch_header;
 
 								*data_state.data_pack.lock().unwrap() = Some(firmware.data_pack.clone());
 
-								*data_state.sprite_pack.lock().unwrap() = Some(firmware.sprite_pack.clone());
-								if let Ok(image_data) = get_image_data(&firmware.sprite_pack.clone()) {
+								if let Ok(image_data) = firmware.sprite_pack.get_image_data() {
 									*image_state.images.lock().unwrap() = image_data;
 								}
+
+								*data_state.sprite_pack.lock().unwrap() = Some(firmware.sprite_pack.clone());
+
 								if let Some(small_font_images) = image_state.images.lock().unwrap().get(98) {
 									font_state.small_font_images.lock().unwrap().clone_from(small_font_images);
 								}
@@ -117,20 +120,9 @@ pub fn open_bin(handle: AppHandle) {
 
 								*data_state.menu_strings.lock().unwrap() = Some(firmware.menu_strings.clone());
 
-								// if let Ok(temp_save) = save_firmware(&handle, &data.data) {
-								// 	println!("Faking a save to see if the output is the same...");
-								// 	if temp_save == data.data {
-								// 		println!("YAY! The output is the same! All is well");
-								// 	} else {
-								// 		println!("WARNING: The output is not the same!");
-								// 		for i in 0..temp_save.len() {
-								// 			if temp_save[i] != data.data[i] {
-								// 				println!("Discrepency at byte {:x}: {} vs {}", i, temp_save[i], data.data[i]);
-								// 				break;
-								// 			}
-								// 		}
-								// 	}
-								// }
+								*data_state.bin_size.lock().unwrap() = Some(BinSize::Firmware);
+
+								set_lock_colors(&handle, Some(true));
 
 								send_data_to_frontend(&handle);
 							},
@@ -154,6 +146,7 @@ pub fn open_bin(handle: AppHandle) {
 fn send_data_to_frontend(handle: &AppHandle) {
 	let data_state: State<DataState> = handle.state();
 	let font_state: State<FontState> = handle.state();
+
 	let frontend_data = FrontendData {
 		encoding_language: font_state.encoding_language.lock().unwrap().clone(),
 		char_codes: font_state.char_codes.lock().unwrap().clone(),

@@ -4,10 +4,10 @@ use std::error::Error;
 use tauri::{ AppHandle, State, Manager };
 use tauri::path::BaseDirectory;
 
-use crate::DataState;
+use crate::{ DataState, ImageState };
 use crate::data_view::{ DataView, words_to_bytes };
 use crate::data_pack::{ DataPack, get_data_pack, save_data_pack };
-use crate::sprite_pack::{ SpritePack, get_sprite_pack, save_sprite_pack };
+use crate::sprite_pack::SpritePack;
 use crate::text::{ Text, FontState };
 use crate::file::set_file_modified;
 
@@ -32,7 +32,7 @@ pub fn read_firmware(handle: &AppHandle, data: &DataView) -> Result<Firmware, Bo
 	let sprite_pack_size = data.len() - sprite_pack_start;
 
 	let data_pack = get_data_pack(&font_state, &data.chunk(data_pack_start, FIRMWARE_DATA_PACK_SIZE))?;
-	let sprite_pack = get_sprite_pack(&data.chunk(sprite_pack_start, sprite_pack_size))?;
+	let sprite_pack = SpritePack::from_data(&data.chunk(sprite_pack_start, sprite_pack_size))?;
 
 	let menu_strings = match data.find_bytes(&[0xF9, 0x01, 0xFB, 0x01]) {
 		Some(start_index) => {
@@ -48,6 +48,7 @@ pub fn read_firmware(handle: &AppHandle, data: &DataView) -> Result<Firmware, Bo
 
 pub fn save_firmware(handle: &AppHandle, original_data: &[u8]) -> Result<Vec<u8>, Box<dyn Error>> {
 	let data_state: State<DataState> = handle.state();
+	let image_state: State<ImageState> = handle.state();
 
 	let mut new_data = DataView::new(original_data);
 
@@ -80,8 +81,10 @@ pub fn save_firmware(handle: &AppHandle, original_data: &[u8]) -> Result<Vec<u8>
 		new_data.data.splice(data_pack_start..end_of_data_pack, data_pack_data);
 	}
 
-	if let Some(sprite_pack) = data_state.sprite_pack.lock().unwrap().as_ref() {
-		let sprite_pack_data = save_sprite_pack(sprite_pack)?;
+	if let Some(sprite_pack) = data_state.sprite_pack.lock().unwrap().as_mut() {
+		let images = image_state.images.lock().unwrap();
+		sprite_pack.update_image_data(&images, *data_state.lock_colors.lock().unwrap())?;
+		let sprite_pack_data = sprite_pack.as_bytes()?;
 		let end_of_sprite_pack = sprite_pack_start + sprite_pack_data.len();
 		new_data.data.splice(sprite_pack_start..end_of_sprite_pack, sprite_pack_data);
 	}

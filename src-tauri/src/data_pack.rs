@@ -161,8 +161,6 @@ pub fn save_data_pack(data_pack: &DataPack, offset: usize) -> Result<Vec<u8>, Bo
 
 	tables[11] = character::save_characters(&data_pack.characters)?;
 
-	tables[12] = Vec::new();
-
 	let (graphics_node_offsets, graphics_node_data) = graphics_node::save_graphics_nodes(&data_pack.graphics_nodes)?;
 	tables[13] = graphics_node_offsets;
 	tables[14] = graphics_node_data;
@@ -171,8 +169,6 @@ pub fn save_data_pack(data_pack: &DataPack, offset: usize) -> Result<Vec<u8>, Bo
 	tables[15] = frame_layer_data;
 	tables[16] = frame_layer_offsets;
 	tables[18] = frame_group_data;
-
-	tables[17] = Vec::new();
 
 	tables[19] = data_pack.card_id.to_le_bytes().to_vec();
 
@@ -188,7 +184,7 @@ pub fn save_data_pack(data_pack: &DataPack, offset: usize) -> Result<Vec<u8>, Bo
 			let padding_size = next_table_offset - data.len();
 			data.extend_from_slice(&vec![0; padding_size]);
 		} else {
-			data.extend_from_slice(&table);
+			data.extend_from_slice(table);
 		}
 	}
 

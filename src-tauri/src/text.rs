@@ -5,7 +5,7 @@ use std::path::PathBuf;
 use tauri::{ AppHandle, Manager, State, path::BaseDirectory };
 use tauri::menu::MenuItemKind;
 
-use image::io::Reader as ImageReader;
+use image::ImageReader;
 use image::{ RgbaImage, GenericImageView };
 
 use rfd::{ MessageButtons, MessageDialog, MessageDialogResult };

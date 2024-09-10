@@ -6,7 +6,7 @@ use std::sync::Mutex;
 use std::io::Cursor;
 
 use tauri::{ Builder, AppHandle, Manager, State };
-use tauri::menu::{ Menu, Submenu, MenuItem, PredefinedMenuItem, CheckMenuItem, MenuId };
+use tauri::menu::{ Menu, Submenu, MenuItem, PredefinedMenuItem, CheckMenuItem, MenuId, MenuItemKind };
 use tauri::path::BaseDirectory;
 
 use rfd::{ MessageLevel, MessageButtons, MessageDialog };
@@ -32,12 +32,14 @@ use import::import_encoding;
 #[derive(Default, serde::Serialize)]
 pub struct DataState {
 	pub bin_type: Mutex<Option<BinType>>,
+	pub bin_size: Mutex<Option<BinSize>>,
 	pub card_header: Mutex<Option<smacard::CardHeader>>,
 	pub data_pack: Mutex<Option<DataPack>>,
 	pub sprite_pack: Mutex<Option<SpritePack>>,
 	pub menu_strings: Mutex<Option<Vec<Text>>>,
 	pub use_patch_header: Mutex<bool>,
-	pub original_data: Mutex<Option<Vec<u8>>>
+	pub lock_colors: Mutex<bool>,
+	pub original_data: Mutex<Option<Vec<u8>>>,
 }
 
 #[derive(Default)]
@@ -47,8 +49,17 @@ pub struct ImageState {
 
 #[derive(Debug, Clone, serde::Serialize)]
 pub enum BinType {
-	SmaCard,
-	Firmware
+	Firmware,
+	SmaCard
+}
+
+#[derive(Debug, Clone, PartialEq, serde::Serialize)]
+pub enum BinSize {
+	Firmware,
+	Card128KB,
+	Card1MB,
+	Card2MB,
+	TooBig
 }
 
 fn main() {
@@ -115,6 +126,16 @@ fn main() {
 					&MenuItem::with_id(handle, "edit_encoding", "Edit Encoding...", true, None::<&str>)?,
 				])?,
 
+				&Submenu::with_id_and_items(handle, "colors", "Colors", true, &[
+					&CheckMenuItem::with_id(handle, "lock_colors", "Lock Colors", true, false, None::<&str>)?,
+				])?,
+
+				&Submenu::with_id_and_items(handle, "card_size", "Card Size", false, &[
+					&CheckMenuItem::with_id(handle, "card_size_128kb", "128KB", true, false, None::<&str>)?,
+					&CheckMenuItem::with_id(handle, "card_size_1mb", "1MB", true, false, None::<&str>)?,
+					&CheckMenuItem::with_id(handle, "card_size_2mb", "2MB", true, false, None::<&str>)?,
+				])?,
+
 				&Submenu::with_id_and_items(handle, "help", "Help", true, &[
 					&MenuItem::with_id(handle, "about", "About", true, None::<&str>)?,
 				])?,
@@ -123,13 +144,11 @@ fn main() {
 
 		.setup(|app| {
 			let font_state: State<FontState> = app.state();
-
 			if let Ok(small_font_path) = app.path().resolve("resources/font_small_jp.png", BaseDirectory::Resource) {
 				if let Ok(small_font) = text::load_font(&small_font_path) {
 					*font_state.small_font_images.lock().unwrap() = small_font;
 				}
 			}
-
 			if let Ok(large_font_path) = app.path().resolve("resources/font_large_jp.png", BaseDirectory::Resource) {
 				if let Ok(large_font) = text::load_font(&large_font_path) {
 					*font_state.large_font_images.lock().unwrap() = large_font;
@@ -157,6 +176,12 @@ fn main() {
 					"encoding_en" => set_to_preset_encoding(handle, "en"),
 					"encoding_custom" => import_encoding(handle),
 					"edit_encoding" => handle.emit("show_encoding_dialog", "").unwrap(),
+
+					"lock_colors" => set_lock_colors(&handle, None),
+
+					"card_size_128kb" => set_card_size(&handle, BinSize::Card128KB),
+					"card_size_1mb" => set_card_size(&handle, BinSize::Card1MB),
+					"card_size_2mb" => set_card_size(&handle, BinSize::Card2MB),
 
 					"about" => handle.emit("show_about_dialog", "").unwrap(),
 					_ => {}
@@ -270,9 +295,48 @@ pub fn update_window_title(handle: &AppHandle) {
 		None => None
 	};
 
-
 	match file_name {
 		Some(file_name) => window.set_title(&format!("Smarty Pants - {}{}", file_name, modified_indicator)).unwrap(),
 		None => window.set_title("Smarty Pants").unwrap()
+	}
+}
+
+fn set_lock_colors(handle: &AppHandle, new_value: Option<bool>) {
+	let data_state: State<DataState> = handle.state();
+	let mut lock_colors = data_state.lock_colors.lock().unwrap();
+	*lock_colors = new_value.unwrap_or(!*lock_colors);
+
+	if let Some(menu) = handle.menu() {
+		if let Some(MenuItemKind::Submenu(colors_menu)) = menu.get("colors") {
+			if let Some(MenuItemKind::Check(lock_colors_menu_item)) = colors_menu.get("lock_colors") {
+				lock_colors_menu_item.set_checked(*lock_colors).unwrap();
+			}
+		}
+	}
+}
+
+fn set_card_size(handle: &AppHandle, new_value: BinSize) {
+	let data_state: State<DataState> = handle.state();
+	*data_state.bin_size.lock().unwrap() = Some(new_value);
+	update_card_size_menu(handle);
+}
+
+fn update_card_size_menu(handle: &AppHandle) {
+	let data_state: State<DataState> = handle.state();
+	let card_size_opt = data_state.bin_size.lock().unwrap();
+	let card_size = card_size_opt.as_ref();
+	if let Some(menu) = handle.menu() {
+		if let Some(MenuItemKind::Submenu(card_size_menu)) = menu.get("card_size") {
+			card_size_menu.set_enabled(card_size.is_some_and(|v| *v != BinSize::Firmware && *v != BinSize::TooBig)).unwrap();
+			if let Some(MenuItemKind::Check(card_size_128kb_item)) = card_size_menu.get("card_size_128kb") {
+				card_size_128kb_item.set_checked(card_size.is_some_and(|v| *v == BinSize::Card128KB)).unwrap();
+			}
+			if let Some(MenuItemKind::Check(card_size_1mb_item)) = card_size_menu.get("card_size_1mb") {
+				card_size_1mb_item.set_checked(card_size.is_some_and(|v| *v == BinSize::Card1MB)).unwrap();
+			}
+			if let Some(MenuItemKind::Check(card_size_2mb_item)) = card_size_menu.get("card_size_2mb") {
+				card_size_2mb_item.set_checked(card_size.is_some_and(|v| *v == BinSize::Card2MB)).unwrap();
+			}
+		}
 	}
 }
