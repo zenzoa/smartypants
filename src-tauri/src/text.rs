@@ -2,7 +2,7 @@ use std::error::Error;
 use std::sync::Mutex;
 use std::path::PathBuf;
 
-use tauri::{ AppHandle, Manager, State, path::BaseDirectory };
+use tauri::{ AppHandle, Manager, State, Emitter, path::BaseDirectory };
 use tauri::menu::MenuItemKind;
 
 use image::ImageReader;

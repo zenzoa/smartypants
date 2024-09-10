@@ -5,7 +5,7 @@ use std::error::Error;
 use std::sync::Mutex;
 use std::io::Cursor;
 
-use tauri::{ Builder, AppHandle, Manager, State };
+use tauri::{ Builder, AppHandle, Manager, State, Emitter };
 use tauri::menu::{ Menu, Submenu, MenuItem, PredefinedMenuItem, CheckMenuItem, MenuId, MenuItemKind };
 use tauri::path::BaseDirectory;
 

@@ -1,6 +1,7 @@
 use std::error::Error;
+
 use image::{ RgbaImage, GenericImage };
-use tauri::{ AppHandle, Manager, State };
+use tauri::{ AppHandle, State, Emitter };
 
 use super::Sprite;
 use super::palette::Color;

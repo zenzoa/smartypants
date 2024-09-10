@@ -3,7 +3,7 @@ use std::error::Error;
 use std::path::PathBuf;
 use std::sync::Mutex;
 
-use tauri::{ AppHandle, Manager, State };
+use tauri::{ AppHandle, Manager, State, Emitter };
 use tauri::async_runtime::spawn;
 
 use rfd::{ FileDialog, MessageButtons, MessageDialog, MessageDialogResult };

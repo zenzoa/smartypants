@@ -5,7 +5,7 @@ use std::path::PathBuf;
 use image::ImageReader;
 use image::GenericImageView;
 
-use tauri::{ AppHandle, Manager, State };
+use tauri::{ AppHandle, Manager, State, Emitter };
 use tauri::async_runtime::spawn;
 
 use rfd::{ FileDialog, MessageButtons, MessageDialog, MessageDialogResult };

@@ -91,8 +91,6 @@ impl PartialOrd for PixelDataChunk {
 pub fn get_sprites(def_data: &DataView, pixel_data: &DataView) -> Result<Vec<Sprite>, Box<dyn Error>> {
 	let mut sprites = Vec::new();
 
-	let mut max_index = 0;
-
 	let mut i = 0;
 	while i + 8 <= def_data.len() {
 		let props = def_data.get_u16(i + 6);
@@ -113,10 +111,6 @@ pub fn get_sprites(def_data: &DataView, pixel_data: &DataView) -> Result<Vec<Spr
 		let byte_count = sprite_size * (bits_per_pixel as usize) / 8;
 		let pixel_data_offset = byte_count * (pixel_data_index as usize);
 		let bits = pixel_data.get_bits(pixel_data_offset, byte_count);
-
-		if pixel_data_index > max_index {
-			max_index = pixel_data_index;
-		}
 
 		let mut pixels = Vec::new();
 		for i in 0..sprite_size {
@@ -145,8 +139,6 @@ pub fn get_sprites(def_data: &DataView, pixel_data: &DataView) -> Result<Vec<Spr
 
 		i += 8;
 	}
-
-	println!("max pixel data index: {}", max_index);
 
 	Ok(sprites)
 }
@@ -213,8 +205,6 @@ pub fn save_sprites(sprites: &mut [Sprite]) -> Result<(Vec<u8>, Vec<u8>), Box<dy
 fn save_pixel_data(sprites: &mut [Sprite]) -> Vec<u8> {
 	let mut chunks: Vec<PixelDataChunk> = Vec::new();
 
-	let mut max_index = 0;
-
 	let mut sorted_sprites = sprites.iter_mut().collect::<Vec<&mut Sprite>>();
 	sorted_sprites.sort_by(|a, b| {
 		a.pixels.len().cmp(&b.pixels.len())
@@ -251,10 +241,6 @@ fn save_pixel_data(sprites: &mut [Sprite]) -> Vec<u8> {
 
 		sprite.pixel_data_offset = offset;
 		sprite.pixel_data_index = (offset / byte_len) as u16;
-
-		if sprite.pixel_data_index > max_index {
-			max_index = sprite.pixel_data_index;
-		}
 	}
 
 	let mut data = Vec::new();
@@ -264,8 +250,6 @@ fn save_pixel_data(sprites: &mut [Sprite]) -> Vec<u8> {
 		data.extend_from_slice(&vec![0_u8; padding]);
 		data.extend_from_slice(&chunk.data);
 	}
-
-	println!("max pixel data index: {}", max_index);
 
 	data
 }

@@ -63,7 +63,6 @@
 			"nsis": null,
 			"timestampUrl": null,
 			"tsp": false,
-			"webviewFixedRuntimePath": null,
 			"webviewInstallMode": {
 				"silent": true,
 				"type": "downloadBootstrapper"
