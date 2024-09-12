@@ -12,6 +12,7 @@ use rfd::{ FileDialog, MessageButtons, MessageDialog, MessageDialogResult };
 
 use crate::{ DataState, BinType, ImageState, show_error_message, show_spinner, hide_spinner };
 use crate::sprite_pack::get_colors_in_image;
+use crate::sprite_pack::palette::Color;
 use crate::text::{ FontState, CharEncoding, EncodingLanguage, re_decode_strings, refresh_encoding_menu };
 use crate::file::{ FileState, set_file_modified };
 
@@ -263,7 +264,10 @@ fn import_image_spritesheet_from(handle: &AppHandle, image_index: usize, path: &
 
 	let mut x = 0;
 	for subimage in subimages.iter_mut() {
-		let new_subimage = spritesheet.view(x, 0, subimage.width(), subimage.height()).to_image();
+		let mut new_subimage = spritesheet.view(x, 0, subimage.width(), subimage.height()).to_image();
+		for pixel in new_subimage.pixels_mut() {
+			*pixel = Color::from_rgba(pixel).as_rgba();
+		}
 		*subimage = new_subimage;
 		x += subimage.width();
 	}

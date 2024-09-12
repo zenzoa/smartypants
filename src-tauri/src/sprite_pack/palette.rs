@@ -22,7 +22,12 @@ impl Color {
 		if alpha < 255 {
 			Color{ r: 0, g: 0, b: 0, a: 0 }
 		} else {
-			Color{ r: rgba[0], g: rgba[1], b: rgba[2], a: 255 }
+			Color{
+				r: ((((rgba[0] as u16) << 7) & 0x7c00) >> 7) as u8,
+				g: ((((rgba[1] as u16) << 2) & 0x03e0) >> 2) as u8,
+				b: ((((rgba[2] as u16) >> 3) & 0x001f) << 3) as u8,
+				a: 255
+			}
 		}
 	}
 
