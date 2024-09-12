@@ -124,6 +124,8 @@ pub fn open_bin(handle: AppHandle) {
 
 								set_lock_colors(&handle, Some(true));
 
+								update_card_size_menu(&handle);
+
 								send_data_to_frontend(&handle);
 							},
 							Err(why) => show_error_message(why)
