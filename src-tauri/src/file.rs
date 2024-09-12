@@ -172,10 +172,12 @@ pub fn save_bin(handle: AppHandle) {
 		let file_path_opt = file_state.file_path.lock().unwrap().clone();
 		match file_path_opt {
 			Some(file_path) => {
+				show_spinner(&handle);
 				if let Err(why) = save(&handle, &file_path) {
 					show_error_message(why);
 					update_window_title(&handle);
 				}
+				hide_spinner(&handle);
 			},
 			None => save_bin_as(handle)
 		}
