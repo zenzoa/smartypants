@@ -76,6 +76,7 @@ pub fn import_strings(handle: AppHandle) {
 pub fn import_strings_from(handle: &AppHandle, path: &PathBuf) -> Result<(), Box<dyn Error>> {
 	let data_state: State<DataState> = handle.state();
 	let font_state: State<FontState> = handle.state();
+	let char_codes = &font_state.char_codes.lock().unwrap();
 
 	let mut current_string_type = StringType::Unknown;
 
@@ -89,7 +90,7 @@ pub fn import_strings_from(handle: &AppHandle, path: &PathBuf) -> Result<(), Box
 				let mut menu_strings_opt = data_state.menu_strings.lock().unwrap();
 				if let Some(menu_strings) = menu_strings_opt.as_mut() {
 					if let Some(menu_string) = menu_strings.get_mut(id as usize) {
-						menu_string.set_string(&font_state, new_string);
+						menu_string.set_string(char_codes, new_string);
 					}
 				}
 			},
@@ -98,7 +99,7 @@ pub fn import_strings_from(handle: &AppHandle, path: &PathBuf) -> Result<(), Box
 				let mut data_pack_opt = data_state.data_pack.lock().unwrap();
 				if let Some(data_pack) = data_pack_opt.as_mut() {
 					if let Some(tamastring) = data_pack.tamastrings.get_mut(id as usize) {
-						tamastring.value.set_string(&font_state, new_string);
+						tamastring.value.set_string(char_codes, new_string);
 					}
 				}
 			},
@@ -107,7 +108,7 @@ pub fn import_strings_from(handle: &AppHandle, path: &PathBuf) -> Result<(), Box
 				let mut data_pack_opt = data_state.data_pack.lock().unwrap();
 				if let Some(data_pack) = data_pack_opt.as_mut() {
 					if let Some(item) = data_pack.items.get_mut(id as usize) {
-						item.name.set_string(&font_state, new_string);
+						item.name.set_string(char_codes, new_string);
 					}
 				}
 			},
@@ -135,11 +136,11 @@ pub fn import_strings_from(handle: &AppHandle, path: &PathBuf) -> Result<(), Box
 				let mut data_pack_opt = data_state.data_pack.lock().unwrap();
 				if let Some(data_pack) = data_pack_opt.as_mut() {
 					if let Some(character) = data_pack.characters.get_mut(id as usize) {
-						character.name.set_string(&font_state, &new_name);
-						character.pronoun.set_string(&font_state, &new_pronoun);
-						character.statement.set_string(&font_state, &new_statement);
-						character.question1.set_string(&font_state, &new_question1);
-						character.question2.set_string(&font_state, &new_question2);
+						character.name.set_string(char_codes, &new_name);
+						character.pronoun.set_string(char_codes, &new_pronoun);
+						character.statement.set_string(char_codes, &new_statement);
+						character.question1.set_string(char_codes, &new_question1);
+						character.question2.set_string(char_codes, &new_question2);
 					}
 				}
 			},
@@ -295,6 +296,8 @@ pub fn import_encoding(handle: AppHandle) {
 	if dialog_result == MessageDialogResult::Yes {
 		spawn(async move {
 			let file_state: State<FileState> = handle.state();
+			let font_state: State<FontState> = handle.state();
+			let char_codes = &font_state.char_codes.lock().unwrap();
 
 			let mut file_dialog = FileDialog::new()
 				.add_filter("JSON", &["json"]);
@@ -309,7 +312,7 @@ pub fn import_encoding(handle: AppHandle) {
 				show_spinner(&handle);
 				match import_encoding_from(&handle, &path, true) {
 					Ok(()) => {
-						re_decode_strings(&handle);
+						re_decode_strings(&handle, char_codes);
 					},
 					Err(why) => show_error_message(why)
 				}

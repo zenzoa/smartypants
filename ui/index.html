@@ -10,9 +10,12 @@
 
 		<script src="./script/main.js"></script>
 		<script src="./script/html.js"></script>
+
 		<script src="./script/about-dialog.js"></script>
 		<script src="./script/edit-dialog.js"></script>
-		<script src="./script/encoding-dialog.js"></script>
+		<script src="./script/choose-encoding-dialog.js"></script>
+		<script src="./script/edit-encoding-dialog.js"></script>
+
 		<script src="./script/section-animations.js"></script>
 		<script src="./script/section-characters.js"></script>
 		<script src="./script/section-frames.js"></script>
@@ -59,29 +62,67 @@
 			<div id="main">
 			</div>
 
-			<div id="encoding-dialog" class="dialog">
+			<div id="choose-encoding-dialog" class="dialog">
+				<div class="dialog-content">
+					<div class="dialog-header">
+						<span class="dialog-title">
+							Choose Text Encoding
+						</span>
+						<button id="choose-encoding-close-button" class="dialog-close-button icon" title="Close Dialog">
+							<img src="icons/cancel.svg" alt="Close Dialog">
+						</button>
+					</div>
+					<div class="dialog-body">
+						<div>
+							<button id="choose-encoding-jp" class="toggle off" title="Japanese">
+								Japanese
+							</button>
+						</div>
+						<div>
+							<button id="choose-encoding-en" class="toggle off" title="English/Latin">
+								English/Latin
+							</button>
+						</div>
+						<div>
+							<button id="choose-encoding-custom" class="toggle off" title="Custom">
+								Custom
+							</button>
+							<button id="choose-encoding-edit" class="text" title="Edit">
+								Edit
+							</button>
+						</div>
+					</div>
+					<div class="dialog-actions">
+						<button id="choose-encoding-ok-button" class="text" title="Ok">
+							Ok
+						</button>
+					</div>
+				</div>
+			</div>
+
+			<div id="edit-encoding-dialog" class="dialog">
 				<div class="dialog-content">
 					<div class="dialog-header">
 						<span class="dialog-title">
 							Text Encoding
 						</span>
-						<button id="encoding-close-button" class="dialog-close-button icon" title="Close Dialog">
+						<button id="edit-encoding-close-button" class="dialog-close-button icon" title="Close Dialog">
 							<img src="icons/cancel.svg" alt="Close Dialog">
 						</button>
 					</div>
-					<div id="encoding-dialog-body" class="dialog-body">
+					<div id="edit-encoding-dialog-body" class="dialog-body">
 					</div>
 					<div class="dialog-actions">
-						<button class="icon" id="encoding-import-button" title="Import Encoding">
+						<button class="icon" id="edit-encoding-import-button" title="Import Encoding">
 							<img src="icons/import.svg" alt="Import Encoding">
 						</button>
-						<button class="icon" id="encoding-export-button" title="Export Encoding">
+						<button class="icon" id="edit-encoding-export-button" title="Export Encoding">
 							<img src="icons/export.svg" alt="Export Encoding">
 						</button>
-						<button id="encoding-cancel-button" class="text" title="Cancel">
+						<button id="edit-encoding-cancel-button" class="text" title="Cancel">
 							Cancel
 						</button>
-						<button id="encoding-ok-button" class="text" title="Save Changes">
+						<button id="edit-encoding-ok-button" class="text" title="Save Changes">
 							Save Changes
 						</button>
 					</div>

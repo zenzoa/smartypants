@@ -36,23 +36,22 @@ pub struct Character {
 	pub gender: Gender
 }
 
-pub fn get_characters(font_state: &FontState, data: &DataView) -> Vec<Character> {
-
+pub fn get_characters(handle: &AppHandle, data: &DataView) -> Vec<Character> {
 	let mut characters = Vec::new();
 
 	let mut i = 0;
 	while i + 96 <= data.len() {
 		let id = EntityId::new(data.get_u16(i));
 		let character_type = data.get_u16(i + 2);
-		let name = data.get_text(font_state, i + 4, 10);
+		let name = data.get_text(handle, i + 4, 10);
 		let profile_image_id = EntityId::new(data.get_u16(i + 24));
 		let icon_image_id = EntityId::new(data.get_u16(i + 26));
 		let composition_id = EntityId::new(data.get_u16(i + 28));
 		let unknown1 = EntityId::new(data.get_u16(i + 30));
-		let pronoun = data.get_text(font_state, i + 32, 6);
-		let statement = data.get_text(font_state, i + 44, 6);
-		let question1 = data.get_text(font_state, i + 56, 6);
-		let question2 = data.get_text(font_state, i + 68, 6);
+		let pronoun = data.get_text(handle, i + 32, 6);
+		let statement = data.get_text(handle, i + 44, 6);
+		let question1 = data.get_text(handle, i + 56, 6);
+		let question2 = data.get_text(handle, i + 68, 6);
 		let unknown2 = data.get_u16(i + 80);
 		let unknown3 = data.get_u16(i + 82);
 		let global_id = EntityId::new(data.get_u16(i + 84));
@@ -128,6 +127,7 @@ pub fn save_characters(characters: &[Character]) -> Result<Vec<u8>, Box<dyn Erro
 pub fn update_character(handle: AppHandle, index: usize, key: &str, new_value: String) -> Option<Text> {
 	let data_state: State<DataState> = handle.state();
 	let font_state: State<FontState> = handle.state();
+	let char_codes = &font_state.char_codes.lock().unwrap();
 
 	let mut data_pack_opt = data_state.data_pack.lock().unwrap();
 	if let Some(data_pack) = data_pack_opt.as_mut() {
@@ -136,23 +136,23 @@ pub fn update_character(handle: AppHandle, index: usize, key: &str, new_value: S
 
 			return match key {
 				"name" => {
-					character.name.set_string(&font_state, &new_value);
+					character.name.set_string(char_codes, &new_value);
 					Some(character.name.clone())
 				},
 				"pronoun" => {
-					character.pronoun.set_string(&font_state, &new_value);
+					character.pronoun.set_string(char_codes, &new_value);
 					Some(character.pronoun.clone())
 				},
 				"statement" => {
-					character.statement.set_string(&font_state, &new_value);
+					character.statement.set_string(char_codes, &new_value);
 					Some(character.statement.clone())
 				},
 				"question1" => {
-					character.question1.set_string(&font_state, &new_value);
+					character.question1.set_string(char_codes, &new_value);
 					Some(character.question1.clone())
 				},
 				"question2" => {
-					character.question2.set_string(&font_state, &new_value);
+					character.question2.set_string(char_codes, &new_value);
 					Some(character.question2.clone())
 				},
 				_ => None

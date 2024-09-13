@@ -49,7 +49,7 @@ pub enum GameType {
 	SwipingGame
 }
 
-pub fn get_items(font_state: &FontState, data: &DataView) -> Vec<Item> {
+pub fn get_items(handle: &AppHandle, data: &DataView) -> Vec<Item> {
 	let mut items = Vec::new();
 
 	let mut i = 0;
@@ -67,7 +67,7 @@ pub fn get_items(font_state: &FontState, data: &DataView) -> Vec<Item> {
 			8 => ItemType::Game,
 			_ => ItemType::Unknown
 		};
-		let name = data.get_text(font_state, i + 4, 10);
+		let name = data.get_text(handle, i + 4, 10);
 		let image_id = EntityId::new(data.get_u16(i + 24));
 		let worn_image_id = if data.get_u16(i + 26) > 0 {
 			Some(EntityId::new(data.get_u16(i + 26)))
@@ -181,13 +181,14 @@ pub fn save_items(items: &[Item]) -> Result<Vec<u8>, Box<dyn Error>> {
 pub fn update_item(handle: AppHandle, index: usize, property_name: String, new_value: String) -> Option<Item> {
 	let data_state: State<DataState> = handle.state();
 	let font_state: State<FontState> = handle.state();
+	let char_codes = &font_state.char_codes.lock().unwrap();
 
 	let mut data_pack_opt = data_state.data_pack.lock().unwrap();
 	if let Some(data_pack) = data_pack_opt.as_mut() {
 		if let Some(item) = data_pack.items.get_mut(index) {
 			match property_name.as_str() {
 				"name" => {
-					item.name.set_string(&font_state, &new_value)
+					item.name.set_string(char_codes, &new_value)
 				},
 				"unknown1" => {
 					if let Ok(n) = new_value.parse::<u16>() {

@@ -20,29 +20,29 @@ pub struct Text {
 }
 
 impl Text {
-	pub fn from_data(font_state: &FontState, new_data: &[u16]) -> Text {
+	pub fn from_data(char_codes: &[CharEncoding], new_data: &[u16]) -> Text {
 		Text {
 			data: new_data.to_vec(),
-			string: encode_string(font_state, new_data)
+			string: encode_string(char_codes, new_data)
 		}
 	}
 
-	pub fn from_string(font_state: &FontState, new_string: &str) -> Text {
+	pub fn from_string(char_codes: &[CharEncoding], new_string: &str) -> Text {
 		Text {
-			data: decode_string(font_state, new_string),
+			data: decode_string(char_codes, new_string),
 			string: new_string.to_string()
 		}
 	}
 
-	pub fn set_string(&mut self, font_state: &FontState, new_string: &str) {
-		self.data = decode_string(font_state, new_string);
+	pub fn set_string(&mut self, char_codes: &[CharEncoding], new_string: &str) {
+		self.data = decode_string(char_codes, new_string);
 		self.string = new_string.to_string();
 	}
 
-	pub fn update_string(&mut self, font_state: &FontState) {
+	pub fn update_string(&mut self, char_codes: &[CharEncoding]) {
 		let mut new_string = String::new();
 		for word in &self.data {
-			if let Some(substring) = word_to_char_code(font_state, *word) {
+			if let Some(substring) = word_to_char_code(char_codes, *word) {
 				new_string.push_str(&substring);
 			}
 		}
@@ -81,8 +81,7 @@ pub enum EncodingLanguage {
 	EnglishLatin
 }
 
-pub fn word_to_char_code(font_state: &FontState, word: u16) -> Option<String> {
-	let char_codes = font_state.char_codes.lock().unwrap();
+pub fn word_to_char_code(char_codes: &[CharEncoding], word: u16) -> Option<String> {
 	if word <= 256 {
 		Some(char_codes[word as usize].text[0].clone())
 	} else {
@@ -95,8 +94,7 @@ pub fn word_to_char_code(font_state: &FontState, word: u16) -> Option<String> {
 	}
 }
 
-pub fn char_code_to_word(font_state: &FontState, text: &str) -> Option<u16> {
-	let char_codes = font_state.char_codes.lock().unwrap();
+pub fn char_code_to_word(char_codes: &[CharEncoding], text: &str) -> Option<u16> {
 	for char_code in char_codes.iter() {
 		if char_code.text.contains(&text.to_string()) {
 			return Some(char_code.data);
@@ -108,12 +106,12 @@ pub fn char_code_to_word(font_state: &FontState, text: &str) -> Option<u16> {
 #[tauri::command]
 pub fn update_char_codes(handle: AppHandle, new_char_codes: Vec<CharEncoding>) -> (Vec<CharEncoding>, Vec<u16>) {
 	let font_state: State<FontState> = handle.state();
+	let mut char_codes = font_state.char_codes.lock().unwrap();
 
 	let mut problem_codes = Vec::new();
 	let mut has_duplicate = false;
 	let mut has_invalid = false;
 
-	let mut char_codes = font_state.char_codes.lock().unwrap();
 	for new_char_code1 in &new_char_codes {
 		for text in new_char_code1.text.iter() {
 			if text.chars().count() > 1 && !(text.starts_with('{') && text.ends_with('}')) {
@@ -139,7 +137,7 @@ pub fn update_char_codes(handle: AppHandle, new_char_codes: Vec<CharEncoding>) -
 			}
 		}
 		*font_state.encoding_language.lock().unwrap() = EncodingLanguage::Custom;
-		re_decode_strings(&handle);
+		re_decode_strings(&handle, &char_codes);
 		refresh_encoding_menu(&handle);
 	}
 
@@ -158,11 +156,13 @@ pub fn update_char_codes(handle: AppHandle, new_char_codes: Vec<CharEncoding>) -
 }
 
 #[tauri::command]
-pub fn decode_string_js(font_state: State<FontState>, string: &str) -> Vec<u16> {
-	decode_string(&font_state, string)
+pub fn decode_string_js(handle: AppHandle, string: &str) -> Vec<u16> {
+	let font_state: State<FontState> = handle.state();
+	let char_codes = &font_state.char_codes.lock().unwrap();
+	decode_string(char_codes, string)
 }
 
-pub fn decode_string(font_state: &FontState, string: &str) -> Vec<u16> {
+pub fn decode_string(char_codes: &[CharEncoding], string: &str) -> Vec<u16> {
 	let mut data: Vec<u16> = Vec::new();
 
 	let mut var_name = String::new();
@@ -173,14 +173,14 @@ pub fn decode_string(font_state: &FontState, string: &str) -> Vec<u16> {
 			},
 			'}' | '>' => {
 				var_name.push(ch);
-				if let Some(word) = char_code_to_word(font_state, &var_name.to_lowercase()) {
+				if let Some(word) = char_code_to_word(char_codes, &var_name.to_lowercase()) {
 					data.push(word);
 				}
 				var_name = String::new();
 			},
 			_ => {
 				if var_name.is_empty() {
-					if let Some(word) = char_code_to_word(font_state, &ch.to_string()) {
+					if let Some(word) = char_code_to_word(char_codes, &ch.to_string()) {
 						data.push(word);
 					}
 				} else {
@@ -192,10 +192,10 @@ pub fn decode_string(font_state: &FontState, string: &str) -> Vec<u16> {
 	data
 }
 
-pub fn encode_string(font_state: &FontState, data: &[u16]) -> String {
+pub fn encode_string(char_codes: &[CharEncoding], data: &[u16]) -> String {
 	let mut new_string = String::new();
 	for word in data {
-		if let Some(substring) = word_to_char_code(font_state, *word) {
+		if let Some(substring) = word_to_char_code(char_codes, *word) {
 			new_string.push_str(&substring);
 		}
 	}
@@ -213,10 +213,13 @@ pub fn get_char_image_large(font_state: &FontState, char_index: usize) -> Option
 }
 
 #[tauri::command]
-pub fn validate_string(font_state: State<FontState>, string: &str, max_length: usize) -> (bool, String) {
-	let words = decode_string(&font_state, string);
-	let string2 = encode_string(&font_state, &words);
-	let words2 = decode_string(&font_state, &string2);
+pub fn validate_string(handle: AppHandle, string: &str, max_length: usize) -> (bool, String) {
+	let font_state: State<FontState> = handle.state();
+	let char_codes = &font_state.char_codes.lock().unwrap();
+
+	let words = decode_string(char_codes, string);
+	let string2 = encode_string(char_codes, &words);
+	let words2 = decode_string(char_codes, &string2);
 	(words == words2 && words2.len() <= max_length, string2)
 }
 
@@ -237,6 +240,7 @@ pub fn load_font(path: &PathBuf) -> Result<Vec<RgbaImage>, Box<dyn Error>> {
 pub fn set_to_preset_encoding(handle: AppHandle, name: &str) {
 	let data_state: State<DataState> = handle.state();
 	let font_state: State<FontState> = handle.state();
+	let char_codes = &font_state.char_codes.lock().unwrap();
 
 	let do_the_thing = || {
 		if let Ok(encoding_path) = handle.path().resolve(format!("resources/encoding_{}.json", name), BaseDirectory::Resource) {
@@ -261,7 +265,7 @@ pub fn set_to_preset_encoding(handle: AppHandle, name: &str) {
 						}
 					}
 
-					re_decode_strings(&handle);
+					re_decode_strings(&handle, char_codes);
 				},
 
 				Err(why) => show_error_message(why)
@@ -306,14 +310,13 @@ pub fn refresh_encoding_menu(handle: &AppHandle) {
 	handle.emit("update_encoding_language", encoding_language.clone()).unwrap();
 }
 
-pub fn re_decode_strings(handle: &AppHandle) {
+pub fn re_decode_strings(handle: &AppHandle, char_codes: &[CharEncoding]) {
 	let data_state: State<DataState> = handle.state();
-	let font_state: State<FontState> = handle.state();
 
 	let mut menu_strings_opt = data_state.menu_strings.lock().unwrap();
 	if let Some(menu_strings) = menu_strings_opt.as_mut() {
 		for menu_string in menu_strings.iter_mut() {
-			menu_string.update_string(&font_state);
+			menu_string.update_string(char_codes);
 		}
 		handle.emit("update_menu_strings", (&menu_strings, false)).unwrap();
 	}
@@ -321,21 +324,21 @@ pub fn re_decode_strings(handle: &AppHandle) {
 	let mut data_pack_opt = data_state.data_pack.lock().unwrap();
 	if let Some(data_pack) = data_pack_opt.as_mut() {
 		for tamastring in data_pack.tamastrings.iter_mut() {
-			tamastring.value.update_string(&font_state);
+			tamastring.value.update_string(char_codes);
 		}
 		handle.emit("update_tamastrings", (&data_pack.tamastrings, false)).unwrap();
 
 		for item in data_pack.items.iter_mut() {
-			item.name.update_string(&font_state);
+			item.name.update_string(char_codes);
 		}
 		handle.emit("update_items", (&data_pack.items, false)).unwrap();
 
 		for character in data_pack.characters.iter_mut() {
-			character.name.update_string(&font_state);
-			character.pronoun.update_string(&font_state);
-			character.statement.update_string(&font_state);
-			character.question1.update_string(&font_state);
-			character.question2.update_string(&font_state);
+			character.name.update_string(char_codes);
+			character.pronoun.update_string(char_codes);
+			character.statement.update_string(char_codes);
+			character.question1.update_string(char_codes);
+			character.question2.update_string(char_codes);
 		}
 		handle.emit("update_characters", (&data_pack.characters, false)).unwrap();
 	}

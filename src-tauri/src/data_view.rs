@@ -1,3 +1,5 @@
+use tauri::{ State, AppHandle, Manager };
+
 use crate::text::{ Text, FontState };
 
 #[derive(serde::Serialize)]
@@ -46,7 +48,9 @@ impl DataView {
 		bits
 	}
 
-	pub fn get_text(&self, font_state: &FontState, i: usize, len: usize) -> Text {
+	pub fn get_text(&self, handle: &AppHandle, i: usize, len: usize) -> Text {
+		let font_state: State<FontState> = handle.state();
+		let char_codes = &font_state.char_codes.lock().unwrap();
 		let mut words: Vec<u16> = Vec::new();
 		for j in 0..len {
 			if i + j*2 < self.len() {
@@ -56,7 +60,7 @@ impl DataView {
 				}
 			}
 		}
-		Text::from_data(font_state, &words)
+		Text::from_data(char_codes, &words)
 	}
 
 	pub fn find_bytes(&self, bytes: &[u8]) -> Option<usize> {

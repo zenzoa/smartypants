@@ -474,20 +474,30 @@ hr {
 	background: #fff;
 }
 
-#encoding-dialog .dialog-content {
+#choose-encoding-dialog .dialog-body > div {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+}
+
+#choose-encoding-dialog .dialog-body > div + div {
+	margin-top: 24px;
+}
+
+#edit-encoding-dialog .dialog-content {
 	flex-grow: 1;
 }
 
-#encoding-dialog-body {
+#edit-encoding-dialog-body {
 	overflow-y: auto;
 }
 
-#encoding-dialog th {
+#edit-encoding-dialog th {
 	text-align: center;
 }
 
-#encoding-dialog td:nth-child(2),
-#encoding-dialog td:nth-child(3) {
+#edit-encoding-dialog td:nth-child(2),
+#edit-encoding-dialog td:nth-child(3) {
 	text-align: center;
 	background-color: #222;
 }

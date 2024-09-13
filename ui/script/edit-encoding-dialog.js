@@ -1,12 +1,12 @@
-class EncodingDialog {
+class EditEncodingDialog {
 	static isOpen() {
-		return document.getElementById('encoding-dialog').classList.contains('open')
+		return document.getElementById('edit-encoding-dialog').classList.contains('open')
 	}
 
 	static open() {
-		document.getElementById('encoding-dialog-body').replaceChildren()
+		document.getElementById('edit-encoding-dialog-body').replaceChildren()
 
-		document.getElementById('encoding-dialog-body').append(
+		document.getElementById('edit-encoding-dialog-body').append(
 			table([
 				tbody(textEncoding.map(charCode =>
 					tr([
@@ -21,7 +21,7 @@ class EncodingDialog {
 			])
 		)
 
-		document.getElementById('encoding-dialog').classList.add('open')
+		document.getElementById('edit-encoding-dialog').classList.add('open')
 
 		document.getElementById('encoding-1').focus()
 
@@ -29,13 +29,13 @@ class EncodingDialog {
 	}
 
 	static close() {
-		document.getElementById('encoding-dialog').classList.remove('open')
-		document.getElementById('encoding-dialog-body').replaceChildren()
+		document.getElementById('edit-encoding-dialog').classList.remove('open')
+		document.getElementById('edit-encoding-dialog-body').replaceChildren()
 	}
 
 	static update_encoding(afterSuccess) {
 		const newCharCodes = textEncoding.map(charCode => {
-			const input = document.getElementById(`encoding-${charCode.data}`)
+			const input = document.getElementById(`edit-encoding-${charCode.data}`)
 			if (input != null) {
 				input.classList.remove('invalid')
 				const text = input.value.split(', ')
@@ -50,7 +50,7 @@ class EncodingDialog {
 				afterSuccess()
 			} else {
 				result[1].forEach(char_code => {
-					const input = document.getElementById(`encoding-${char_code}`)
+					const input = document.getElementById(`edit-encoding-${char_code}`)
 					input.classList.add('invalid')
 				})
 			}
@@ -58,28 +58,28 @@ class EncodingDialog {
 	}
 
 	static setup() {
-		document.getElementById('encoding-close-button')
-			.addEventListener('click', EncodingDialog.close)
+		document.getElementById('edit-encoding-close-button')
+			.addEventListener('click', EditEncodingDialog.close)
 
-		document.getElementById('encoding-import-button')
+		document.getElementById('edit-encoding-import-button')
 			.addEventListener('click', () => tauri_invoke("import_encoding"))
 
-		document.getElementById('encoding-export-button')
+		document.getElementById('edit-encoding-export-button')
 			.addEventListener('click', () =>
-				EncodingDialog.update_encoding(() => tauri_invoke("export_encoding"))
+				EditEncodingDialog.update_encoding(() => tauri_invoke("export_encoding"))
 			)
 
-		document.getElementById('encoding-cancel-button')
-			.addEventListener('click', EncodingDialog.close)
+		document.getElementById('edit-encoding-cancel-button')
+			.addEventListener('click', EditEncodingDialog.close)
 
-		document.getElementById('encoding-ok-button')
+		document.getElementById('edit-encoding-ok-button')
 			.addEventListener('click', () =>
-				EncodingDialog.update_encoding(EncodingDialog.close)
+				EditEncodingDialog.update_encoding(EditEncodingDialog.close)
 			)
 
-		tauri_listen('show_encoding_dialog', () => {
+		tauri_listen('show_edit_encoding_dialog', () => {
 			document.getElementById('spinner').classList.add('on')
-			const p = new Promise(() => setTimeout(EncodingDialog.open, 100))
+			const p = new Promise(() => setTimeout(EditEncodingDialog.open, 100))
 			p.then()
 		})
 	}

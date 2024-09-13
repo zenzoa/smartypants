@@ -175,7 +175,7 @@ fn main() {
 					"encoding_jp" => set_to_preset_encoding(handle, "jp"),
 					"encoding_en" => set_to_preset_encoding(handle, "en"),
 					"encoding_custom" => import_encoding(handle),
-					"edit_encoding" => handle.emit("show_encoding_dialog", "").unwrap(),
+					"edit_encoding" => handle.emit("show_edit_encoding_dialog", "").unwrap(),
 
 					"lock_colors" => set_lock_colors(&handle, None),
 
@@ -247,7 +247,6 @@ fn main() {
 			match do_the_thing() {
 				Ok(response) => response,
 				Err(_why) => {
-					// println!("ERROR: {}", why);
 					not_found
 				}
 			}

@@ -23,20 +23,18 @@ pub struct Firmware {
 }
 
 pub fn read_firmware(handle: &AppHandle, data: &DataView) -> Result<Firmware, Box<dyn Error>> {
-	let font_state: State<FontState> = handle.state();
-
 	let use_patch_header = data.data.starts_with(&PATCH_HEADER_START);
 
 	let data_pack_start = if use_patch_header { 0x6CE000 + 1024 } else { 0x6CE000 };
 	let sprite_pack_start = if use_patch_header { 0x730000 + 1024 } else { 0x730000 };
 	let sprite_pack_size = data.len() - sprite_pack_start;
 
-	let data_pack = get_data_pack(&font_state, &data.chunk(data_pack_start, FIRMWARE_DATA_PACK_SIZE))?;
+	let data_pack = get_data_pack(handle, &data.chunk(data_pack_start, FIRMWARE_DATA_PACK_SIZE))?;
 	let sprite_pack = SpritePack::from_data(&data.chunk(sprite_pack_start, sprite_pack_size))?;
 
 	let menu_strings = match data.find_bytes(&[0xF9, 0x01, 0xFB, 0x01]) {
 		Some(start_index) => {
-			read_menu_strings(&font_state, &data.chunk(start_index, data.len() - start_index))?
+			read_menu_strings(handle, &data.chunk(start_index, data.len() - start_index))?
 		},
 		None => {
 			return Err("Can't find menu strings".into())
@@ -104,7 +102,10 @@ pub fn save_firmware(handle: &AppHandle, original_data: &[u8]) -> Result<Vec<u8>
 	Ok(new_data.data)
 }
 
-pub fn read_menu_strings(font_state: &FontState, data: &DataView) -> Result<Vec<Text>, Box<dyn Error>> {
+pub fn read_menu_strings(handle: &AppHandle, data: &DataView) -> Result<Vec<Text>, Box<dyn Error>> {
+	let font_state: State<FontState> = handle.state();
+	let char_codes = &font_state.char_codes.lock().unwrap();
+
 	let num_strings = data.get_u16(0) as usize;
 
 	if data.len() < 2 * num_strings + 2 {
@@ -136,7 +137,7 @@ pub fn read_menu_strings(font_state: &FontState, data: &DataView) -> Result<Vec<
 				text_data.push(word);
 			}
 		}
-		menu_strings.push(Text::from_data(font_state, &text_data));
+		menu_strings.push(Text::from_data(char_codes, &text_data));
 	}
 
 	Ok(menu_strings)
@@ -178,11 +179,12 @@ pub fn save_menu_strings(menu_strings: &[Text]) -> Result<Vec<u8>, Box<dyn Error
 pub fn update_menu_string(handle: AppHandle, index: usize, name: String) -> Option<Text> {
 	let data_state: State<DataState> = handle.state();
 	let font_state: State<FontState> = handle.state();
+	let char_codes = &font_state.char_codes.lock().unwrap();
 
 	let mut menu_strings_opt = data_state.menu_strings.lock().unwrap();
 	if let Some(menu_strings) = menu_strings_opt.as_mut() {
 		if let Some(menu_string) = menu_strings.get_mut(index) {
-			menu_string.set_string(&font_state, &name);
+			menu_string.set_string(char_codes, &name);
 			set_file_modified(&handle, true);
 			return Some(menu_string.clone());
 		}

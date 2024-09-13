@@ -9,7 +9,6 @@ use crate::{ DataState, ImageState, BinSize };
 use crate::data_view::{ DataView, bytes_to_words };
 use crate::data_pack::{ DataPack, get_data_pack, save_data_pack };
 use crate::sprite_pack::SpritePack;
-use crate::text::FontState;
 
 #[derive(Clone, serde::Serialize)]
 pub struct CardHeader {
@@ -42,9 +41,9 @@ pub struct TamaSmaCard {
 	pub sprite_pack: SpritePack
 }
 
-pub fn read_card(font_state: &FontState, data: &DataView) -> Result<TamaSmaCard, Box<dyn Error>> {
+pub fn read_card(handle: &AppHandle, data: &DataView) -> Result<TamaSmaCard, Box<dyn Error>> {
 	let header = read_card_header(data)?;
-	let (data_pack, sprite_pack) = read_card_packs(font_state, &data.chunk(0x1000, data.len() - 0x1000))?;
+	let (data_pack, sprite_pack) = read_card_packs(handle, &data.chunk(0x1000, data.len() - 0x1000))?;
 	Ok(TamaSmaCard { header, data_pack, sprite_pack })
 }
 
@@ -108,7 +107,7 @@ pub fn read_card_header(data: &DataView) -> Result<CardHeader, Box<dyn Error>> {
 	})
 }
 
-pub fn read_card_packs(font_state: &FontState, data: &DataView) -> Result<(DataPack, SpritePack), Box<dyn Error>> {
+pub fn read_card_packs(handle: &AppHandle, data: &DataView) -> Result<(DataPack, SpritePack), Box<dyn Error>> {
 	if data.len() < 68 {
 		return Err("Unable to read card data: too short for pack info".into());
 	}
@@ -128,7 +127,7 @@ pub fn read_card_packs(font_state: &FontState, data: &DataView) -> Result<(DataP
 		if pack_offset > 0 && pack_size > 0 {
 			let pack_data = data.chunk(pack_offset, pack_size);
 			match i {
-				0 => data_pack_opt = Some(get_data_pack(font_state, &pack_data)?),
+				0 => data_pack_opt = Some(get_data_pack(handle, &pack_data)?),
 				1 => sprite_pack_opt = Some(SpritePack::from_data(&pack_data)?),
 				_ => {}
 			}

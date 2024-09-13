@@ -32,7 +32,10 @@ impl TamaString {
 	}
 }
 
-pub fn get_tamastrings(font_state: &FontState, data: &DataView) -> Vec<TamaString> {
+pub fn get_tamastrings(handle: &AppHandle, data: &DataView) -> Vec<TamaString> {
+	let font_state: State<FontState> = handle.state();
+	let char_codes = &font_state.char_codes.lock().unwrap();
+
 	let mut strings = Vec::new();
 
 	let mut i = 0;
@@ -58,7 +61,7 @@ pub fn get_tamastrings(font_state: &FontState, data: &DataView) -> Vec<TamaStrin
 			unknown1,
 			unknown2,
 			unknown3,
-			value: Text::from_data(font_state, &text_data)
+			value: Text::from_data(char_codes, &text_data)
 		});
 	}
 
@@ -88,11 +91,12 @@ pub fn save_tamastrings(tamastrings: &[TamaString]) -> Result<(Vec<u8>, Vec<u8>)
 pub fn update_tamastring(handle: AppHandle, index: usize, name: String) -> Option<Text> {
 	let data_state: State<DataState> = handle.state();
 	let font_state: State<FontState> = handle.state();
+	let char_codes = &font_state.char_codes.lock().unwrap();
 
 	let mut data_pack_opt = data_state.data_pack.lock().unwrap();
 	if let Some(data_pack) = data_pack_opt.as_mut() {
 		if let Some(tamastring) = data_pack.tamastrings.get_mut(index) {
-			tamastring.value.set_string(&font_state, &name);
+			tamastring.value.set_string(char_codes, &name);
 			set_file_modified(&handle, true);
 			return Some(tamastring.value.clone());
 		}

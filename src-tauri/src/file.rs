@@ -66,7 +66,7 @@ pub fn open_bin(handle: AppHandle) {
 
 				match bin_type {
 					BinType::SmaCard => {
-						match read_card(&font_state, &data) {
+						match read_card(&handle, &data) {
 							Ok(card) => {
 								*data_state.card_header.lock().unwrap() = Some(card.header.clone());
 
@@ -93,6 +93,8 @@ pub fn open_bin(handle: AppHandle) {
 								update_card_size_menu(&handle);
 
 								send_data_to_frontend(&handle);
+
+								handle.emit("show_choose_encoding_dialog", ()).unwrap();
 							},
 							Err(why) => show_error_message(why)
 						}
@@ -127,6 +129,8 @@ pub fn open_bin(handle: AppHandle) {
 								update_card_size_menu(&handle);
 
 								send_data_to_frontend(&handle);
+
+								handle.emit("show_choose_encoding_dialog", ()).unwrap();
 							},
 							Err(why) => show_error_message(why)
 						}

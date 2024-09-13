@@ -179,7 +179,7 @@ window.addEventListener('load', () => {
 	tauri_listen('update_char_codes', event => {
 		textEncoding = event.payload[0].slice(1, 257)
 		if (event.payload[1]) {
-			EncodingDialog.open()
+			EditEncodingDialog.open()
 		}
 	})
 
@@ -211,13 +211,15 @@ window.addEventListener('load', () => {
 const setupDialogs = () => {
 	EditDialog.setup()
 	AboutDialog.setup()
-	EncodingDialog.setup()
+	ChooseEncodingDialog.setup()
+	EditEncodingDialog.setup()
 }
 
 const closeDialogs = () => {
 	EditDialog.close()
 	AboutDialog.close()
-	EncodingDialog.close()
+	ChooseEncodingDialog.close()
+	EditEncodingDialog.close()
 }
 
 const importImageSpritesheet = (imageIndex) => {

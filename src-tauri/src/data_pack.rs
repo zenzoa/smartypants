@@ -1,6 +1,7 @@
 use std::error::Error;
 
-use crate::text::FontState;
+use tauri::AppHandle;
+
 use crate::data_view::DataView;
 
 pub mod table1;
@@ -57,7 +58,7 @@ pub struct DataPack {
 	pub card_id: u16
 }
 
-pub fn get_data_pack(font_state: &FontState, data: &DataView) -> Result<DataPack, Box<dyn Error>> {
+pub fn get_data_pack(handle: &AppHandle, data: &DataView) -> Result<DataPack, Box<dyn Error>> {
 	let (table_offsets, table_sizes) = get_table_offsets(data)?;
 
 	let get_table_data = |i: usize| -> DataView {
@@ -73,14 +74,14 @@ pub fn get_data_pack(font_state: &FontState, data: &DataView) -> Result<DataPack
 	let scene_layer_offsets = scene::get_scene_layer_offsets(&get_table_data(4), scene_offsets, scene_sizes);
 	let scenes = scene::get_scenes(&get_table_data(5), scene_layer_offsets);
 
-	let tamastrings = tamastring::get_tamastrings(font_state, &get_table_data(6));
+	let tamastrings = tamastring::get_tamastrings(handle, &get_table_data(6));
 
 	let (table9_offsets, table9_sizes) = table9::get_entity_offsets(&get_table_data(8));
 	let table9 = table9::get_entities(&get_table_data(9), table9_offsets, table9_sizes);
 
-	let items = item::get_items(font_state, &get_table_data(10));
+	let items = item::get_items(handle, &get_table_data(10));
 
-	let characters = character::get_characters(font_state, &get_table_data(11));
+	let characters = character::get_characters(handle, &get_table_data(11));
 
 	let graphics_nodes_offsets = graphics_node::get_graphics_nodes_offsets(&get_table_data(13));
 	let graphics_nodes = graphics_node::get_graphics_nodes(&get_table_data(14), graphics_nodes_offsets);
