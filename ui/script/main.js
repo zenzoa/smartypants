@@ -33,9 +33,6 @@ window.addEventListener('load', () => {
 	document.getElementById('import-strings-button')
 		.addEventListener('click', () => tauri_invoke('import_strings'))
 
-	// document.getElementById('export-data-button')
-	// 	.addEventListener('click', () => tauri_invoke('export_data'))
-
 	document.getElementById('export-strings-button')
 		.addEventListener('click', () => tauri_invoke('export_strings'))
 
@@ -62,8 +59,7 @@ window.addEventListener('load', () => {
 			characters: setupCharacters(),
 			animations: setupAnimations(),
 			frames: setupFrames(),
-			sprites: setupSprites(),
-			palettes: setupPalettes()
+			sprites: setupSprites()
 		}
 
 		const nav = div({id: 'sidebar'}, [
@@ -77,8 +73,6 @@ window.addEventListener('load', () => {
 				`Menu Strings <span class="tag">${cardData.menu_strings.length}</span>`) : '',
 			button({id: 'view-tamaStrings-button', onclick: viewTamaStrings},
 				`Dialog Strings <span class="tag">${cardData.data_pack.tamastrings.length}</span>`),
-			// button({id: 'view-palettes-button', onclick: viewPalettes},
-			// 	`Palettes <span class="tag">${Math.ceil(cardData.sprite_pack.palettes.length / 4)}</span>`),
 			button({id: 'view-sprites-button', onclick: viewSprites},
 				`Images <span class="tag">${cardData.sprite_pack.image_defs.length}</span>`),
 			button({id: 'view-frames-button', onclick: viewFrames},
@@ -158,6 +152,14 @@ window.addEventListener('load', () => {
 		sections.characters = setupCharacters()
 		sections.animations = setupAnimations()
 		sections.frames = setupFrames()
+	})
+
+	tauri_listen('update_lock_colors', event => {
+		cardData.lock_colors = event.payload
+		sections.sprites = setupSprites()
+		if (currentSection === 'sprites') {
+			viewSprites()
+		}
 	})
 
 	tauri_listen('update_encoding_language', event => {

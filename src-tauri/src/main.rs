@@ -109,7 +109,6 @@ fn main() {
 					])?,
 
 					&Submenu::with_id_and_items(handle, "export", "Export", true, &[
-						&MenuItem::with_id(handle, "export_data", "Export Data", true, None::<&str>)?,
 						&MenuItem::with_id(handle, "export_strings", "Export Strings", true, None::<&str>)?,
 						&MenuItem::with_id(handle, "export_images", "Export Images", true, None::<&str>)?,
 					])?,
@@ -118,22 +117,32 @@ fn main() {
 					&MenuItem::with_id(handle, "quit", "Quit", true, Some("CmdOrCtrl+Q"))?,
 				])?,
 
-				&Submenu::with_id_and_items(handle, "text_encoding", "Encoding", true, &[
-					&CheckMenuItem::with_id(handle, "encoding_jp", "Japanese", true, true, None::<&str>)?,
-					&CheckMenuItem::with_id(handle, "encoding_en", "English/Latin", true, false, None::<&str>)?,
-					&CheckMenuItem::with_id(handle, "encoding_custom", "Custom", true, false, None::<&str>)?,
-					&PredefinedMenuItem::separator(handle)?,
-					&MenuItem::with_id(handle, "edit_encoding", "Edit Encoding...", true, None::<&str>)?,
-				])?,
+				&Submenu::with_id_and_items(handle, "config", "Config", true, &[
+					&Submenu::with_id_and_items(handle, "text_encoding", "Alphabet", true, &[
+						&CheckMenuItem::with_id(handle, "encoding_jp", "Japanese", true, true, None::<&str>)?,
+						&CheckMenuItem::with_id(handle, "encoding_en", "English/Latin", true, false, None::<&str>)?,
+						&CheckMenuItem::with_id(handle, "encoding_custom", "Custom", true, false, None::<&str>)?,
+						&PredefinedMenuItem::separator(handle)?,
+						&MenuItem::with_id(handle, "edit_encoding", "Edit...", true, None::<&str>)?,
+					])?,
 
-				&Submenu::with_id_and_items(handle, "colors", "Colors", true, &[
+					&PredefinedMenuItem::separator(handle)?,
+
+					&Submenu::with_id_and_items(handle, "card_size", "Card Size", false, &[
+						&CheckMenuItem::with_id(handle, "card_size_128kb", "128KB", true, false, None::<&str>)?,
+						&CheckMenuItem::with_id(handle, "card_size_1mb", "1MB", true, false, None::<&str>)?,
+						&CheckMenuItem::with_id(handle, "card_size_2mb", "2MB", true, false, None::<&str>)?,
+					])?,
+
+					&PredefinedMenuItem::separator(handle)?,
+
 					&CheckMenuItem::with_id(handle, "lock_colors", "Lock Colors", true, false, None::<&str>)?,
 				])?,
 
-				&Submenu::with_id_and_items(handle, "card_size", "Card Size", false, &[
-					&CheckMenuItem::with_id(handle, "card_size_128kb", "128KB", true, false, None::<&str>)?,
-					&CheckMenuItem::with_id(handle, "card_size_1mb", "1MB", true, false, None::<&str>)?,
-					&CheckMenuItem::with_id(handle, "card_size_2mb", "2MB", true, false, None::<&str>)?,
+				&Submenu::with_id_and_items(handle, "view", "View", true, &[
+					&CheckMenuItem::with_id(handle, "show_toolbar", "Show Toolbar", true, false, None::<&str>)?,
+					&PredefinedMenuItem::separator(handle)?,
+					&Submenu::with_id(handle, "theme", "Theme", true)?,
 				])?,
 
 				&Submenu::with_id_and_items(handle, "help", "Help", true, &[
@@ -306,12 +315,16 @@ fn set_lock_colors(handle: &AppHandle, new_value: Option<bool>) {
 	*lock_colors = new_value.unwrap_or(!*lock_colors);
 
 	if let Some(menu) = handle.menu() {
-		if let Some(MenuItemKind::Submenu(colors_menu)) = menu.get("colors") {
-			if let Some(MenuItemKind::Check(lock_colors_menu_item)) = colors_menu.get("lock_colors") {
-				lock_colors_menu_item.set_checked(*lock_colors).unwrap();
+		if let Some(MenuItemKind::Submenu(config_menu)) = menu.get("config") {
+			if let Some(MenuItemKind::Submenu(colors_menu)) = config_menu.get("colors") {
+				if let Some(MenuItemKind::Check(lock_colors_menu_item)) = colors_menu.get("lock_colors") {
+					lock_colors_menu_item.set_checked(*lock_colors).unwrap();
+				}
 			}
 		}
 	}
+
+	handle.emit("update_lock_colors", *lock_colors).unwrap();
 }
 
 fn set_card_size(handle: &AppHandle, new_value: BinSize) {
@@ -325,16 +338,18 @@ fn update_card_size_menu(handle: &AppHandle) {
 	let card_size_opt = data_state.bin_size.lock().unwrap();
 	let card_size = card_size_opt.as_ref();
 	if let Some(menu) = handle.menu() {
-		if let Some(MenuItemKind::Submenu(card_size_menu)) = menu.get("card_size") {
-			card_size_menu.set_enabled(card_size.is_some_and(|v| *v != BinSize::Firmware && *v != BinSize::TooBig)).unwrap();
-			if let Some(MenuItemKind::Check(card_size_128kb_item)) = card_size_menu.get("card_size_128kb") {
-				card_size_128kb_item.set_checked(card_size.is_some_and(|v| *v == BinSize::Card128KB)).unwrap();
-			}
-			if let Some(MenuItemKind::Check(card_size_1mb_item)) = card_size_menu.get("card_size_1mb") {
-				card_size_1mb_item.set_checked(card_size.is_some_and(|v| *v == BinSize::Card1MB)).unwrap();
-			}
-			if let Some(MenuItemKind::Check(card_size_2mb_item)) = card_size_menu.get("card_size_2mb") {
-				card_size_2mb_item.set_checked(card_size.is_some_and(|v| *v == BinSize::Card2MB)).unwrap();
+		if let Some(MenuItemKind::Submenu(config_menu)) = menu.get("config") {
+			if let Some(MenuItemKind::Submenu(card_size_menu)) = config_menu.get("card_size") {
+				card_size_menu.set_enabled(card_size.is_some_and(|v| *v != BinSize::Firmware && *v != BinSize::TooBig)).unwrap();
+				if let Some(MenuItemKind::Check(card_size_128kb_item)) = card_size_menu.get("card_size_128kb") {
+					card_size_128kb_item.set_checked(card_size.is_some_and(|v| *v == BinSize::Card128KB)).unwrap();
+				}
+				if let Some(MenuItemKind::Check(card_size_1mb_item)) = card_size_menu.get("card_size_1mb") {
+					card_size_1mb_item.set_checked(card_size.is_some_and(|v| *v == BinSize::Card1MB)).unwrap();
+				}
+				if let Some(MenuItemKind::Check(card_size_2mb_item)) = card_size_menu.get("card_size_2mb") {
+					card_size_2mb_item.set_checked(card_size.is_some_and(|v| *v == BinSize::Card2MB)).unwrap();
+				}
 			}
 		}
 	}

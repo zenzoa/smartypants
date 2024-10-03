@@ -22,7 +22,6 @@
 		<script src="./script/section-headers.js"></script>
 		<script src="./script/section-items.js"></script>
 		<script src="./script/section-menu-strings.js"></script>
-		<script src="./script/section-palettes.js"></script>
 		<script src="./script/section-particle-emitters.js"></script>
 		<script src="./script/section-scenes.js"></script>
 		<script src="./script/section-sprites.js"></script>
@@ -48,9 +47,6 @@
 					<img src="icons/import_strings.svg" alt="Import Strings">
 				</button>
 				<span class="vertical-divider"></span>
-				<!-- <button class="icon" id="export-data-button" title="Export Data">
-					<img src="icons/export.svg" alt="Export Data">
-				</button> -->
 				<button class="icon" id="export-strings-button" title="Export Strings">
 					<img src="icons/export_strings.svg" alt="Export Strings">
 				</button>
@@ -65,8 +61,8 @@
 			<div id="choose-encoding-dialog" class="dialog">
 				<div class="dialog-content">
 					<div class="dialog-header">
-						<span class="dialog-title">
-							Choose Text Encoding
+						<span id="choose-encoding-title" class="dialog-title">
+							Choose String Display Alphabet
 						</span>
 						<button id="choose-encoding-close-button" class="dialog-close-button icon" title="Close Dialog">
 							<img src="icons/cancel.svg" alt="Close Dialog">
@@ -91,6 +87,7 @@
 								Edit
 							</button>
 						</div>
+						<p>Note: Strings won't display correctly in Smarty Pants if this doesn't match the alphabet the strings were written in. New and imported strings will be interpreted based on this alphabet.</p>
 					</div>
 					<div class="dialog-actions">
 						<button id="choose-encoding-ok-button" class="text" title="Ok">
@@ -179,7 +176,7 @@
 			</div>
 
 			<div id="spinner" class="spinner">
-				<div class="spinner-animation">
+				<div class="spinner-inner">
 				</div>
 			</div>
 

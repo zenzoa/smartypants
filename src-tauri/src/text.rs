@@ -240,11 +240,10 @@ pub fn load_font(path: &PathBuf) -> Result<Vec<RgbaImage>, Box<dyn Error>> {
 pub fn set_to_preset_encoding(handle: AppHandle, name: &str) {
 	let data_state: State<DataState> = handle.state();
 	let font_state: State<FontState> = handle.state();
-	let char_codes = &font_state.char_codes.lock().unwrap();
 
 	let do_the_thing = || {
 		if let Ok(encoding_path) = handle.path().resolve(format!("resources/encoding_{}.json", name), BaseDirectory::Resource) {
-			match import_encoding_from(&handle, &encoding_path, false) {
+			match import_encoding_from(&handle, &font_state, &encoding_path, false) {
 				Ok(()) => {
 					*font_state.encoding_language.lock().unwrap() = match name {
 						"jp" => EncodingLanguage::Japanese,
@@ -265,6 +264,7 @@ pub fn set_to_preset_encoding(handle: AppHandle, name: &str) {
 						}
 					}
 
+					let char_codes = &font_state.char_codes.lock().unwrap();
 					re_decode_strings(&handle, char_codes);
 				},
 
@@ -294,15 +294,17 @@ pub fn refresh_encoding_menu(handle: &AppHandle) {
 	let encoding_language = font_state.encoding_language.lock().unwrap();
 
 	if let Some(menu) = handle.menu() {
-		if let Some(MenuItemKind::Submenu(text_encoding_menu)) = menu.get("text_encoding") {
-			if let Some(MenuItemKind::Check(menu_item_jp)) = text_encoding_menu.get("encoding_jp") {
-				menu_item_jp.set_checked(*encoding_language == EncodingLanguage::Japanese).unwrap();
-			}
-			if let Some(MenuItemKind::Check(menu_item_en)) = text_encoding_menu.get("encoding_en") {
-				menu_item_en.set_checked(*encoding_language == EncodingLanguage::EnglishLatin).unwrap();
-			}
-			if let Some(MenuItemKind::Check(menu_item_en)) = text_encoding_menu.get("encoding_custom") {
-				menu_item_en.set_checked(*encoding_language == EncodingLanguage::Custom).unwrap();
+		if let Some(MenuItemKind::Submenu(config_menu)) = menu.get("config") {
+			if let Some(MenuItemKind::Submenu(text_encoding_menu)) = config_menu.get("text_encoding") {
+				if let Some(MenuItemKind::Check(menu_item_jp)) = text_encoding_menu.get("encoding_jp") {
+					menu_item_jp.set_checked(*encoding_language == EncodingLanguage::Japanese).unwrap();
+				}
+				if let Some(MenuItemKind::Check(menu_item_en)) = text_encoding_menu.get("encoding_en") {
+					menu_item_en.set_checked(*encoding_language == EncodingLanguage::EnglishLatin).unwrap();
+				}
+				if let Some(MenuItemKind::Check(menu_item_en)) = text_encoding_menu.get("encoding_custom") {
+					menu_item_en.set_checked(*encoding_language == EncodingLanguage::Custom).unwrap();
+				}
 			}
 		}
 	}

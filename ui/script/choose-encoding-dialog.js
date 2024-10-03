@@ -4,8 +4,6 @@ class ChooseEncodingDialog {
 	}
 
 	static open() {
-		console.log(cardData.encoding_language)
-
 		document.getElementById('choose-encoding-jp').className = cardData.encoding_language === 'Japanese' ? 'toggle on' : 'toggle off'
 		document.getElementById('choose-encoding-en').className = cardData.encoding_language === 'EnglishLatin' ? 'toggle on' : 'toggle off'
 		document.getElementById('choose-encoding-custom').className = cardData.encoding_language === 'Custom' ? 'toggle on' : 'toggle off'
@@ -50,12 +48,16 @@ class ChooseEncodingDialog {
 			})
 
 		document.getElementById('choose-encoding-edit')
-			.addEventListener('click', () => EditEncodingDialog.open())
+			.addEventListener('click', () => {
+					document.getElementById('spinner').classList.add('on')
+					setTimeout(() => {
+						EditEncodingDialog.open()
+						document.getElementById('spinner').classList.remove('on')
+					}, 100)
+				})
 
 		tauri_listen('show_choose_encoding_dialog', () => {
-			document.getElementById('spinner').classList.add('on')
-			const p = new Promise(() => setTimeout(ChooseEncodingDialog.open, 100))
-			p.then()
+			ChooseEncodingDialog.open()
 		})
 	}
 }

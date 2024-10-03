@@ -310,7 +310,7 @@ pub fn import_encoding(handle: AppHandle) {
 
 			if let Some(path) = file_result {
 				show_spinner(&handle);
-				match import_encoding_from(&handle, &path, true) {
+				match import_encoding_from(&handle, &font_state, &path, true) {
 					Ok(()) => {
 						re_decode_strings(&handle, char_codes);
 					},
@@ -326,10 +326,9 @@ pub fn import_encoding(handle: AppHandle) {
 	}
 }
 
-pub fn import_encoding_from(handle: &AppHandle, path: &PathBuf, open_dialog: bool) -> Result<(), Box<dyn Error>> {
+pub fn import_encoding_from(handle: &AppHandle, font_state: &State<FontState>, path: &PathBuf, open_dialog: bool) -> Result<(), Box<dyn Error>> {
 	let file_string = fs::read_to_string(path)?;
 	let char_codes: Vec<CharEncoding> = serde_json::from_str(&file_string)?;
-	let font_state: State<FontState> = handle.state();
 
 	handle.emit("update_char_codes", (char_codes.clone(), open_dialog)).unwrap();
 

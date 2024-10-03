@@ -11,7 +11,7 @@ const setupSprites = () => {
 			thead([tr([
 				th('ID'),
 				th('Sub-Images'),
-				th('First Palette'),
+				cardData.lock_colors ? th('First Palette') : '',
 				th('Max Colors'),
 				th('Actions')
 			])]),
@@ -34,14 +34,20 @@ const renderImageDef = (i, imageDef) => {
 		td(Array(imageDef.subimage_count).fill(0).map((_, j) =>
 			displayImage(i, j, true)
 		)),
-		td([
+		cardData.lock_colors ? td([
 			linkToPalette(imageDef.first_palette_index),
 			button({className: 'edit', onclick: editImageFirstPalette.bind(this, i)}, '✏️')
-		]),
+		]) : '',
 		td(bppToMaxColors[cardData.sprite_pack.sprites[imageDef.first_sprite_index].bits_per_pixel]),
 		td([
-			button({className: 'text', onclick: importImageSpritesheet.bind(this, i)}, 'Import'),
-			button({className: 'text', onclick: exportImageSpritesheet.bind(this, i)}, 'Export')
+			div({className:'button-row'}, [
+				button({className: 'icon', title: 'Import Spritesheet', onclick: importImageSpritesheet.bind(this, i)}, [
+					img({src: 'icons/import.svg', alt: 'Import Spritesheet'})
+				]),
+				button({className: 'icon', title: 'Export Spritesheet', onclick: exportImageSpritesheet.bind(this, i)}, [
+					img({src: 'icons/export.svg', alt: 'Export Spritesheet'})
+				])
+			])
 		])
 	])
 }

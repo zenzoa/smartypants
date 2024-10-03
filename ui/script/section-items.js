@@ -62,7 +62,6 @@ const viewItems = () => {
 }
 
 const updateItem = (i, prop, value) => {
-	console.log(`update item ${i}: ${prop} = ${value}`)
 	tauri_invoke('update_item', { index: i, propertyName: prop, newValue: `${value}` }).then(result => {
 		if (result != null) {
 			cardData.data_pack.items[i] = result
@@ -80,7 +79,7 @@ const editItemName = (i) => {
 		'Name:',
 		item.name.string,
 		updateItem.bind(this, i, 'name'),
-		8
+		9
 	)
 }
 

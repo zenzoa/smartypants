@@ -43,6 +43,7 @@ const th = el.bind(this, 'th')
 const td = el.bind(this, 'td')
 const br = el.bind(this, 'br')
 const hr = el.bind(this, 'hr')
+const img = el.bind(this, 'img')
 
 const formatEntityId = (id) => {
 	const { card_id, entity_id } = id

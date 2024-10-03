@@ -34,7 +34,7 @@ const renderCharacter = (i, character) => {
 			span(character.name.string),
 			button({
 				className: 'edit',
-				onclick: editCharacterString.bind(this, i, 'Name', 'name', 8)
+				onclick: editCharacterString.bind(this, i, 'Name', 'name', 9)
 			}, '✏️')
 		]),
 		td(displayImageWithLink(character.profile_image_id, 0)),
@@ -45,28 +45,28 @@ const renderCharacter = (i, character) => {
 			span(character.pronoun.string),
 			button({
 				className: 'edit',
-				onclick: editCharacterString.bind(this, i, 'Pronoun', 'pronoun', 8)
+				onclick: editCharacterString.bind(this, i, 'Pronoun', 'pronoun', 5)
 			}, '✏️')
 		]),
 		td([
 			span(character.statement.string),
 			button({
 				className: 'edit',
-				onclick: editCharacterString.bind(this, i, 'Statement', 'statement', 4)
+				onclick: editCharacterString.bind(this, i, 'Statement', 'statement', 5)
 			}, '✏️')
 		]),
 		td([
 			span(character.question1.string),
 			button({
 				className: 'edit',
-				onclick: editCharacterString.bind(this, i, 'Question 1', 'question1', 4)
+				onclick: editCharacterString.bind(this, i, 'Question 1', 'question1', 5)
 			}, '✏️')
 		]),
 		td([
 			span(character.question2.string),
 			button({
 				className: 'edit',
-				onclick: editCharacterString.bind(this, i, 'Question 2', 'question2', 4)
+				onclick: editCharacterString.bind(this, i, 'Question 2', 'question2', 5)
 			}, '✏️')
 		]),
 		td(character.unknown2),
