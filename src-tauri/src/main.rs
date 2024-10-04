@@ -201,7 +201,9 @@ fn main() {
 			Ok(())
 		})
 
-		.register_uri_scheme_protocol("getimage", |app, request| {
+		.register_uri_scheme_protocol("getimage", |context, request| {
+			let handle = context.app_handle();
+
 			let not_found = http::Response::builder().body(Vec::new()).unwrap();
 
 			let mut img_data = Cursor::new(Vec::new());
@@ -217,19 +219,19 @@ fn main() {
 
 				match image_id_str {
 					"smallfont" => {
-						let font_state: State<FontState> = app.state();
+						let font_state: State<FontState> = handle.state();
 						let img = text::get_char_image_small(&font_state, subimage_index).ok_or("no font image found for character index")?;
 						img.write_to(&mut img_data, image::ImageFormat::Png)?;
 					},
 					"largefont" => {
-						let font_state: State<FontState> = app.state();
+						let font_state: State<FontState> = handle.state();
 						let img = text::get_char_image_large(&font_state, subimage_index).ok_or("no font image found for character index")?;
 						img.write_to(&mut img_data, image::ImageFormat::Png)?;
 					},
 					_ => {
 						let image_id = image_id_str.parse::<usize>()?;
 
-						let image_state: State<ImageState> = app.state();
+						let image_state: State<ImageState> = handle.state();
 						let img = match image_state.images.lock().unwrap().get(image_id) {
 							Some(image) => {
 								match image.get(subimage_index) {
