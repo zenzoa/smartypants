@@ -47,18 +47,7 @@
 			"icons/icon.ico"
 		],
 		"targets": "all",
-		"resources": [
-			"resources/font_large_jp.png",
-			"resources/font_small_jp.png",
-			"resources/font_large_en.png",
-			"resources/font_small_en.png",
-			"resources/font_large_latin.png",
-			"resources/font_small_latin.png",
-			"resources/encoding_jp.json",
-			"resources/encoding_en.json",
-			"resources/encoding_latin.json",
-			"resources/patch_header.bin"
-		],
+		"resources": [ "resources/**/*" ],
 		"windows": {
 			"allowDowngrades": true,
 			"certificateThumbprint": null,
@@ -105,4 +94,4 @@
 			}
 		}
 	}
-  }
+}

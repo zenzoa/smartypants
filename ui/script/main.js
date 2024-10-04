@@ -13,6 +13,10 @@ let currentSection = ''
 let sections = {}
 
 window.addEventListener('load', () => {
+	tauri_listen('update_theme', updateTheme)
+	tauri_listen('update_toolbar_visibility', updateToolbarVisibility)
+	tauri_invoke('load_config')
+
 	// disable context menu
 	document.body.addEventListener('contextmenu', event => {
 		event.preventDefault()
@@ -209,6 +213,23 @@ window.addEventListener('load', () => {
 		}
 	})
 })
+
+const updateTheme = (event) => {
+	const style = document.documentElement.style
+	for (let i = 0; i < event.payload.length; i++) {
+		const prop = event.payload[i]
+		style.setProperty(`--${prop.key}`, prop.value)
+	}
+}
+
+const updateToolbarVisibility = (event) => {
+	const style = document.documentElement.style
+	if (event.payload) {
+		style.setProperty('--toolbar-display', 'flex')
+	} else {
+		style.setProperty('--toolbar-display', 'none')
+	}
+}
 
 const setupDialogs = () => {
 	EditDialog.setup()

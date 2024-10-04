@@ -243,7 +243,7 @@ pub fn set_to_preset_encoding(handle: AppHandle, name: &str) {
 	let font_state: State<FontState> = handle.state();
 
 	let do_the_thing = || {
-		if let Ok(encoding_path) = handle.path().resolve(format!("resources/encoding_{}.json", name), BaseDirectory::Resource) {
+		if let Ok(encoding_path) = handle.path().resolve(format!("resources/encodings/encoding_{}.json", name), BaseDirectory::Resource) {
 			match import_encoding_from(&handle, &font_state, &encoding_path, false) {
 				Ok(()) => {
 					*font_state.encoding_language.lock().unwrap() = match name {
@@ -254,12 +254,12 @@ pub fn set_to_preset_encoding(handle: AppHandle, name: &str) {
 					};
 
 					if let Some(BinType::SmaCard) = *data_state.bin_type.lock().unwrap() {
-						if let Ok(small_font_path) = handle.path().resolve(format!("resources/font_small_{}.png", name), BaseDirectory::Resource) {
+						if let Ok(small_font_path) = handle.path().resolve(format!("resources/fontsprites/font_small_{}.png", name), BaseDirectory::Resource) {
 							if let Ok(small_font) = load_font(&small_font_path) {
 								*font_state.small_font_images.lock().unwrap() = small_font;
 							}
 						}
-						if let Ok(large_font_path) = handle.path().resolve(format!("resources/font_large_{}.png", name), BaseDirectory::Resource) {
+						if let Ok(large_font_path) = handle.path().resolve(format!("resources/fontsprites/font_large_{}.png", name), BaseDirectory::Resource) {
 							if let Ok(large_font) = load_font(&large_font_path) {
 								*font_state.large_font_images.lock().unwrap() = large_font;
 							}

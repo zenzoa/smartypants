@@ -22,12 +22,14 @@ mod text;
 mod file;
 mod export;
 mod import;
+mod config;
 
 use data_pack::DataPack;
 use sprite_pack::SpritePack;
 use text::{ Text, FontState, set_to_preset_encoding };
 use file::{ FileState, open_bin, save_bin, save_bin_as, continue_if_modified };
 use import::import_encoding;
+use config::{ ConfigState, load_config, get_themes, set_theme, set_toolbar_visibility };
 
 #[derive(Default, serde::Serialize)]
 pub struct DataState {
@@ -87,13 +89,15 @@ fn main() {
 			text::decode_string_js,
 			text::get_default_char_codes,
 			text::update_char_codes,
-			text::set_to_preset_encoding
+			text::set_to_preset_encoding,
+			load_config
 		])
 
 		.manage(FileState::default())
 		.manage(DataState::default())
 		.manage(ImageState::default())
 		.manage(FontState::default())
+		.manage(ConfigState::default())
 
 		.menu(|handle| {
 			Menu::with_id_and_items(handle, "main", &[
@@ -141,7 +145,7 @@ fn main() {
 				])?,
 
 				&Submenu::with_id_and_items(handle, "view", "View", true, &[
-					&CheckMenuItem::with_id(handle, "show_toolbar", "Show Toolbar", true, false, None::<&str>)?,
+					&CheckMenuItem::with_id(handle, "show_toolbar", "Show Toolbar", true, true, None::<&str>)?,
 					&PredefinedMenuItem::separator(handle)?,
 					&Submenu::with_id(handle, "theme", "Theme", true)?,
 				])?,
@@ -153,13 +157,16 @@ fn main() {
 		})
 
 		.setup(|app| {
+			let handle = app.app_handle();
+			get_themes(&handle).unwrap();
+
 			let font_state: State<FontState> = app.state();
-			if let Ok(small_font_path) = app.path().resolve("resources/font_small_jp.png", BaseDirectory::Resource) {
+			if let Ok(small_font_path) = app.path().resolve("resources/fontsprites/font_small_jp.png", BaseDirectory::Resource) {
 				if let Ok(small_font) = text::load_font(&small_font_path) {
 					*font_state.small_font_images.lock().unwrap() = small_font;
 				}
 			}
-			if let Ok(large_font_path) = app.path().resolve("resources/font_large_jp.png", BaseDirectory::Resource) {
+			if let Ok(large_font_path) = app.path().resolve("resources/fontsprites/font_large_jp.png", BaseDirectory::Resource) {
 				if let Ok(large_font) = text::load_font(&large_font_path) {
 					*font_state.large_font_images.lock().unwrap() = large_font;
 				}
@@ -188,14 +195,23 @@ fn main() {
 					"encoding_custom" => import_encoding(handle),
 					"edit_encoding" => handle.emit("show_edit_encoding_dialog", "").unwrap(),
 
-					"lock_colors" => set_lock_colors(&handle, None),
-
 					"card_size_128kb" => set_card_size(&handle, BinSize::Card128KB),
 					"card_size_1mb" => set_card_size(&handle, BinSize::Card1MB),
 					"card_size_2mb" => set_card_size(&handle, BinSize::Card2MB),
 
+					"lock_colors" => set_lock_colors(&handle, None),
+
+					"show_toolbar" => set_toolbar_visibility(&handle, None),
+
 					"about" => handle.emit("show_about_dialog", "").unwrap(),
-					_ => {}
+
+					_ => {
+						if id.starts_with("theme_") {
+							if let Some((_, theme_name)) = id.split_once("theme_") {
+								set_theme(&handle, theme_name).unwrap();
+							}
+						}
+					}
 				}
 			});
 			Ok(())
@@ -259,9 +275,7 @@ fn main() {
 
 			match do_the_thing() {
 				Ok(response) => response,
-				Err(_why) => {
-					not_found
-				}
+				Err(_why) => not_found
 			}
 		})
 

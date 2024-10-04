@@ -2,13 +2,9 @@
 	--color1: #46425e;
 	--color2: #15788c;
 	--color3: #00b9be;
-	--color4: #ffeecc;
+	--color4: #ff6973;
 	--color5: #ffb0a3;
-	--color6: #ff6973;
-
-	--color1-50: rgba(70, 66, 94, 0.5);
-	--color5-50: rgba(255, 176, 163, 0.5);
-	--color6-50: rgba(255, 105, 115, 0.5);
+	--color6: #ffeecc;
 
 	--input-bg: white;
 	--input-txt: #222;
@@ -16,6 +12,8 @@
 	--invalid: #ff0000;
 
 	--main-font: "Noto Sans Mono";
+
+	--toolbar-display: flex;
 }
 
 * {
@@ -72,7 +70,7 @@ button.text,
 button.icon,
 button.toggle::before {
 	border-radius: 8px;
-	box-shadow: -2px 2px 0 0 var(--color6);
+	box-shadow: -2px 2px 0 0 var(--color4);
 	background-color: var(--color5);
 }
 
@@ -89,7 +87,7 @@ button.icon:hover,
 button.toggle:hover::before {
 	top: -2px;
 	left: 2px;
-	box-shadow: -4px 4px 0 0 var(--color6);
+	box-shadow: -4px 4px 0 0 var(--color4);
 }
 
 button.text:active,
@@ -105,7 +103,7 @@ button.icon:focus,
 button.toggle:focus::before {
 	box-shadow: -2px 2px 0 0 var(--color2);
 	background-color: var(--color3);
-	color: var(--color4);
+	color: var(--color6);
 }
 
 button.text:focus:hover,
@@ -116,7 +114,7 @@ button.toggle:focus:hover::before {
 
 button.dialog-close-button {
 	box-shadow: -2px 2px 0 0 var(--color5);
-	background-color: var(--color4);
+	background-color: var(--color6);
 }
 
 button.dialog-close-button:hover {
@@ -170,14 +168,14 @@ button.edit {
 input {
 	border-radius: 8px;
 	border: 1px solid var(--color5);
-	box-shadow: 0 2px 0 var(--color4) inset;
+	box-shadow: 0 2px 0 var(--color6) inset;
 	padding: 8px 16px;
 	background-color: var(--input-bg);
 	color: var(--input-txt);
 }
 
 input:focus {
-	border-color: var(--color6);
+	border-color: var(--color4);
 }
 
 input:invalid, input.invalid {
@@ -202,14 +200,14 @@ label {
 }
 
 #toolbar {
-	display: flex;
+	display: var(--toolbar-display);
 	align-items: center;
 	gap: 8px;
 	margin: 8px;
 	margin-bottom: 0;
 	padding: 8px;
 	border-radius: 8px;
-	background-color: var(--color4);
+	background-color: var(--color6);
 }
 
 #toolbar .vertical-divider {
@@ -244,11 +242,11 @@ label {
 	border-top-left-radius: 8px;
 	border-bottom-left-radius: 8px;
 	text-align: left;
-	color: var(--color4);
+	color: var(--color6);
 }
 
 #sidebar button:hover {
-	background-color: var(--color5-50);
+	background-color: color-mix(in srgb, var(--color5) 50%, transparent);
 }
 
 #sidebar button.selected {
@@ -265,7 +263,7 @@ label {
 	padding: 2px 8px;
 	border-radius: 100px;
 	background-color: var(--color2);
-	color: var(--color4);
+	color: var(--color6);
 	font-size: x-small;
 }
 
@@ -308,7 +306,7 @@ td, th {
 th {
 	border-bottom: 1px solid var(--color1);
 	border-right: 1px solid var(--color1);
-	background-color: var(--color6);
+	background-color: var(--color4);
 	text-align: left;
 	font-weight: 700;
 }
@@ -325,7 +323,7 @@ tbody:first-child > tr:first-child > th {
 td {
 	border-bottom: 1px solid var(--color5);
 	border-right: 1px solid var(--color5);
-	background-color: var(--color4);
+	background-color: var(--color6);
 }
 
 td:first-child {
@@ -384,7 +382,7 @@ hr {
 	align-items: center;
 	justify-content: center;
 	flex-direction: column;
-	background-color: var(--color1-50);
+	background-color: color-mix(in srgb, var(--color1) 50%, transparent);
 }
 
 .dialog.open {
@@ -408,8 +406,8 @@ hr {
 	margin: 50px;
 	border-radius: 10px;
 	border: 1px solid var(--color1);
-	background-color: var(--color4);
-	box-shadow: -8px 8px 0 0 var(--color6);
+	background-color: var(--color6);
+	box-shadow: -8px 8px 0 0 var(--color4);
 }
 
 .dialog-title {
@@ -539,7 +537,7 @@ hr {
 	right: 0;
 	align-items: center;
 	justify-content: center;
-	background-color: var(--color1-50);
+	background-color: color-mix(in srgb, var(--color1) 50%, transparent);
 }
 
 .spinner.on {
@@ -553,7 +551,7 @@ hr {
 	display: block;
 	margin: 15px 0;
 	position: relative;
-	color: var(--color4);
+	color: var(--color6);
 	box-sizing: border-box;
 	animation: spinner-anim 1s linear infinite alternate;
 }
