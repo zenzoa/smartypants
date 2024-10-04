@@ -120,7 +120,8 @@ fn main() {
 				&Submenu::with_id_and_items(handle, "config", "Config", true, &[
 					&Submenu::with_id_and_items(handle, "text_encoding", "Alphabet", true, &[
 						&CheckMenuItem::with_id(handle, "encoding_jp", "Japanese", true, true, None::<&str>)?,
-						&CheckMenuItem::with_id(handle, "encoding_en", "English/Latin", true, false, None::<&str>)?,
+						&CheckMenuItem::with_id(handle, "encoding_en", "English", true, false, None::<&str>)?,
+						&CheckMenuItem::with_id(handle, "encoding_latin", "Extended Latin", true, false, None::<&str>)?,
 						&CheckMenuItem::with_id(handle, "encoding_custom", "Custom", true, false, None::<&str>)?,
 						&PredefinedMenuItem::separator(handle)?,
 						&MenuItem::with_id(handle, "edit_encoding", "Edit...", true, None::<&str>)?,
@@ -183,6 +184,7 @@ fn main() {
 
 					"encoding_jp" => set_to_preset_encoding(handle, "jp"),
 					"encoding_en" => set_to_preset_encoding(handle, "en"),
+					"encoding_latin" => set_to_preset_encoding(handle, "latin"),
 					"encoding_custom" => import_encoding(handle),
 					"edit_encoding" => handle.emit("show_edit_encoding_dialog", "").unwrap(),
 

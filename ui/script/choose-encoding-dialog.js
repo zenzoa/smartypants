@@ -5,7 +5,8 @@ class ChooseEncodingDialog {
 
 	static open() {
 		document.getElementById('choose-encoding-jp').className = cardData.encoding_language === 'Japanese' ? 'toggle on' : 'toggle off'
-		document.getElementById('choose-encoding-en').className = cardData.encoding_language === 'EnglishLatin' ? 'toggle on' : 'toggle off'
+		document.getElementById('choose-encoding-en').className = cardData.encoding_language === 'English' ? 'toggle on' : 'toggle off'
+		document.getElementById('choose-encoding-latin').className = cardData.encoding_language === 'Latin' ? 'toggle on' : 'toggle off'
 		document.getElementById('choose-encoding-custom').className = cardData.encoding_language === 'Custom' ? 'toggle on' : 'toggle off'
 
 		document.getElementById('choose-encoding-dialog').classList.add('open')
@@ -28,6 +29,7 @@ class ChooseEncodingDialog {
 				tauri_invoke('set_to_preset_encoding', { name: 'jp' })
 				document.getElementById('choose-encoding-jp').className = 'toggle on'
 				document.getElementById('choose-encoding-en').className = 'toggle off'
+				document.getElementById('choose-encoding-latin').className = 'toggle off'
 				document.getElementById('choose-encoding-custom').className = 'toggle off'
 			})
 
@@ -36,6 +38,16 @@ class ChooseEncodingDialog {
 				tauri_invoke('set_to_preset_encoding', { name: 'en' })
 				document.getElementById('choose-encoding-jp').className = 'toggle off'
 				document.getElementById('choose-encoding-en').className = 'toggle on'
+				document.getElementById('choose-encoding-latin').className = 'toggle off'
+				document.getElementById('choose-encoding-custom').className = 'toggle off'
+			})
+
+		document.getElementById('choose-encoding-latin')
+			.addEventListener('click', () => {
+				tauri_invoke('set_to_preset_encoding', { name: 'latin' })
+				document.getElementById('choose-encoding-jp').className = 'toggle off'
+				document.getElementById('choose-encoding-en').className = 'toggle off'
+				document.getElementById('choose-encoding-latin').className = 'toggle on'
 				document.getElementById('choose-encoding-custom').className = 'toggle off'
 			})
 
@@ -44,6 +56,7 @@ class ChooseEncodingDialog {
 				tauri_invoke('import_encoding', { name: 'custom' })
 				document.getElementById('choose-encoding-jp').className = 'toggle off'
 				document.getElementById('choose-encoding-en').className = 'toggle off'
+				document.getElementById('choose-encoding-latin').className = 'toggle off'
 				document.getElementById('choose-encoding-custom').className = 'toggle on'
 			})
 

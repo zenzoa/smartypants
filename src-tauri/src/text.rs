@@ -78,7 +78,8 @@ pub struct CharEncoding {
 pub enum EncodingLanguage {
 	Custom,
 	Japanese,
-	EnglishLatin
+	English,
+	Latin
 }
 
 pub fn word_to_char_code(char_codes: &[CharEncoding], word: u16) -> Option<String> {
@@ -247,7 +248,8 @@ pub fn set_to_preset_encoding(handle: AppHandle, name: &str) {
 				Ok(()) => {
 					*font_state.encoding_language.lock().unwrap() = match name {
 						"jp" => EncodingLanguage::Japanese,
-						"en" => EncodingLanguage::EnglishLatin,
+						"en" => EncodingLanguage::English,
+						"latin" => EncodingLanguage::Latin,
 						_ => EncodingLanguage::Custom
 					};
 
@@ -300,10 +302,13 @@ pub fn refresh_encoding_menu(handle: &AppHandle) {
 					menu_item_jp.set_checked(*encoding_language == EncodingLanguage::Japanese).unwrap();
 				}
 				if let Some(MenuItemKind::Check(menu_item_en)) = text_encoding_menu.get("encoding_en") {
-					menu_item_en.set_checked(*encoding_language == EncodingLanguage::EnglishLatin).unwrap();
+					menu_item_en.set_checked(*encoding_language == EncodingLanguage::English).unwrap();
 				}
-				if let Some(MenuItemKind::Check(menu_item_en)) = text_encoding_menu.get("encoding_custom") {
-					menu_item_en.set_checked(*encoding_language == EncodingLanguage::Custom).unwrap();
+				if let Some(MenuItemKind::Check(menu_item_latin)) = text_encoding_menu.get("encoding_latin") {
+					menu_item_latin.set_checked(*encoding_language == EncodingLanguage::Latin).unwrap();
+				}
+				if let Some(MenuItemKind::Check(menu_item_custom)) = text_encoding_menu.get("encoding_custom") {
+					menu_item_custom.set_checked(*encoding_language == EncodingLanguage::Custom).unwrap();
 				}
 			}
 		}

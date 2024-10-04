@@ -1,6 +1,6 @@
 {
 	"productName": "Smarty Pants",
-	"version": "0.2.8",
+	"version": "0.3.0",
 	"identifier": "thing.zenzoa.smartypants",
 	"app": {
 		"withGlobalTauri": true,
@@ -52,8 +52,11 @@
 			"resources/font_small_jp.png",
 			"resources/font_large_en.png",
 			"resources/font_small_en.png",
+			"resources/font_large_latin.png",
+			"resources/font_small_latin.png",
 			"resources/encoding_jp.json",
 			"resources/encoding_en.json",
+			"resources/encoding_latin.json",
 			"resources/patch_header.bin"
 		],
 		"windows": {
