@@ -1,4 +1,4 @@
-use std::fs;
+use std::{ fs, io };
 use std::error::Error;
 use std::sync::Mutex;
 
@@ -61,9 +61,12 @@ pub fn save_config(handle: &AppHandle) -> Result<(), Box<dyn Error>> {
 pub fn get_themes(handle: &AppHandle) -> Result<(), Box<dyn Error>> {
 	let theme_dir = handle.path().resolve("resources/themes", BaseDirectory::Resource)?;
 	if theme_dir.is_dir() {
-		for entry in fs::read_dir(theme_dir)? {
-			let entry = entry?;
-			if let Some(theme) = entry.path().file_stem() {
+		let mut entries = fs::read_dir(theme_dir)?
+			.map(|res| res.map(|e| e.path()))
+			.collect::<Result<Vec<_>, io::Error>>()?;
+		entries.sort();
+		for entry in entries {
+			if let Some(theme) = entry.as_path().file_stem() {
 				if let Some(theme) = theme.to_str() {
 					if let Some(menu) = handle.menu() {
 						if let Some(MenuItemKind::Submenu(view_menu)) = menu.get("view") {
