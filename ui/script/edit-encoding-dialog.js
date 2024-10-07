@@ -33,7 +33,7 @@ class EditEncodingDialog {
 		document.getElementById('edit-encoding-dialog-body').replaceChildren()
 	}
 
-	static update_encoding(afterSuccess) {
+	static update_encoding() {
 		const newCharCodes = textEncoding.map(charCode => {
 			const input = document.getElementById(`edit-encoding-${charCode.data}`)
 			if (input != null) {
@@ -44,10 +44,10 @@ class EditEncodingDialog {
 				return charCode
 			}
 		})
-		tauri_invoke('update_char_codes', { newCharCodes }).then(result => {
+		tauri_invoke('set_char_codes', { newCharCodes }).then(result => {
 			if (result[1].length == 0) {
 				textEncoding = result[0].slice(1, 257)
-				afterSuccess()
+				EditEncodingDialog.close()
 			} else {
 				result[1].forEach(char_code => {
 					const input = document.getElementById(`edit-encoding-${char_code}`)
@@ -61,20 +61,12 @@ class EditEncodingDialog {
 		document.getElementById('edit-encoding-close-button')
 			.addEventListener('click', EditEncodingDialog.close)
 
-		document.getElementById('edit-encoding-import-button')
-			.addEventListener('click', () => tauri_invoke("import_encoding"))
-
-		document.getElementById('edit-encoding-export-button')
-			.addEventListener('click', () =>
-				EditEncodingDialog.update_encoding(() => tauri_invoke("export_encoding"))
-			)
-
 		document.getElementById('edit-encoding-cancel-button')
 			.addEventListener('click', EditEncodingDialog.close)
 
 		document.getElementById('edit-encoding-ok-button')
 			.addEventListener('click', () =>
-				EditEncodingDialog.update_encoding(EditEncodingDialog.close)
+				EditEncodingDialog.update_encoding()
 			)
 
 		tauri_listen('show_edit_encoding_dialog', () => {

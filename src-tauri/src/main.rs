@@ -29,6 +29,7 @@ use sprite_pack::SpritePack;
 use text::{ Text, FontState, set_to_preset_encoding };
 use file::{ FileState, open_bin, save_bin, save_bin_as, continue_if_modified };
 use import::import_encoding;
+use export::export_encoding;
 use config::{ ConfigState, load_config, get_themes, set_theme, set_toolbar_visibility };
 
 #[derive(Default, serde::Serialize)]
@@ -88,7 +89,7 @@ fn main() {
 			text::validate_string,
 			text::decode_string_js,
 			text::get_default_char_codes,
-			text::update_char_codes,
+			text::set_char_codes,
 			text::set_to_preset_encoding,
 			load_config
 		])
@@ -128,7 +129,10 @@ fn main() {
 						&CheckMenuItem::with_id(handle, "encoding_latin", "Extended Latin", true, false, None::<&str>)?,
 						&CheckMenuItem::with_id(handle, "encoding_custom", "Custom", true, false, None::<&str>)?,
 						&PredefinedMenuItem::separator(handle)?,
-						&MenuItem::with_id(handle, "edit_encoding", "Edit...", true, None::<&str>)?,
+						&MenuItem::with_id(handle, "import_encoding", "Import Encoding", true, None::<&str>)?,
+						&MenuItem::with_id(handle, "export_encoding", "Export Encoding", true, None::<&str>)?,
+						&PredefinedMenuItem::separator(handle)?,
+						&MenuItem::with_id(handle, "edit_encoding", "Edit Encoding...", true, None::<&str>)?,
 					])?,
 
 					&PredefinedMenuItem::separator(handle)?,
@@ -193,6 +197,8 @@ fn main() {
 					"encoding_en" => set_to_preset_encoding(handle, "en"),
 					"encoding_latin" => set_to_preset_encoding(handle, "latin"),
 					"encoding_custom" => import_encoding(handle),
+					"import_encoding" => import_encoding(handle),
+					"export_encoding" => export_encoding(handle),
 					"edit_encoding" => handle.emit("show_edit_encoding_dialog", "").unwrap(),
 
 					"card_size_128kb" => set_card_size(&handle, BinSize::Card128KB),

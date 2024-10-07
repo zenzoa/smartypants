@@ -172,10 +172,12 @@ window.addEventListener('load', () => {
 	})
 
 	tauri_listen('update_encoding_language', event => {
-		cardData.encoding_language = event.payload
-		sections.header = setupHeader()
-		if (currentSection === 'header') {
-			viewHeader()
+		if (cardData != null) {
+			cardData.encoding_language = event.payload
+			sections.header = setupHeader()
+			if (currentSection === 'header') {
+				viewHeader()
+			}
 		}
 	})
 
@@ -188,10 +190,8 @@ window.addEventListener('load', () => {
 	})
 
 	tauri_listen('update_char_codes', event => {
-		textEncoding = event.payload[0].slice(1, 257)
-		if (event.payload[1]) {
-			EditEncodingDialog.open()
-		}
+		textEncoding = event.payload.slice(1, 257)
+		EditEncodingDialog.open()
 	})
 
 	tauri_invoke('get_default_char_codes').then(result => {

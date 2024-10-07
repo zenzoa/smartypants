@@ -107,7 +107,7 @@ pub fn char_code_to_word(char_codes: &[CharEncoding], text: &str) -> Option<u16>
 }
 
 #[tauri::command]
-pub fn update_char_codes(handle: AppHandle, new_char_codes: Vec<CharEncoding>) -> (Vec<CharEncoding>, Vec<u16>) {
+pub fn set_char_codes(handle: AppHandle, new_char_codes: Vec<CharEncoding>) -> (Vec<CharEncoding>, Vec<u16>) {
 	let font_state: State<FontState> = handle.state();
 	let mut char_codes = font_state.char_codes.lock().unwrap();
 
@@ -266,7 +266,7 @@ pub fn set_to_preset_encoding(handle: AppHandle, name: &str) {
 
 	let do_the_thing = || {
 		if let Ok(encoding_path) = handle.path().resolve(format!("resources/encodings/encoding_{}.json", name), BaseDirectory::Resource) {
-			match import_encoding_from(&handle, &font_state, &encoding_path, false) {
+			match import_encoding_from(&handle, &encoding_path) {
 				Ok(()) => {
 					*font_state.encoding_language.lock().unwrap() = match name {
 						"jp" => EncodingLanguage::Japanese,

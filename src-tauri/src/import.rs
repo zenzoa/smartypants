@@ -288,49 +288,62 @@ fn import_image_spritesheet_from(handle: &AppHandle, image_index: usize, path: &
 
 #[tauri::command]
 pub fn import_encoding(handle: AppHandle) {
-	let dialog_result = MessageDialog::new()
-		.set_title("Import Text Encoding")
-		.set_description("This will overwrite your existing text encoding. Are you sure you want to continue?")
-		.set_buttons(MessageButtons::YesNo)
-		.show();
-	if dialog_result == MessageDialogResult::Yes {
-		spawn(async move {
-			let file_state: State<FileState> = handle.state();
-			let font_state: State<FontState> = handle.state();
-			let char_codes = &font_state.char_codes.lock().unwrap();
+	let do_the_thing = |handle: AppHandle| {
+		let file_state: State<FileState> = handle.state();
 
-			let mut file_dialog = FileDialog::new()
-				.add_filter("JSON", &["json"]);
+		let mut file_dialog = FileDialog::new()
+			.add_filter("JSON", &["json"]);
 
-			if let Some(base_path) = file_state.base_path.lock().unwrap().as_ref() {
-				file_dialog = file_dialog.set_directory(base_path);
-			}
+		if let Some(base_path) = file_state.base_path.lock().unwrap().as_ref() {
+			file_dialog = file_dialog.set_directory(base_path);
+		}
 
-			let file_result = file_dialog.pick_file();
+		let file_result = file_dialog.pick_file();
 
-			if let Some(path) = file_result {
+		if let Some(path) = file_result {
+			spawn(async move {
 				show_spinner(&handle);
-				match import_encoding_from(&handle, &font_state, &path, true) {
+				match import_encoding_from(&handle, &path) {
 					Ok(()) => {
-						re_decode_strings(&handle, char_codes);
+						let font_state: State<FontState> = handle.state();
+						let char_codes = font_state.char_codes.lock().unwrap();
+						handle.emit("update_char_codes", char_codes.clone()).unwrap();
+						re_decode_strings(&handle, &char_codes)
 					},
 					Err(why) => show_error_message(why)
 				}
 				hide_spinner(&handle);
-			}
-
+				refresh_encoding_menu(&handle);
+			});
+		} else {
 			refresh_encoding_menu(&handle);
-		});
+		}
+	};
+
+	let font_state: State<FontState> = handle.state();
+	let current_encoding = font_state.encoding_language.lock().unwrap().clone();
+	if current_encoding == EncodingLanguage::Custom {
+		let dialog_result = MessageDialog::new()
+			.set_title("Import Text Encoding")
+			.set_description("This will overwrite your existing text encoding. Are you sure you want to continue?")
+			.set_buttons(MessageButtons::YesNo)
+			.show();
+
+		if dialog_result == MessageDialogResult::Yes {
+			do_the_thing(handle);
+		} else {
+			refresh_encoding_menu(&handle);
+		}
 	} else {
-		refresh_encoding_menu(&handle);
+		do_the_thing(handle);
 	}
 }
 
-pub fn import_encoding_from(handle: &AppHandle, font_state: &State<FontState>, path: &PathBuf, open_dialog: bool) -> Result<(), Box<dyn Error>> {
+pub fn import_encoding_from(handle: &AppHandle, path: &PathBuf) -> Result<(), Box<dyn Error>> {
 	let file_string = fs::read_to_string(path)?;
-	let char_codes: Vec<CharEncoding> = serde_json::from_str(&file_string)?;
 
-	handle.emit("update_char_codes", (char_codes.clone(), open_dialog)).unwrap();
+	let font_state: State<FontState> = handle.state();
+	let char_codes: Vec<CharEncoding> = serde_json::from_str(&file_string)?;
 
 	*font_state.char_codes.lock().unwrap() = char_codes;
 	*font_state.encoding_language.lock().unwrap() = EncodingLanguage::Custom;
