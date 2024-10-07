@@ -6,12 +6,48 @@
 	--color5: #ffb0a3;
 	--color6: #ffeecc;
 
-	--input-bg: white;
-	--input-txt: #222;
+	--main-fg: var(--color1);
+	--main-bg: var(--color5);
 
-	--preview-bg: #46425e;
+	--toolbar-bg: var(--color6);
 
-	--invalid: #ff0000;
+	--sidebar-fg: var(--color6);
+	--sidebar-bg: var(--color1);
+
+	--sidebar-tag-fg: var(--color6);
+	--sidebar-tag-bg: var(--color2);
+
+	--dialog-fg: var(--color1);
+	--dialog-bg: var(--color6);
+	--dialog-border: var(--color1);
+	--dialog-shadow: var(--color4);
+
+	--table-header-fg: var(--color1);
+	--table-header-bg: var(--color4);
+	--table-header-border: var(--color1);
+
+	--table-fg: var(--color1);
+	--table-bg: var(--color6);
+	--table-border: var(--color5);
+
+	--button-fg: var(--color1);
+	--button-bg: var(--color5);
+	--button-shadow: var(--color4);
+
+	--button-focus-fg: var(--color6);
+	--button-focus-bg: var(--color3);
+	--button-focus-shadow: var(--color2);
+
+	--input-fg: #222;
+	--input-bg: #fff;
+	--input-border: var(--color5);
+	--input-shadow: var(--color6);
+
+	--input-focus-border: var(--color4);
+
+	--invalid: #f00;
+
+	--preview-bg: var(--color1);
 
 	--main-font: "Noto Sans Mono";
 
@@ -29,14 +65,9 @@
 html, body {
 	margin: 0;
 	padding: 0;
-	background-color: var(--color1);
-	color: var(--color1);
+	background-color: var(--sidebar-bg);
 	font-family: var(--main-font);
 	font-size: 14px;
-}
-
-body {
-	background-color: var(--contents-bg);
 }
 
 main {
@@ -77,8 +108,9 @@ button.text,
 button.icon,
 button.toggle::before {
 	border-radius: 8px;
-	box-shadow: -2px 2px 0 0 var(--color4);
-	background-color: var(--color5);
+	box-shadow: -2px 2px 0 0 var(--button-shadow);
+	background-color: var(--button-bg);
+	color: var(--button-fg)
 }
 
 button.icon {
@@ -96,7 +128,7 @@ button.icon:hover,
 button.toggle:hover::before {
 	top: -2px;
 	left: 2px;
-	box-shadow: -4px 4px 0 0 var(--color4);
+	box-shadow: -4px 4px 0 0 var(--button-shadow);
 }
 
 select:active,
@@ -112,25 +144,26 @@ select:focus,
 button.text:focus,
 button.icon:focus,
 button.toggle:focus::before {
-	box-shadow: -2px 2px 0 0 var(--color2);
-	background-color: var(--color3);
-	color: var(--color6);
+	box-shadow: -2px 2px 0 0 var(--button-focus-shadow);
+	background-color: var(--button-focus-bg);
+	color: var(--button-focus-fg);
 }
 
 select:focus:hover,
 button.text:focus:hover,
 button.icon:focus:hover,
 button.toggle:focus:hover::before {
-	box-shadow: -4px 4px 0 0 var(--color2);
+	box-shadow: -4px 4px 0 0 var(--button-focus-shadow);
 }
 
 button.dialog-close-button {
-	box-shadow: -2px 2px 0 0 var(--color5);
-	background-color: var(--color6);
+	box-shadow: -2px 2px 0 0 var(--button-bg);
+	background-color: var(--dialog-bg);
+	color: var(--dialog-fg);
 }
 
 button.dialog-close-button:hover {
-	box-shadow: -4px 4px 0 0 var(--color5);
+	box-shadow: -4px 4px 0 0 var(--button-bg);
 }
 
 button.icon img,
@@ -197,7 +230,7 @@ select {
 	right: 12px;
 	top: 50%;
 	transform: translateY(-50%);
-	color: var(--color1);
+	color: var(--button-fg);
 }
 
 select:hover + .select-arrow {
@@ -211,20 +244,20 @@ select:active + .select-arrow {
 }
 
 select:focus + .select-arrow {
-	color: var(--color6);
+	color: var(--button-focus-fg);
 }
 
 input {
 	border-radius: 8px;
-	border: 1px solid var(--color5);
-	box-shadow: 0 2px 0 var(--color6) inset;
+	border: 1px solid var(--input-border);
+	box-shadow: 0 2px 0 var(--input-shadow) inset;
 	padding: 8px 16px;
 	background-color: var(--input-bg);
-	color: var(--input-txt);
+	color: var(--input-fg);
 }
 
 input:focus {
-	border-color: var(--color4);
+	border-color: var(--input-focus-border);
 }
 
 input:invalid, input.invalid {
@@ -262,14 +295,14 @@ label .fill {
 	margin-bottom: 0;
 	padding: 8px;
 	border-radius: 8px;
-	background-color: var(--color6);
+	background-color: var(--toolbar-bg);
 }
 
 #toolbar .vertical-divider {
 	width: 4px;
 	height: 4px;
 	border-radius: 8px;
-	background-color: var(--color5);
+	background-color: var(--button-bg);
 	display: block;
 }
 
@@ -278,6 +311,7 @@ label .fill {
 	flex-direction: row;
 	flex-grow: 1;
 	overflow: hidden;
+	color: var(--main-fg);
 }
 
 #sidebar {
@@ -289,7 +323,7 @@ label .fill {
 	padding-top: 8px;
 	padding-left: 8px;
 	padding-bottom: 8px;
-	background-color: var(--color1);
+	background-color: var(--sidebar-bg);
 }
 
 #sidebar button {
@@ -297,17 +331,17 @@ label .fill {
 	border-top-left-radius: 8px;
 	border-bottom-left-radius: 8px;
 	text-align: left;
-	color: var(--color6);
+	color: var(--sidebar-fg);
 }
 
 #sidebar button:hover {
-	background-color: color-mix(in srgb, var(--color5) 50%, transparent);
+	background-color: color-mix(in srgb, var(--main-bg) 50%, transparent);
 }
 
 #sidebar button.selected {
 	margin-right: 0;
-	background-color: var(--color5);
-	color: var(--color1);
+	background-color: var(--main-bg);
+	color: var(--main-fg);
 }
 
 .tag {
@@ -317,8 +351,8 @@ label .fill {
 	margin-left: 2px;
 	padding: 2px 8px;
 	border-radius: 100px;
-	background-color: var(--color2);
-	color: var(--color6);
+	background-color: var(--sidebar-tag-bg);
+	color: var(--sidebar-tag-fg);
 	font-size: x-small;
 }
 
@@ -329,7 +363,8 @@ label .fill {
 	margin-left: 0;
 	padding: 16px;
 	border-radius: 8px;
-	background-color: var(--color5);
+	background-color: var(--main-bg);
+	color: var(--main-fg);
 }
 
 .section-toolbar {
@@ -359,34 +394,36 @@ td, th {
 }
 
 th {
-	border-bottom: 1px solid var(--color1);
-	border-right: 1px solid var(--color1);
-	background-color: var(--color4);
+	border-bottom: 1px solid var(--table-header-border);
+	border-right: 1px solid var(--table-header-border);
+	background-color: var(--table-header-bg);
+	color: var(--table-header-fg);
 	text-align: left;
 	font-weight: 700;
 }
 
 th:first-child {
-	border-left: 1px solid var(--color1);
+	border-left: 1px solid var(--table-header-border);
 }
 
 thead > tr:first-child > th,
 tbody:first-child > tr:first-child > th {
-	border-top: 1px solid var(--color1);
+	border-top: 1px solid var(--table-header-border);
 }
 
 td {
-	border-bottom: 1px solid var(--color5);
-	border-right: 1px solid var(--color5);
-	background-color: var(--color6);
+	border-bottom: 1px solid var(--table-border);
+	border-right: 1px solid var(--table-border);
+	background-color: var(--table-bg);
+	color: var(--table-fg);
 }
 
 td:first-child {
-	border-left: 1px solid var(--color5);
+	border-left: 1px solid var(--table-border);
 }
 
 tbody:first-child > tr:first-child > td {
-	border-top: 1px solid var(--color5);
+	border-top: 1px solid var(--table-border);
 }
 
 thead > tr:first-child > :first-child,
@@ -413,7 +450,7 @@ table + div {
 
 hr {
 	border: none;
-	border-bottom: 1px solid var(--color5);
+	border-bottom: 1px solid var(--table-border);
 }
 
 .transparent-color {
@@ -437,7 +474,7 @@ hr {
 	align-items: center;
 	justify-content: center;
 	flex-direction: column;
-	background-color: color-mix(in srgb, var(--color1) 50%, transparent);
+	background-color: color-mix(in srgb, var(--sidebar-bg) 50%, transparent);
 }
 
 .dialog.open {
@@ -460,9 +497,10 @@ hr {
 	min-height: 0;
 	margin: 50px;
 	border-radius: 10px;
-	border: 1px solid var(--color1);
-	background-color: var(--color6);
-	box-shadow: -8px 8px 0 0 var(--color4);
+	border: 1px solid var(--dialog-border);
+	background-color: var(--dialog-bg);
+	box-shadow: -8px 8px 0 0 var(--dialog-shadow);
+	color: var(--dialog-fg);
 }
 
 .dialog-title {
@@ -613,7 +651,7 @@ input.invalid + .string-preview {
 	right: 0;
 	align-items: center;
 	justify-content: center;
-	background-color: color-mix(in srgb, var(--color1) 50%, transparent);
+	background-color: color-mix(in srgb, var(--sidebar-bg) 50%, transparent);
 }
 
 .spinner.on {
@@ -627,7 +665,7 @@ input.invalid + .string-preview {
 	display: block;
 	margin: 15px 0;
 	position: relative;
-	color: var(--color6);
+	color: var(--sidebar-fg);
 	box-sizing: border-box;
 	animation: spinner-anim 1s linear infinite alternate;
 }

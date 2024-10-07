@@ -12,10 +12,14 @@ let timestamp = Date.now()
 let currentSection = ''
 let sections = {}
 
+let defaultStyle = null
+
 const U8_MAX = 255
 const U16_MAX = 65535
 
 window.addEventListener('load', () => {
+	defaultStyle = document.documentElement.style
+
 	tauri_listen('update_theme', updateTheme)
 	tauri_listen('update_toolbar_visibility', updateToolbarVisibility)
 	tauri_invoke('load_config')
@@ -220,6 +224,9 @@ window.addEventListener('load', () => {
 })
 
 const updateTheme = (event) => {
+	if (defaultStyle != null) {
+		document.documentElement.style = defaultStyle
+	}
 	const style = document.documentElement.style
 	for (let i = 0; i < event.payload.length; i++) {
 		const prop = event.payload[i]
