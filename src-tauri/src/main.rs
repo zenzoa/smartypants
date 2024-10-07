@@ -122,7 +122,7 @@ fn main() {
 				])?,
 
 				&Submenu::with_id_and_items(handle, "config", "Config", true, &[
-					&Submenu::with_id_and_items(handle, "text_encoding", "Alphabet", true, &[
+					&Submenu::with_id_and_items(handle, "text_encoding", "Encoding", true, &[
 						&CheckMenuItem::with_id(handle, "encoding_jp", "Japanese", true, true, None::<&str>)?,
 						&CheckMenuItem::with_id(handle, "encoding_en", "English", true, false, None::<&str>)?,
 						&CheckMenuItem::with_id(handle, "encoding_latin", "Extended Latin", true, false, None::<&str>)?,
