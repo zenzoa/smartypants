@@ -1,22 +1,36 @@
 use std::error::Error;
+
+use serde::{ Serialize, Deserialize };
+
 use tauri::{ AppHandle, Manager, State };
 
 use super::EntityId;
-use crate::DataState;
+use crate::{ DataState, update_window_title };
 use crate::data_view::{ DataView, words_to_bytes, resize_words };
 use crate::text::{ Text, FontState };
 use crate::file::set_file_modified;
 
-#[derive(Clone, serde::Serialize)]
+#[derive(Clone, Serialize, Deserialize)]
+pub enum CharacterType {
+	Unknown,
+	Egg,
+	Baby,
+	Child,
+	Teen,
+	Adult,
+	Npc
+}
+
+#[derive(Clone, Serialize, Deserialize)]
 pub enum Gender {
 	Female,
 	Male
 }
 
-#[derive(Clone, serde::Serialize)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct Character {
 	pub id: EntityId,
-	pub character_type: u16,
+	pub character_type: CharacterType,
 	pub name: Text,
 	pub profile_image_id: EntityId,
 	pub icon_image_id: EntityId,
@@ -42,7 +56,15 @@ pub fn get_characters(handle: &AppHandle, data: &DataView) -> Vec<Character> {
 	let mut i = 0;
 	while i + 96 <= data.len() {
 		let id = EntityId::new(data.get_u16(i));
-		let character_type = data.get_u16(i + 2);
+		let character_type = match data.get_u16(i + 2) {
+			1 => CharacterType::Egg,
+			2 => CharacterType::Baby,
+			3 => CharacterType::Child,
+			4 => CharacterType::Teen,
+			5 => CharacterType::Adult,
+			6 => CharacterType::Npc,
+			_ => CharacterType::Unknown,
+		};
 		let name = data.get_text(handle, i + 4, 10);
 		let profile_image_id = EntityId::new(data.get_u16(i + 24));
 		let icon_image_id = EntityId::new(data.get_u16(i + 26));
@@ -97,7 +119,15 @@ pub fn save_characters(characters: &[Character]) -> Result<Vec<u8>, Box<dyn Erro
 
 	for character in characters {
 		words.push(character.id.to_word());
-		words.push(character.character_type);
+		words.push(match character.character_type {
+			CharacterType::Unknown => 0,
+			CharacterType::Egg => 1,
+			CharacterType::Baby => 2,
+			CharacterType::Child => 3,
+			CharacterType::Teen => 4,
+			CharacterType::Adult => 5,
+			CharacterType::Npc => 6
+		});
 		words = [words, resize_words(&character.name.data, 10)].concat();
 		words.push(character.profile_image_id.to_word());
 		words.push(character.icon_image_id.to_word());
@@ -124,7 +154,7 @@ pub fn save_characters(characters: &[Character]) -> Result<Vec<u8>, Box<dyn Erro
 }
 
 #[tauri::command]
-pub fn update_character(handle: AppHandle, index: usize, key: &str, new_value: String) -> Option<Text> {
+pub fn update_character(handle: AppHandle, index: usize, new_character: Character) -> Option<Character> {
 	let data_state: State<DataState> = handle.state();
 	let font_state: State<FontState> = handle.state();
 	let char_codes = &font_state.char_codes.lock().unwrap();
@@ -132,31 +162,25 @@ pub fn update_character(handle: AppHandle, index: usize, key: &str, new_value: S
 	let mut data_pack_opt = data_state.data_pack.lock().unwrap();
 	if let Some(data_pack) = data_pack_opt.as_mut() {
 		if let Some(character) = data_pack.characters.get_mut(index) {
-			set_file_modified(&handle, true);
+			character.name.set_string(char_codes, &new_character.name.string);
+			character.profile_image_id = new_character.profile_image_id;
+			character.icon_image_id = new_character.icon_image_id;
+			character.composition_id = new_character.composition_id;
+			character.pronoun.set_string(char_codes, &new_character.pronoun.string);
+			character.statement.set_string(char_codes, &new_character.statement.string);
+			character.question1.set_string(char_codes, &new_character.question1.string);
+			character.question2.set_string(char_codes, &new_character.question2.string);
+			character.unknown2 = new_character.unknown2;
+			character.unknown3 = new_character.unknown3;
+			character.unknown4 = new_character.unknown4;
+			character.unknown5 = new_character.unknown5;
+			character.unknown6 = new_character.unknown6;
+			character.unknown7 = new_character.unknown7;
+			character.gender = new_character.gender;
 
-			return match key {
-				"name" => {
-					character.name.set_string(char_codes, &new_value);
-					Some(character.name.clone())
-				},
-				"pronoun" => {
-					character.pronoun.set_string(char_codes, &new_value);
-					Some(character.pronoun.clone())
-				},
-				"statement" => {
-					character.statement.set_string(char_codes, &new_value);
-					Some(character.statement.clone())
-				},
-				"question1" => {
-					character.question1.set_string(char_codes, &new_value);
-					Some(character.question1.clone())
-				},
-				"question2" => {
-					character.question2.set_string(char_codes, &new_value);
-					Some(character.question2.clone())
-				},
-				_ => None
-			}
+			set_file_modified(&handle, true);
+			update_window_title(&handle);
+			return Some(character.clone());
 		}
 	}
 

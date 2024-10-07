@@ -32,6 +32,7 @@ struct FrontendData {
 	data_pack: Option<DataPack>,
 	sprite_pack: Option<SpritePack>,
 	menu_strings: Option<Vec<Text>>,
+	lock_colors: bool,
 	use_patch_header: bool
 }
 
@@ -161,6 +162,7 @@ fn send_data_to_frontend(handle: &AppHandle) {
 		data_pack: data_state.data_pack.lock().unwrap().clone(),
 		sprite_pack: data_state.sprite_pack.lock().unwrap().clone(),
 		menu_strings: data_state.menu_strings.lock().unwrap().clone(),
+		lock_colors: *data_state.lock_colors.lock().unwrap(),
 		use_patch_header: *data_state.use_patch_header.lock().unwrap()
 	};
 	handle.emit("update_data", frontend_data).unwrap();

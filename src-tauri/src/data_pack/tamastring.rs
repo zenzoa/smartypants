@@ -1,13 +1,16 @@
 use std::error::Error;
+
+use serde::{ Serialize, Deserialize };
+
 use tauri::{ AppHandle, Manager, State };
 
 use super::EntityId;
-use crate::DataState;
+use crate::{ DataState, update_window_title };
 use crate::data_view::{ DataView, words_to_bytes };
 use crate::text::{ Text, FontState };
 use crate::file::set_file_modified;
 
-#[derive(Clone, serde::Serialize)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct TamaString {
 	pub id: EntityId,
 	pub unknown1: u16,
@@ -88,7 +91,7 @@ pub fn save_tamastrings(tamastrings: &[TamaString]) -> Result<(Vec<u8>, Vec<u8>)
 }
 
 #[tauri::command]
-pub fn update_tamastring(handle: AppHandle, index: usize, name: String) -> Option<Text> {
+pub fn update_tamastring(handle: AppHandle, index: usize, new_tamastring: TamaString) -> Option<TamaString> {
 	let data_state: State<DataState> = handle.state();
 	let font_state: State<FontState> = handle.state();
 	let char_codes = &font_state.char_codes.lock().unwrap();
@@ -96,9 +99,14 @@ pub fn update_tamastring(handle: AppHandle, index: usize, name: String) -> Optio
 	let mut data_pack_opt = data_state.data_pack.lock().unwrap();
 	if let Some(data_pack) = data_pack_opt.as_mut() {
 		if let Some(tamastring) = data_pack.tamastrings.get_mut(index) {
-			tamastring.value.set_string(char_codes, &name);
+			tamastring.unknown1 = new_tamastring.unknown1;
+			tamastring.unknown2 = new_tamastring.unknown2;
+			tamastring.unknown3 = new_tamastring.unknown3;
+			tamastring.value.set_string(char_codes, &new_tamastring.value.string);
+
 			set_file_modified(&handle, true);
-			return Some(tamastring.value.clone());
+			update_window_title(&handle);
+			return Some(tamastring.clone());
 		}
 	}
 

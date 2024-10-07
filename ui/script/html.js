@@ -8,6 +8,8 @@ const el = (type, props, contents) => {
 				element.addEventListener('click', propValue)
 			} else if (propName === 'onchange') {
 				element.addEventListener('change', propValue)
+			} else if (propName === 'onkeyup') {
+				element.addEventListener('keyup', propValue)
 			} else if (propName === 'className') {
 				element.className = propValue
 			} else {
@@ -33,6 +35,8 @@ const div = el.bind(this, 'div')
 const span = el.bind(this, 'span')
 const a = el.bind(this, 'a')
 const button = el.bind(this, 'button')
+const select = el.bind(this, 'select')
+const option = el.bind(this, 'option')
 const input = el.bind(this, 'input')
 const label = el.bind(this, 'label')
 const table = el.bind(this, 'table')

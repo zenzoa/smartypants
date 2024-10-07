@@ -4,7 +4,7 @@ use std::error::Error;
 use tauri::{ AppHandle, State, Manager };
 use tauri::path::BaseDirectory;
 
-use crate::{ DataState, ImageState };
+use crate::{ DataState, ImageState, update_window_title };
 use crate::data_view::{ DataView, words_to_bytes };
 use crate::data_pack::{ DataPack, get_data_pack, save_data_pack };
 use crate::sprite_pack::SpritePack;
@@ -176,7 +176,7 @@ pub fn save_menu_strings(menu_strings: &[Text]) -> Result<Vec<u8>, Box<dyn Error
 }
 
 #[tauri::command]
-pub fn update_menu_string(handle: AppHandle, index: usize, name: String) -> Option<Text> {
+pub fn update_menu_string(handle: AppHandle, index: usize, new_menu_string: String) -> Option<Text> {
 	let data_state: State<DataState> = handle.state();
 	let font_state: State<FontState> = handle.state();
 	let char_codes = &font_state.char_codes.lock().unwrap();
@@ -184,8 +184,9 @@ pub fn update_menu_string(handle: AppHandle, index: usize, name: String) -> Opti
 	let mut menu_strings_opt = data_state.menu_strings.lock().unwrap();
 	if let Some(menu_strings) = menu_strings_opt.as_mut() {
 		if let Some(menu_string) = menu_strings.get_mut(index) {
-			menu_string.set_string(char_codes, &name);
+			menu_string.set_string(char_codes, &new_menu_string);
 			set_file_modified(&handle, true);
+			update_window_title(&handle);
 			return Some(menu_string.clone());
 		}
 	}

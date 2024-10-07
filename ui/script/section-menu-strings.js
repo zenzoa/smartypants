@@ -3,7 +3,8 @@ const setupMenuStrings = () => {
 	return table([
 		thead([tr([
 			th('ID'),
-			th('Value')
+			th('Value'),
+			th('Actions')
 		])]),
 		tbody(menuStrings.map((menuString, i) => renderMenuString(i, menuString)))
 	])
@@ -12,9 +13,11 @@ const setupMenuStrings = () => {
 const renderMenuString = (i, menuString) => {
 	return tr({id: `menu-string-${i}`}, [
 		th(i),
+		td(menuString.string),
 		td([
-			span(menuString.string),
-			button({className: 'edit', onclick: editMenuString.bind(this, i)}, '✏️')
+			button({
+				title: 'Edit Menu String', className: 'icon', onclick: () => EditMenuStringDialog.open(i, menuString)
+			}, EDIT_ICON)
 		])
 	])
 }
@@ -22,22 +25,4 @@ const renderMenuString = (i, menuString) => {
 const viewMenuStrings = () => {
 	selectSection('menuStrings')
 	contents.append(sections.menuStrings)
-}
-
-const editMenuString = (i) => {
-	const menuString = cardData.menu_strings[i]
-	EditDialog.openStringEditor(
-		`Edit String ${i}`,
-		'Value:',
-		menuString.string,
-		(newValue) => {
-			tauri_invoke('update_menu_string', { index: i, name: newValue }).then(result => {
-				if (result != null) cardData.menu_strings[i] = result
-				const menuStringEl = document.getElementById(`menu-string-${i}`)
-				if (menuStringEl != null) menuStringEl.replaceWith(renderMenuString(i, cardData.menu_strings[i]))
-			})
-			EditDialog.close()
-		},
-		999
-	)
 }

@@ -1,5 +1,7 @@
 use std::error::Error;
 
+use serde::{ Serialize, Deserialize };
+
 use tauri::AppHandle;
 
 use crate::data_view::DataView;
@@ -14,7 +16,7 @@ pub mod character;
 pub mod graphics_node;
 pub mod frame;
 
-#[derive(Clone, Debug, serde::Serialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct EntityId {
 	pub card_id: Option<u8>,
 	pub entity_id: u16

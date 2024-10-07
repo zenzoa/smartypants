@@ -2,6 +2,8 @@ use std::error::Error;
 use std::sync::Mutex;
 use std::path::PathBuf;
 
+use serde::{ Serialize, Deserialize };
+
 use tauri::{ AppHandle, Manager, State, Emitter, path::BaseDirectory };
 use tauri::menu::MenuItemKind;
 
@@ -13,7 +15,7 @@ use rfd::{ MessageButtons, MessageDialog, MessageDialogResult };
 use crate::{ DataState, BinType, show_error_message };
 use crate::import::import_encoding_from;
 
-#[derive(Clone, serde::Serialize)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct Text {
 	pub data: Vec<u16>,
 	pub string: String
@@ -214,14 +216,34 @@ pub fn get_char_image_large(font_state: &FontState, char_index: usize) -> Option
 }
 
 #[tauri::command]
-pub fn validate_string(handle: AppHandle, string: &str, max_length: usize) -> (bool, String) {
+pub fn validate_string(handle: AppHandle, string: &str) -> bool {
 	let font_state: State<FontState> = handle.state();
 	let char_codes = &font_state.char_codes.lock().unwrap();
-
-	let words = decode_string(char_codes, string);
-	let string2 = encode_string(char_codes, &words);
-	let words2 = decode_string(char_codes, &string2);
-	(words == words2 && words2.len() <= max_length, string2)
+	let mut var_name = String::new();
+	for ch in string.chars() {
+		match ch {
+			'{' | '<' => {
+				var_name.push(ch);
+			},
+			'}' | '>' => {
+				var_name.push(ch);
+				if let None = char_code_to_word(char_codes, &var_name.to_lowercase()) {
+					return false;
+				}
+				var_name = String::new();
+			},
+			_ => {
+				if var_name.is_empty() {
+					if let None = char_code_to_word(char_codes, &ch.to_string()) {
+						return false;
+					}
+				} else {
+					var_name.push(ch);
+				}
+			}
+		}
+	}
+	true
 }
 
 pub fn load_font(path: &PathBuf) -> Result<Vec<RgbaImage>, Box<dyn Error>> {

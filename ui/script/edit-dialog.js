@@ -3,148 +3,135 @@ class EditDialog {
 		return document.getElementById('edit-dialog').classList.contains('open')
 	}
 
-	static open(title, inputLabel, value, onchange) {
+	static open() {
 		document.getElementById('edit-dialog').classList.add('open')
-		document.getElementById('edit-dialog-title').innerText = title
-
-		const inputEl = input({ id: 'edit-dialog-input', value })
-		inputEl.addEventListener('keydown', (event) => {
-			if (event.key === 'Enter') {
-				onchange(inputEl.value)
-			} else if (event.key === 'Escape') {
-				EditDialog.close()
-			} else {
-				inputEl.classList.remove('invalid')
-			}
-		})
-
-
-		EditDialog.callback = () => onchange(inputEl.value)
-
-		document.getElementById('edit-dialog-body').append(
-			label([
-				span(inputLabel),
-				inputEl,
-				span({ className: 'validation-error' }, 'invalid')
-			])
-		)
-
-		inputEl.focus()
-
-		return inputEl
-	}
-
-	static openNumberEditor(title, inputLabel, value, fn, min, max) {
-		const onchange = (newValue) => {
-			const intValue = parseInt(newValue)
-			if (intValue === parseFloat(newValue) && intValue >= min && intValue <= max) {
-				fn(intValue)
-			} else {
-				inputEl.classList.add('invalid')
-			}
-		}
-
-		const inputEl = EditDialog.open(title, inputLabel, value, onchange)
-
-		inputEl.setAttribute('type', 'number')
-		inputEl.setAttribute('min', min)
-		inputEl.setAttribute('max', max)
-		inputEl.setAttribute('step', 1)
-		inputEl.classList.remove('invalid')
-	}
-
-	static openHexEditor(title, inputLabel, value, fn) {
-		const onchange = (newValue) => {
-			const intValue = parseInt(newValue, 16)
-			if (!isNaN(intValue)) {
-				fn(intValue)
-			} else {
-				inputEl.classList.add('invalid')
-			}
-		}
-		const inputEl = EditDialog.open(title, inputLabel, value, onchange)
-
-		inputEl.setAttribute('type', 'text')
-		inputEl.classList.remove('invalid')
-	}
-
-	static openStringEditor(title, inputLabel, value, fn, maxLength) {
-		const onchange = (newValue) => {
-			const inputEl = document.getElementById('edit-dialog-input')
-			tauri_invoke('validate_string', { string: newValue, maxLength }).then(result => {
-				if (result[0]) {
-					fn(result[1])
-				} else {
-					inputEl.classList.add('invalid')
-				}
-			})
-		}
-
-		const inputEl = EditDialog.open(title, inputLabel, value, onchange)
-
-		inputEl.setAttribute('type', 'text')
-		inputEl.classList.remove('invalid')
-
-		const previewEl = div({ className: 'string-preview-container' }, [
-			div({ id: 'preview-small-text', className: 'string-preview' }),
-			div({ id: 'preview-large-text', className: 'string-preview' })
-		])
-
-		document.getElementById('edit-dialog-body').append(previewEl)
-
-		const updatePreview = () => {
-			const inputEl = document.getElementById('edit-dialog-input')
-			const smallPreviewEl = document.getElementById('preview-small-text')
-			const largePreviewEl = document.getElementById('preview-large-text')
-			tauri_invoke('decode_string_js', { string: inputEl.value }).then(result => {
-				smallPreviewEl.replaceChildren()
-				largePreviewEl.replaceChildren()
-				result.forEach(i => {
-					if (i <= 256) {
-						smallPreviewEl.append(div({ className: 'preview-letter' }, [displayImage('smallfont', i-1)]))
-						largePreviewEl.append(div({ className: 'preview-letter' }, [displayImage('largefont', i-1)]))
-					} else if (i === 61440) { // line break
-						smallPreviewEl.append(div({ className: 'preview-line-break' }))
-						largePreviewEl.append(div({ className: 'preview-line-break' }))
-					} else if (i === 61441) { // page break
-						smallPreviewEl.append(div({ className: 'preview-page-break' }))
-						largePreviewEl.append(div({ className: 'preview-page-break' }))
-					} else if (i === 61442 || i ===  61443 || i === 61447 || i === 61448) { // {username} {charname} {variable} {pronoun}
-						Array(8).fill(0).forEach(_ => smallPreviewEl.append(div({ className: 'preview-blank' })))
-						Array(8).fill(0).forEach(_ => largePreviewEl.append(div({ className: 'preview-blank' })))
-					} else if (i === 61444 || i ===  61445 || i === 61446) { // {statement} {question1} {question2}
-						Array(4).fill(0).forEach(_ => smallPreviewEl.append(div({ className: 'preview-blank' })))
-						Array(4).fill(0).forEach(_ => largePreviewEl.append(div({ className: 'preview-blank' })))
-					} else if (i === 61449 || i ===  61450) { // {nickname} {friend}
-						Array(2).fill(0).forEach(_ => smallPreviewEl.append(div({ className: 'preview-blank' })))
-						Array(2).fill(0).forEach(_ => largePreviewEl.append(div({ className: 'preview-blank' })))
-					}
-				})
-			})
-		}
-
-		inputEl.addEventListener('keyup', updatePreview)
-
-		updatePreview()
 	}
 
 	static close() {
 		document.getElementById('edit-dialog').classList.remove('open')
 		document.getElementById('edit-dialog-title').replaceChildren()
 		document.getElementById('edit-dialog-body').replaceChildren()
-		EditDialog.callback = () => {}
+		document.getElementById('edit-dialog-actions').replaceChildren()
 	}
 
 	static setup() {
 		document.getElementById('edit-close-button')
 			.addEventListener('click', EditDialog.close)
-
-		document.getElementById('edit-cancel-button')
-			.addEventListener('click', EditDialog.close)
-
-		document.getElementById('edit-ok-button')
-			.addEventListener('click', () => EditDialog.callback())
 	}
 
-	static callback() {}
+	static addStrInput(title, name, value, maxlength) {
+		document.getElementById('edit-dialog-body').append(
+			label({ id: `label-${name}` }, [
+				span(title),
+				input({
+					id: `edit-${name}`, value, maxlength,
+					onkeyup: () => EditDialog.updateStringPreview(name),
+					onchange: (event) => EditDialog.validateString(event, name)
+				}),
+				div({ id: `${name}-preview-large`, className: 'string-preview string-preview-large' }),
+				span({ id: `edit-${name}-invalid`, className: 'validation-error' }, 'invalid characters')
+			])
+		)
+		EditDialog.updateStringPreview(name)
+	}
+
+	static addBigStrInput(title, name, value) {
+		document.getElementById('edit-dialog-body').append(
+			label({ id: `label-${name}` }, [
+				span(title),
+				input({
+					id: `edit-${name}`, className: 'fill', value,
+					onkeyup: () => EditDialog.updateStringPreview(name),
+					onchange: (event) => EditDialog.validateString(event, name)
+				}),
+				span({ id: `edit-${name}-invalid`, className: 'validation-error' }, 'invalid characters')
+			])
+		)
+		document.getElementById('edit-dialog-body').append(
+			div({ className: `string-preview-container` }, [
+				div({ id: `${name}-preview-small`, className: 'string-preview string-preview-small' }),
+				div({ id: `${name}-preview-large`, className: 'string-preview string-preview-large' })
+			])
+		)
+		EditDialog.updateStringPreview(name)
+	}
+
+	static addIntInput(title, name, value, min, max) {
+		document.getElementById('edit-dialog-body').append(
+			label({ id: `label-${name}` }, [
+				span(title),
+				input({ id: `edit-${name}`, type: 'number', step: 1, min, max, value })
+			])
+		)
+	}
+
+	static addHexInput(title, name, value) {
+		document.getElementById('edit-dialog-body').append(
+			label({ id: `label-${name}` }, [
+				span(title),
+				input({ id: `edit-${name}`, pattern: '#[0-9a-fA-F]+', value: `#${formatHexCode(value)}` })
+			])
+		)
+	}
+
+	static addDropdown(title, name, value, list) {
+		document.getElementById('edit-dialog-body').append(
+			label({ id: `label-${name}` }, [
+				span(title),
+				div({ className: 'select-wrapper' }, [
+					select({ id: `edit-${name}` },
+						list.map(opt => {
+							if (value === opt.value) {
+								return option({ value: opt.value, selected: 'selected' }, opt.title)
+							} else {
+								return option({ value: opt.value }, opt.title)
+							}
+						})
+					),
+					div({ className: 'select-arrow' }, '▼')
+				])
+			])
+		)
+	}
+
+	static updateStringPreview(name) {
+		const inputEl = document.getElementById(`edit-${name}`)
+		const smallPreviewEl = document.getElementById(`${name}-preview-small`)
+		const largePreviewEl = document.getElementById(`${name}-preview-large`)
+		tauri_invoke('decode_string_js', { string: inputEl.value }).then(result => {
+			if (smallPreviewEl) smallPreviewEl.replaceChildren()
+			if (largePreviewEl) largePreviewEl.replaceChildren()
+			result.forEach(i => {
+				if (i <= 256) {
+					if (smallPreviewEl) smallPreviewEl.append(div({ className: 'preview-letter' }, [displayImage('smallfont', i-1)]))
+					if (largePreviewEl) largePreviewEl.append(div({ className: 'preview-letter' }, [displayImage('largefont', i-1)]))
+				} else if (i === 61440) { // line break
+					if (smallPreviewEl) smallPreviewEl.append(div({ className: 'preview-line-break' }))
+					if (largePreviewEl) largePreviewEl.append(div({ className: 'preview-line-break' }))
+				} else if (i === 61441) { // page break
+					if (smallPreviewEl) smallPreviewEl.append(div({ className: 'preview-page-break' }))
+					if (largePreviewEl) largePreviewEl.append(div({ className: 'preview-page-break' }))
+				} else if (i === 61442 || i ===  61443 || i === 61447 || i === 61448) { // {username} {charname} {variable} {pronoun}
+					if (smallPreviewEl) Array(8).fill(0).forEach(_ => smallPreviewEl.append(div({ className: 'preview-blank' })))
+					if (largePreviewEl) Array(8).fill(0).forEach(_ => largePreviewEl.append(div({ className: 'preview-blank' })))
+				} else if (i === 61444 || i ===  61445 || i === 61446) { // {statement} {question1} {question2}
+					if (smallPreviewEl) Array(4).fill(0).forEach(_ => smallPreviewEl.append(div({ className: 'preview-blank' })))
+					if (largePreviewEl) Array(4).fill(0).forEach(_ => largePreviewEl.append(div({ className: 'preview-blank' })))
+				} else if (i === 61449 || i ===  61450) { // {nickname} {friend}
+					if (smallPreviewEl) Array(2).fill(0).forEach(_ => smallPreviewEl.append(div({ className: 'preview-blank' })))
+					if (largePreviewEl) Array(2).fill(0).forEach(_ => largePreviewEl.append(div({ className: 'preview-blank' })))
+				}
+			})
+		})
+	}
+
+	static validateString(event, name) {
+		tauri_invoke('validate_string', { string: event.target.value }).then(result => {
+			if (result) {
+				document.getElementById(`edit-${name}`).classList.remove('invalid')
+			} else {
+				document.getElementById(`edit-${name}`).classList.add('invalid')
+			}
+		})
+	}
 }

@@ -11,8 +11,8 @@ const setupSprites = () => {
 			thead([tr([
 				th('ID'),
 				th('Sub-Images'),
-				cardData.lock_colors ? th('First Palette') : '',
-				th('Max Colors'),
+				cardData.lock_colors ? th('First Palette ID') : '',
+				cardData.lock_colors ? th('Max Colors') : '',
 				th('Actions')
 			])]),
 			tbody(cardData.sprite_pack.image_defs.map((imageDef, i) =>
@@ -35,18 +35,25 @@ const renderImageDef = (i, imageDef) => {
 			displayImage(i, j, true)
 		)),
 		cardData.lock_colors ? td([
-			linkToPalette(imageDef.first_palette_index),
-			button({className: 'edit', onclick: editImageFirstPalette.bind(this, i)}, '✏️')
+			div({ className: 'button-row' }, [
+				linkToPalette(imageDef.first_palette_index),
+				button({
+					title: 'Edit Palette ID', className: 'icon',
+					onclick: () => EditSpriteDialog.open(i, imageDef)
+				}, EDIT_ICON)
+			])
 		]) : '',
-		td(bppToMaxColors[cardData.sprite_pack.sprites[imageDef.first_sprite_index].bits_per_pixel]),
+		cardData.lock_colors ? td(bppToMaxColors[cardData.sprite_pack.sprites[imageDef.first_sprite_index].bits_per_pixel]) : '',
 		td([
 			div({className:'button-row'}, [
-				button({className: 'icon', title: 'Import Spritesheet', onclick: importImageSpritesheet.bind(this, i)}, [
-					img({src: 'icons/import.svg', alt: 'Import Spritesheet'})
-				]),
-				button({className: 'icon', title: 'Export Spritesheet', onclick: exportImageSpritesheet.bind(this, i)}, [
-					img({src: 'icons/export.svg', alt: 'Export Spritesheet'})
-				])
+				button({
+					className: 'icon', title: 'Import Spritesheet',
+					onclick: importImageSpritesheet.bind(this, i)
+				}, IMPORT_ICON),
+				button({
+					className: 'icon', title: 'Export Spritesheet',
+					onclick: exportImageSpritesheet.bind(this, i)
+				}, EXPORT_ICON)
 			])
 		])
 	])
