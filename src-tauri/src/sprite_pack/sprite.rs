@@ -1,5 +1,4 @@
 use std::error::Error;
-use std::cmp::Ordering;
 use image::RgbaImage;
 
 use crate::data_view::{ DataView, BitWriter, words_to_bytes };
@@ -66,25 +65,6 @@ impl Sprite {
 		}
 		bits.end();
 		bits.bytes
-	}
-}
-
-#[derive(PartialEq, Eq)]
-struct PixelDataChunk {
-	start: usize,
-	end: usize,
-	data: Vec<u8>
-}
-
-impl Ord for PixelDataChunk {
-	fn cmp(&self, other: &Self) -> Ordering {
-		self.start.cmp(&other.start)
-	}
-}
-
-impl PartialOrd for PixelDataChunk {
-	fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-		Some(self.cmp(other))
 	}
 }
 
@@ -203,61 +183,42 @@ pub fn save_sprites(sprites: &mut [Sprite]) -> Result<(Vec<u8>, Vec<u8>), Box<dy
 }
 
 fn save_pixel_data(sprites: &mut [Sprite]) -> Vec<u8> {
-	let mut chunks: Vec<PixelDataChunk> = Vec::new();
+	let mut data = Vec::new();
 
 	let mut sorted_sprites = sprites.iter_mut().collect::<Vec<&mut Sprite>>();
 	sorted_sprites.sort_by(|a, b| {
 		a.pixels.len().cmp(&b.pixels.len())
 	});
+	sorted_sprites.reverse();
 
 	for sprite in sorted_sprites {
-		let mut offset = 0;
-
 		let pixel_data = sprite.get_pixel_data();
 		let byte_len = pixel_data.len();
-		let mut add_chunk = true;
-
-		for (i, chunk) in chunks.iter().enumerate() {
-			offset = find_next_offset(chunk.start, byte_len);
-			if offset + byte_len < chunk.end && chunk.data[(offset - chunk.start)..].starts_with(&pixel_data) {
-				add_chunk = false;
+		let mut index = 0;
+		let mut offset = 0;
+		let mut overlap_found = false;
+		while offset+byte_len < data.len() {
+			if data[offset..offset+byte_len] == pixel_data {
+				overlap_found = true;
 				break;
 			} else {
-				offset = find_next_offset(chunk.end, byte_len);
-				if i+1 < chunks.len() && chunks[i+1].start > offset + byte_len {
-					break;
-				}
+				index += 1;
+				offset = index * byte_len;
 			}
 		}
-
-		if add_chunk {
-			chunks.push(PixelDataChunk{
-				start: offset,
-				end: offset + byte_len,
-				data: sprite.get_pixel_data()
-			});
-			chunks.sort();
+		if !overlap_found {
+			if data.len() > 0 {
+				index += 1;
+				offset = index * byte_len;
+			}
+			if offset+byte_len > data.len() {
+				data.resize(offset+byte_len, 0);
+			}
+			data.splice(offset..offset+byte_len, pixel_data);
 		}
-
+		sprite.pixel_data_index = index as u16;
 		sprite.pixel_data_offset = offset;
-		sprite.pixel_data_index = (offset / byte_len) as u16;
-	}
-
-	let mut data = Vec::new();
-	for (i, chunk) in chunks.iter().enumerate() {
-		let end = if i > 0 { chunks[i-1].end } else { 0 };
-		let padding = chunk.start - end;
-		data.extend_from_slice(&vec![0_u8; padding]);
-		data.extend_from_slice(&chunk.data);
 	}
 
 	data
-}
-
-fn find_next_offset(start: usize, byte_len: usize) -> usize {
-	let mut offset = start;
-	while offset % byte_len != 0 {
-		offset += 1;
-	}
-	offset
 }
