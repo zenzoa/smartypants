@@ -159,13 +159,13 @@ pub fn import_strings_from(handle: &AppHandle, path: &PathBuf) -> Result<(), Box
 				}
 
 				temp_translation = TamaStringTranslation::new(id);
-				if let Some(line) = record.get(2) {
+				if let Some(line) = record.get(3) {
 					temp_translation.value = line.to_string();
 					last_line = line.to_string();
 				}
 
 			} else if id.is_empty() && !temp_translation.value.is_empty() {
-				if let Some(line) = record.get(2) {
+				if let Some(line) = record.get(3) {
 					if !line.is_empty() {
 						temp_translation.line_count += 1;
 						if last_line.is_empty() {
