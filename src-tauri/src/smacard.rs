@@ -187,6 +187,12 @@ pub fn save_card(handle: &AppHandle) -> Result<Vec<u8>, Box<dyn Error>> {
 
 	let mut header_opt = data_state.card_header.lock().unwrap();
 	let header = header_opt.as_mut().ok_or("Unable to save Sma Card: missing header")?;
+	header.sector_count = match data_state.bin_size.lock().unwrap().as_ref().ok_or("Undefined card size")? {
+		BinSize::Card128KB => 31,
+		BinSize::Card1MB => 255,
+		BinSize::Card2MB => 511,
+		_ => return Err("Invalid TamaSma card size".into())
+	};
 	let header_data = save_card_header(header)?;
 
 	let mut data = [header_data, pack_data].concat();
