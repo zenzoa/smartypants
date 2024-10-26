@@ -113,6 +113,12 @@ window.addEventListener('load', () => {
 		contents.append(sections[currentSection])
 	})
 
+	tauri_listen('update_card_header', event => {
+		cardData.card_header = event.payload
+		sections.header = setupHeader()
+		viewHeader()
+	})
+
 	tauri_listen('update_menu_strings', event => {
 		cardData.menu_strings = event.payload[0]
 		sections.menuStrings = setupMenuStrings()

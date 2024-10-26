@@ -3,7 +3,7 @@ use std::num::Wrapping;
 
 use md5::{ Md5, Digest };
 
-use tauri::{ AppHandle, State, Manager };
+use tauri::{ AppHandle, State, Manager, Emitter };
 
 use crate::{ DataState, ImageState, BinSize };
 use crate::data_view::{ DataView, bytes_to_words };
@@ -268,4 +268,14 @@ fn calc_checksum(data: &[u8]) -> u16 {
 		checksum += Wrapping(word);
 	}
 	checksum.0
+}
+
+#[tauri::command]
+pub fn clear_device_ids(handle: AppHandle) {
+	let data_state: State<DataState> = handle.state();
+	let mut header_opt = data_state.card_header.lock().unwrap();
+	if let Some(header) = header_opt.as_mut() {
+		header.device_ids = [0, 0, 0];
+		handle.emit("update_card_header", header.clone()).unwrap();
+	}
 }

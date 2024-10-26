@@ -12,15 +12,28 @@ const setupCardHeader = () => {
 		div({className: 'table-title'}, 'Tamagotchi Sma Card'),
 		table([
 			tbody([
-				tr([th('Sector Count'), td(header.sector_count)]),
-				tr([th('Checksum'), td(header.checksum)]),
-				tr([th('Device IDs'), td(`${header.device_ids.map(id => ` ${id.toString(16)}`)}`)]),
+				tr([
+					th('Device IDs'),
+					td({ className: 'button-row' }, [
+						div(
+							{ style: 'flex-grow: 1; margin-right: 16px;' },
+							`${header.device_ids.map(id => ` ${id.toString(16)}`)}`
+						),
+						button({
+							title: 'Reset Device IDs',
+							className: 'text',
+							onclick: () => tauri_invoke('clear_device_ids')
+						}, 'Reset')
+					])
+				]),
 				tr([th('Vendor ID'), td(header.vendor_id)]),
 				tr([th('Product ID'), td(header.product_id)]),
 				tr([th('Card Type'), td(header.card_type)]),
 				tr([th('Card ID'), td(header.card_id)]),
 				tr([th('Build Date'), td(`${header.year}-${header.month}-${header.day} revision ${header.revision}`)]),
-				tr([th('MD5'), td(header.md5.map(x => x.toString(16).padStart(2, 0)).reduce((prev, curr) => `${prev}${curr}`))])
+				// tr([th('Sector Count'), td(header.sector_count)]),
+				// tr([th('Checksum'), td(header.checksum)]),
+				// tr([th('MD5'), td(header.md5.map(x => x.toString(16).padStart(2, 0)).reduce((prev, curr) => `${prev}${curr}`))])
 			])
 		])
 	])

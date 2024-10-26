@@ -86,6 +86,7 @@ fn main() {
 			data_pack::tamastring::update_tamastring,
 			sprite_pack::image_def::update_image_def,
 			firmware::update_menu_string,
+			smacard::clear_device_ids,
 			text::validate_string,
 			text::decode_string_js,
 			text::get_default_char_codes,
