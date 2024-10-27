@@ -7,10 +7,10 @@ class EditFrameDialog extends EditDialog {
 			EditDialog.addIntInput('X Offset', `x-${layerIndex}`, layer.x, -128, 128)
 			EditDialog.addIntInput('Y Offset', `y-${layerIndex}`, layer.y, -128, 128)
 			EditDialog.addIntInput('Image ID', `image-id-${layerIndex}`, layer.image_id.entity_id, 0, U16_MAX)
-			EditDialog.addIntInput('Subimage Index', `subimage-index-${layerIndex}`, layer.subimage_index || 0, 0, U16_MAX)
-			// EditDialog.addIntInput('Unknown 1', `unknown1-${layerIndex}`, layer.unknown1, 0, U16_MAX)
-			// EditDialog.addIntInput('Unknown 2', `unknown2-${layerIndex}`, layer.unknown2, 0, U16_MAX)
-			// EditDialog.addIntInput('Unknown 3', `unknown3-${layerIndex}`, layer.unknown3, 0, U16_MAX)
+			EditDialog.addIntInput('Subimage Index', `subimage-index-${layerIndex}`, layer.subimage_index, 0, U16_MAX)
+			EditDialog.addIntInput('Unknown 1', `unknown1-${layerIndex}`, layer.unknown1, 0, U16_MAX)
+			EditDialog.addIntInput('Unknown 2', `unknown2-${layerIndex}`, layer.unknown2, 0, U16_MAX)
+			EditDialog.addIntInput('Unknown 3', `unknown3-${layerIndex}`, layer.unknown3, 0, U16_MAX)
 		})
 
 		document.getElementById('edit-dialog-actions').append(
@@ -30,7 +30,10 @@ class EditFrameDialog extends EditDialog {
 			if (document.getElementById(`edit-x-${layerIndex}`).classList.contains('invalid') ||
 				document.getElementById(`edit-y-${layerIndex}`).classList.contains('invalid') ||
 				document.getElementById(`edit-image-id-${layerIndex}`).classList.contains('invalid') ||
-				document.getElementById(`edit-subimage-index-${layerIndex}`).classList.contains('invalid')
+				document.getElementById(`edit-subimage-index-${layerIndex}`).classList.contains('invalid') ||
+				document.getElementById(`edit-unknown1-${layerIndex}`).classList.contains('invalid') ||
+				document.getElementById(`edit-unknown2-${layerIndex}`).classList.contains('invalid') ||
+				document.getElementById(`edit-unknown3-${layerIndex}`).classList.contains('invalid')
 			) {
 				invalid = true
 			}
@@ -47,9 +50,9 @@ class EditFrameDialog extends EditDialog {
 							entity_id: parseInt(document.getElementById(`edit-image-id-${layerIndex}`).value)
 						},
 						subimage_index: parseInt(document.getElementById(`edit-subimage-index-${layerIndex}`).value),
-						unknown1: layer.unknown1,
-						unknown2: layer.unknown2,
-						unknown3: layer.unknown3
+						unknown1: parseInt(document.getElementById(`edit-unknown1-${layerIndex}`).value),
+						unknown2: parseInt(document.getElementById(`edit-unknown2-${layerIndex}`).value),
+						unknown3: parseInt(document.getElementById(`edit-unknown3-${layerIndex}`).value)
 					}
 				})
 			}

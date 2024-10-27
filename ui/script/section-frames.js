@@ -16,8 +16,7 @@ const setupFrames = () => {
 				rows.push(tr({ id: `frame-${i}-${j}` }, [
 					th(j),
 					td(frameNames[j]),
-					td({ colspan: 7 }, '<em>Implicit</em>'),
-					// td([editButton])
+					td({ colspan: 10 }, '<em>Implicit</em>')
 				]))
 
 			} else {
@@ -26,12 +25,12 @@ const setupFrames = () => {
 					if (!specialLayers.includes(frameLayer.image_id.entity_id)) {
 						let image = cardData.sprite_pack.image_defs[frameLayer.image_id.entity_id]
 						if (image != null) {
-							let x = 64 - Math.floor(image.subimage_width / 2)
-							let y = 64 - Math.floor(image.subimage_height / 2)
+							let x = 64 - Math.floor(image.subimage_width / 2) + image.offset_x + frameLayer.x
+							let y = 64 - Math.floor(image.subimage_height / 2) + image.offset_y + frameLayer.y
 							previewLayers.push(img({
 								className: 'frame-preview-layer',
-								style: `left: ${x + frameLayer.x}px; top: ${y + frameLayer.y}px`,
-								src: convertFileSrc(`${timestamp}-${frameLayer.image_id.entity_id}-${frameLayer.subimage_index || 0}`, 'getimage')
+								style: `left: ${x}px; top: ${y}px`,
+								src: convertFileSrc(`${timestamp}-${frameLayer.image_id.entity_id}-${frameLayer.subimage_index}`, 'getimage')
 							}))
 						}
 					}
@@ -53,6 +52,9 @@ const setupFrames = () => {
 						td({ className: 'subrow' }, frameLayer.y),
 						td({ className: 'subrow' }, frameLayer.image_id != null ? linkToImage(frameLayer.image_id) : '-'),
 						td({ className: 'subrow' }, frameLayer.subimage_index != null ? frameLayer.subimage_index : (frameLayer.image_id != null ? 0 : '-')),
+						td({ className: 'subrow' }, frameLayer.unknown1),
+						td({ className: 'subrow' }, frameLayer.unknown2),
+						td({ className: 'subrow' }, frameLayer.unknown3)
 					])
 
 					if (k === 0) {
@@ -81,6 +83,9 @@ const setupFrames = () => {
 				th('Y'),
 				th('Image ID'),
 				th('Subimage Index'),
+				th('?'),
+				th('?'),
+				th('?'),
 				th('Preview'),
 				th('Actions')
 			])]),

@@ -26,12 +26,12 @@ pub enum FrameLayerType {
 pub struct FrameLayer {
 	pub x: Option<i16>,
 	pub y: Option<i16>,
-	pub subimage_index: Option<u16>,
+	pub subimage_index: u16,
 	pub layer_type: Option<FrameLayerType>,
 	pub image_id: Option<EntityId>,
-	pub unknown1: Option<u16>,
-	pub unknown2: Option<u16>,
-	pub unknown3: Option<u16>
+	pub unknown1: u16,
+	pub unknown2: u16,
+	pub unknown3: u16
 }
 
 #[derive(Clone, Serialize, Deserialize)]
@@ -75,28 +75,37 @@ pub fn get_frame_layers(data: &DataView) -> Vec<FrameLayer> {
 		if flags[2] {
 			i += 2;
 			if i < data.len() {
-				layer.subimage_index = Some(data.get_u16(i));
+				layer.subimage_index = data.get_u16(i);
 			}
 		}
 
 		if flags[4] {
 			i += 2;
 			if i < data.len() {
-				layer.unknown1 = Some(data.get_u16(i));
+				layer.unknown1 = data.get_u16(i);
+				if layer.unknown1 != 0 {
+					println!("unknown1: {} {}", layer.unknown1, layer.unknown1 as i16)
+				}
 			}
 		}
 
 		if flags[5] {
 			i += 2;
 			if i < data.len() {
-				layer.unknown2 = Some(data.get_u16(i));
+				layer.unknown2 = data.get_u16(i);
+				if layer.unknown2 != 0 {
+					println!("unknown2: {} {}", layer.unknown2, layer.unknown2 as i16)
+				}
 			}
 		}
 
 		if flags[8] {
 			i += 2;
 			if i < data.len() {
-				layer.unknown3 = Some(data.get_u16(i));
+				layer.unknown3 = data.get_u16(i);
+				if layer.unknown3 != 0 {
+					println!("unknown3: {} {}", layer.unknown3, layer.unknown3 as i16)
+				}
 			}
 		}
 
@@ -201,24 +210,24 @@ fn save_frame_layer(frame_layer: &FrameLayer) -> Result<Vec<u8>, Box<dyn Error>>
 		data.extend_from_slice(&y.to_le_bytes());
 	}
 
-	if let Some(subimage_index) = frame_layer.subimage_index {
+	if frame_layer.subimage_index > 0 {
 		bitmask |= 1 << 2;
-		data.extend_from_slice(&subimage_index.to_le_bytes());
+		data.extend_from_slice(&frame_layer.subimage_index.to_le_bytes());
 	}
 
-	if let Some(unknown1) = frame_layer.unknown1 {
+	if frame_layer.unknown1 > 0 {
 		bitmask |= 1 << 4;
-		data.extend_from_slice(&unknown1.to_le_bytes());
+		data.extend_from_slice(&frame_layer.unknown1.to_le_bytes());
 	}
 
-	if let Some(unknown2) = frame_layer.unknown2 {
+	if frame_layer.unknown2 > 0 {
 		bitmask |= 1 << 5;
-		data.extend_from_slice(&unknown2.to_le_bytes());
+		data.extend_from_slice(&frame_layer.unknown2.to_le_bytes());
 	}
 
-	if let Some(unknown3) = frame_layer.unknown3 {
+	if frame_layer.unknown3 > 0 {
 		bitmask |= 1 << 8;
-		data.extend_from_slice(&unknown3.to_le_bytes());
+		data.extend_from_slice(&frame_layer.unknown3.to_le_bytes());
 	}
 
 	if let Some(layer_type) = &frame_layer.layer_type {
