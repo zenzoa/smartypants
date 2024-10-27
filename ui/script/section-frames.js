@@ -1,7 +1,76 @@
 const setupFrames = () => {
 	const frame_groups = cardData.data_pack.frame_groups
 	let el = document.createElement('div')
+
 	frame_groups.forEach((frame_group, i) => {
+		let rows = []
+
+		frame_group.frames.forEach((frame, j) => {
+			let isLast = j === frame_group.frames.length - 1
+			let editButton = button({
+				title: 'Edit Frame', className: 'icon',
+				onclick: () => EditFrameDialog.open(i, j, frame)
+			}, EDIT_ICON)
+
+			if (frame === 'Implicit') {
+				rows.push(tr({ id: `frame-${i}-${j}` }, [
+					th(j),
+					td(frameNames[j]),
+					td({ colspan: 7 }, '<em>Implicit</em>'),
+					// td([editButton])
+				]))
+
+			} else {
+				let previewLayers = []
+				frame.Explicit.forEach(frameLayer => {
+					if (!specialLayers.includes(frameLayer.image_id.entity_id)) {
+						let image = cardData.sprite_pack.image_defs[frameLayer.image_id.entity_id]
+						if (image != null) {
+							let x = 64 - Math.floor(image.subimage_width / 2)
+							let y = 64 - Math.floor(image.subimage_height / 2)
+							previewLayers.push(img({
+								className: 'frame-preview-layer',
+								style: `left: ${x + frameLayer.x}px; top: ${y + frameLayer.y}px`,
+								src: convertFileSrc(`${timestamp}-${frameLayer.image_id.entity_id}-${frameLayer.subimage_index || 0}`, 'getimage')
+							}))
+						}
+					}
+				})
+
+				frame.Explicit.forEach((frameLayer, k) => {
+					let cells = []
+
+					if (k === 0) {
+						cells = cells.concat([
+							th({ rowspan: frame.Explicit.length, className: isLast ? 'bottom-left-cell' : '' }, j),
+							td({ rowspan: frame.Explicit.length }, frameNames[j])
+						])
+					}
+
+					cells = cells.concat([
+						td({ className: 'subrow' }, frameLayer.layer_type),
+						td({ className: 'subrow' }, frameLayer.x),
+						td({ className: 'subrow' }, frameLayer.y),
+						td({ className: 'subrow' }, frameLayer.image_id != null ? linkToImage(frameLayer.image_id) : '-'),
+						td({ className: 'subrow' }, frameLayer.subimage_index != null ? frameLayer.subimage_index : (frameLayer.image_id != null ? 0 : '-')),
+					])
+
+					if (k === 0) {
+						cells = cells.concat([
+							td({ rowspan: frame.Explicit.length }, [
+								div({ className: 'frame-preview' }, previewLayers)
+							]),
+							td({ rowspan: frame.Explicit.length, className: isLast ? 'bottom-right-cell' : '' }, [
+								editButton
+							])
+						])
+					}
+
+					rows.push(tr({ id: `frame-${i}-${j}` }, cells))
+				})
+			}
+		})
+
 		el.append(div({id: `framegroup-${i}`, className: 'table-title'}, `Frame Group ${i}`))
 		el.append(table([
 			thead([tr([
@@ -12,29 +81,10 @@ const setupFrames = () => {
 				th('Y'),
 				th('Image ID'),
 				th('Subimage Index'),
-				th('Preview')
+				th('Preview'),
+				th('Actions')
 			])]),
-			tbody(frame_group.frames.map((frame, i) => {
-				if (frame === 'Implicit') {
-					return tr({}, [
-						th(i),
-						td(frameNames[i]),
-						td({'colspan': 6}, '<em>Implicit</em>')
-					])
-				} else {
-					const frame_info = frame.Explicit[0]
-					return tr({}, [
-						th(i),
-						td(frameNames[i]),
-						td(frame_info.layer_type),
-						td(frame_info.x),
-						td(frame_info.y),
-						td(frame_info.image_id != null ? linkToImage(frame_info.image_id) : '-'),
-						td(frame_info.subimage_index != null ? frame_info.subimage_index : (frame_info.image_id != null ? 0 : '-')),
-						td(displayImageWithLink(frame_info.image_id, frame_info.subimage_index))
-					])
-				}
-			}))
+			tbody(rows)
 		]))
 	})
 	return el
@@ -44,6 +94,19 @@ const viewFrames = () => {
 	selectSection('frames')
 	contents.append(sections.frames)
 }
+
+const specialLayers = [
+	1227,	// Head accessory
+	1228,	// Head accessory (close-up)
+	1264,	// Face accessory
+	1265,	// Face accessory (close-up)
+	1266,	// Body accessory
+	1267,	// Body accessory (close-up)
+	1276,	// Hand accessory
+	1271,	// Hand accessory (close-up)
+	1280,	// Dirt clouds
+	1282	// Dirt clouds (close-up)
+]
 
 const frameNames = [
 	'?',

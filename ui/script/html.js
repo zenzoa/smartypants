@@ -139,7 +139,7 @@ const displayImage = (imageId, subimageIndex, showTooltip) => {
 }
 
 const displayImageWithLink = (imageId, subimageIndex) => {
-	if (imageId != null && subimageIndex != null && (!cardData.header || imageId.card_id == cardData.header.card_id)) {
+	if (imageId != null && subimageIndex != null && (!cardData.card_header || imageId.card_id == cardData.card_header.card_id)) {
 		const img = displayImage(imageId.entity_id, subimageIndex)
 		const link = button([img])
 		link.addEventListener('click', () => {

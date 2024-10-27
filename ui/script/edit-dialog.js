@@ -19,6 +19,12 @@ class EditDialog {
 			.addEventListener('click', EditDialog.close)
 	}
 
+	static addSectionTitle(title) {
+		document.getElementById('edit-dialog-body').append(
+			div({ className: 'dialog-section-title' }, title)
+		)
+	}
+
 	static addStrInput(title, name, value, maxlength) {
 		document.getElementById('edit-dialog-body').append(
 			label({ id: `label-${name}` }, [

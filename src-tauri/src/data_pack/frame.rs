@@ -1,9 +1,15 @@
 use std::error::Error;
 
-use super::EntityId;
-use crate::data_view::DataView;
+use serde::{ Serialize, Deserialize };
 
-#[derive(Clone, Debug, serde::Serialize)]
+use tauri::{ AppHandle, Manager, State };
+
+use super::EntityId;
+use crate::{ DataState, update_window_title };
+use crate::data_view::DataView;
+use crate::file::set_file_modified;
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub enum FrameLayerType {
 	Unknown,
 	Face,
@@ -16,7 +22,7 @@ pub enum FrameLayerType {
 	HandAccessory
 }
 
-#[derive(Default, Clone, Debug, serde::Serialize)]
+#[derive(Default, Clone, Debug, Serialize, Deserialize)]
 pub struct FrameLayer {
 	pub x: Option<i16>,
 	pub y: Option<i16>,
@@ -28,13 +34,13 @@ pub struct FrameLayer {
 	pub unknown3: Option<u16>
 }
 
-#[derive(Clone, serde::Serialize)]
+#[derive(Clone, Serialize, Deserialize)]
 pub enum Frame {
 	Implicit,
 	Explicit(Vec<FrameLayer>)
 }
 
-#[derive(Clone, serde::Serialize)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct FrameGroup {
 	pub frames: Vec<Frame>
 }
@@ -239,4 +245,23 @@ fn save_frame_layer(frame_layer: &FrameLayer) -> Result<Vec<u8>, Box<dyn Error>>
 	data.splice(0..2, bitmask.to_le_bytes());
 
 	Ok(data)
+}
+
+#[tauri::command]
+pub fn update_frame(handle: AppHandle, group_index: usize, frame_index: usize, new_frame: Frame) -> Option<Frame> {
+	let data_state: State<DataState> = handle.state();
+
+	let mut data_pack_opt = data_state.data_pack.lock().unwrap();
+	if let Some(data_pack) = data_pack_opt.as_mut() {
+		if let Some(frame_group) = data_pack.frame_groups.get_mut(group_index) {
+			if let Some(frame) = frame_group.frames.get_mut(frame_index) {
+				*frame = new_frame;
+				set_file_modified(&handle, true);
+				update_window_title(&handle);
+				return Some(frame.clone());
+			}
+		}
+	}
+
+	None
 }

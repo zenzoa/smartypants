@@ -419,7 +419,7 @@ td {
 	color: var(--table-fg);
 }
 
-td:first-child {
+td:first-child:not(.subrow) {
 	border-left: 1px solid var(--table-border);
 }
 
@@ -437,11 +437,13 @@ tbody:first-child tr:first-child :last-child {
 	border-top-right-radius: 8px;
 }
 
-tbody > tr:last-child > :first-child {
+tbody > tr:last-child > :first-child:not(.subrow),
+.bottom-left-cell {
 	border-bottom-left-radius: 8px;
 }
 
-tbody > tr:last-child > :last-child {
+tbody > tr:last-child > :last-child:not(.subrow),
+.bottom-right-cell {
 	border-bottom-right-radius: 8px;
 }
 
@@ -532,6 +534,17 @@ hr {
 .dialog-actions button.text {
 	flex-grow: 1;
 	flex-basis: 120px;
+}
+
+.dialog-section-title {
+	font-weight: 700;
+	margin-bottom: 8px;
+}
+
+.dialog-section-title:not(:first-child) {
+	margin-top: 24px;
+	padding-top: 24px;
+	border-top: 1px solid var(--table-border);
 }
 
 .about-dialog {
@@ -640,6 +653,16 @@ input.invalid + .string-preview {
 #edit-encoding-dialog td:nth-child(3) {
 	text-align: center;
 	background-color: var(--preview-bg);
+}
+
+.frame-preview {
+	width: 128px;
+	height: 128px;
+	position: relative;
+}
+
+.frame-preview-layer {
+	position: absolute;
 }
 
 .spinner {
