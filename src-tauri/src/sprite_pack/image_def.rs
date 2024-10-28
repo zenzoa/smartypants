@@ -1,14 +1,16 @@
 use std::error::Error;
 
 use image::{ RgbaImage, GenericImage };
-use tauri::{ AppHandle, State, Emitter };
+use serde::{ Serialize, Deserialize };
+use tauri::{ AppHandle, Manager, State };
 
 use super::Sprite;
 use super::palette::Color;
-use crate::DataState;
+use crate::{ DataState, update_window_title };
 use crate::data_view::DataView;
+use crate::file::set_file_modified;
 
-#[derive(Clone, serde::Serialize)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct ImageDef {
 	pub first_sprite_index: u16,
 	pub next_sprite_index: u16,
@@ -18,7 +20,9 @@ pub struct ImageDef {
 	pub subimage_count: usize,
 	pub colors_used: Vec<Color>,
 	pub subimage_width: u32,
-	pub subimage_height: u32
+	pub subimage_height: u32,
+	pub offset_x: i16,
+	pub offset_y: i16
 }
 
 impl ImageDef {
@@ -98,7 +102,9 @@ pub fn get_image_defs(data: &DataView) -> Result<Vec<ImageDef>, Box<dyn Error>> 
 			subimage_count: 0,
 			colors_used: Vec::new(),
 			subimage_width: 0,
-			subimage_height: 0
+			subimage_height: 0,
+			offset_x: 0,
+			offset_y: 0
 		});
 		i += 6;
 	}
@@ -137,14 +143,36 @@ pub fn save_image_defs(image_defs: &[ImageDef]) -> Result<Vec<u8>, Box<dyn Error
 }
 
 #[tauri::command]
-pub fn update_image_def(handle: AppHandle, data_state: State<DataState>, index: usize, first_palette_index: u16) {
+pub fn update_image_def(handle: AppHandle, index: usize, offset_x: i16, offset_y: i16, first_palette_index: Option<u16>) -> Option<ImageDef> {
+	let data_state: State<DataState> = handle.state();
+
 	let mut sprite_pack_opt = data_state.sprite_pack.lock().unwrap();
 	if let Some(sprite_pack) = sprite_pack_opt.as_mut() {
 		if let Some(image_def) = sprite_pack.image_defs.get_mut(index) {
-			image_def.first_palette_index = first_palette_index;
-		}
-		if let Some(image_def) = sprite_pack.image_defs.get(index) {
-			handle.emit("update_image_def", (index, image_def)).unwrap();
+			let dx = offset_x - image_def.offset_x;
+			let dy = offset_y - image_def.offset_y;
+			let sprites_per_subimage = image_def.width_in_sprites as usize * image_def.height_in_sprites as usize;
+			let sprite_count = sprites_per_subimage * image_def.subimage_count;
+			let first_sprite_index = image_def.first_sprite_index as usize;
+			let last_sprite_index = first_sprite_index + sprite_count;
+
+			for sprite in sprite_pack.sprites[first_sprite_index..last_sprite_index].iter_mut() {
+				sprite.offset_x += dx;
+				sprite.offset_y += dy;
+			}
+
+			image_def.offset_x = offset_x;
+			image_def.offset_y = offset_y;
+
+			if let Some(first_palette_index) = first_palette_index {
+				image_def.first_palette_index = first_palette_index as u16;
+			}
+
+			set_file_modified(&handle, true);
+			update_window_title(&handle);
+			return Some(image_def.clone());
 		}
 	}
+
+	None
 }

@@ -91,6 +91,11 @@ impl SpritePack {
 			image_def.subimage_width = subimages.first().unwrap().width();
 			image_def.subimage_height = subimages.first().unwrap().height();
 			images.push(subimages);
+
+			let first_sprite = sprites.get(image_def.first_sprite_index as usize)
+				.ok_or("Unable to find first sprite for image def")?;
+			image_def.offset_x = first_sprite.offset_x;
+			image_def.offset_y = first_sprite.offset_y;
 		}
 
 		Ok(images)

@@ -8,8 +8,8 @@ use super::palette::Color;
 pub struct Sprite {
 	pub pixel_data_index: u16,
 	pub pixel_data_offset: usize,
-	pub offset_x: u16,
-	pub offset_y: u16,
+	pub offset_x: i16,
+	pub offset_y: i16,
 	pub bits_per_pixel: u8,
 	pub is_flipped: u8, // unused on Smart
 	pub width: u8,
@@ -84,8 +84,8 @@ pub fn get_sprites(def_data: &DataView, pixel_data: &DataView) -> Result<Vec<Spr
 		let is_quadrupled = ((props & 0x8000) >> 15) > 0;
 
 		let pixel_data_index = def_data.get_u16(i);
-		let offset_x = def_data.get_u16(i + 2);
-		let offset_y = def_data.get_u16(i + 4);
+		let offset_x = def_data.get_i16(i + 2);
+		let offset_y = def_data.get_i16(i + 4);
 
 		let sprite_size = (width as usize) * (height as usize);
 		let byte_count = sprite_size * (bits_per_pixel as usize) / 8;
@@ -132,8 +132,8 @@ pub fn save_sprites(sprites: &mut [Sprite]) -> Result<(Vec<u8>, Vec<u8>), Box<dy
 
 	for sprite in sprites.iter_mut() {
 		sprite_defs.push(sprite.pixel_data_index);
-		sprite_defs.push(sprite.offset_x);
-		sprite_defs.push(sprite.offset_y);
+		sprite_defs.push(sprite.offset_x as u16);
+		sprite_defs.push(sprite.offset_y as u16);
 
 		let bits_per_pixel = match sprite.bits_per_pixel {
 			2 => 0,

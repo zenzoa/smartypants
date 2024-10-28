@@ -11,6 +11,8 @@ const setupSprites = () => {
 			thead([tr([
 				th('ID'),
 				th('Sub-Images'),
+				th('X-Offset'),
+				th('Y-Offset'),
 				cardData.lock_colors ? th('First Palette ID') : '',
 				cardData.lock_colors ? th('Max Colors') : '',
 				th('Actions')
@@ -34,15 +36,9 @@ const renderImageDef = (i, imageDef) => {
 		td(Array(imageDef.subimage_count).fill(0).map((_, j) =>
 			displayImage(i, j, true)
 		)),
-		cardData.lock_colors ? td([
-			div({ className: 'button-row' }, [
-				linkToPalette(imageDef.first_palette_index),
-				button({
-					title: 'Edit Palette ID', className: 'icon',
-					onclick: () => EditSpriteDialog.open(i, imageDef)
-				}, EDIT_ICON)
-			])
-		]) : '',
+		td(imageDef.offset_x),
+		td(imageDef.offset_y),
+		cardData.lock_colors ? td([linkToPalette(imageDef.first_palette_index)]) : '',
 		cardData.lock_colors ? td(bppToMaxColors[cardData.sprite_pack.sprites[imageDef.first_sprite_index].bits_per_pixel]) : '',
 		td([
 			div({className:'button-row'}, [
@@ -53,7 +49,11 @@ const renderImageDef = (i, imageDef) => {
 				button({
 					className: 'icon', title: 'Export Spritesheet',
 					onclick: exportImageSpritesheet.bind(this, i)
-				}, EXPORT_ICON)
+				}, EXPORT_ICON),
+				button({
+					className: 'icon', title: 'Edit Image Definition',
+					onclick: () => EditSpriteDialog.open(i, imageDef)
+				}, EDIT_ICON)
 			])
 		])
 	])

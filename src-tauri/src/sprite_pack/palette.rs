@@ -1,10 +1,11 @@
 use std::error::Error;
 use std::cmp::Ordering;
 use image::{ Rgba, RgbaImage };
+use serde::{ Serialize, Deserialize };
 
 use super::get_colors_in_images;
 
-#[derive(Debug, Default, Clone, Copy, Eq, serde::Serialize)]
+#[derive(Debug, Default, Clone, Copy, Eq, Serialize, Deserialize)]
 pub struct Color {
 	pub r: u8,
 	pub g: u8,
