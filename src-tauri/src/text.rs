@@ -227,14 +227,14 @@ pub fn validate_string(handle: AppHandle, string: &str) -> bool {
 			},
 			'}' | '>' => {
 				var_name.push(ch);
-				if let None = char_code_to_word(char_codes, &var_name.to_lowercase()) {
+				if char_code_to_word(char_codes, &var_name.to_lowercase()).is_none() {
 					return false;
 				}
 				var_name = String::new();
 			},
 			_ => {
 				if var_name.is_empty() {
-					if let None = char_code_to_word(char_codes, &ch.to_string()) {
+					if char_code_to_word(char_codes, &ch.to_string()).is_none() {
 						return false;
 					}
 				} else {

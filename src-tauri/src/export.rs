@@ -223,7 +223,7 @@ pub fn export_images_to(handle: &AppHandle, image_state: &ImageState, path: &Pat
 	let base_name = path.file_stem().unwrap().to_string_lossy();
 	let image_count = image_state.images.lock().unwrap().len();
 	for i in 0..image_count {
-		let image_path = path.with_file_name(&format!("{}-{}", base_name, i)).with_extension("png");
+		let image_path = path.with_file_name(format!("{}-{}", base_name, i)).with_extension("png");
 		export_image_spritesheet_to(handle, i, &image_path)?;
 	}
 	Ok(())

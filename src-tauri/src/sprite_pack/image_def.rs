@@ -182,7 +182,7 @@ pub fn update_image_def(handle: AppHandle, index: usize, offsets_x: Vec<i16>, of
 			}
 
 			if let Some(first_palette_index) = first_palette_index {
-				image_def.first_palette_index = first_palette_index as u16;
+				image_def.first_palette_index = first_palette_index;
 			}
 
 			set_file_modified(&handle, true);

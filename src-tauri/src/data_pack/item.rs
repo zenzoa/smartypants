@@ -42,8 +42,8 @@ pub enum ItemType {
 }
 
 impl ItemType {
-	pub fn is_accessory(self) -> bool {
-		self == ItemType::AccessoryHead || self == ItemType::AccessoryFace || self == ItemType::AccessoryBody || self == ItemType::AccessoryHand
+	pub fn is_accessory(&self) -> bool {
+		*self == ItemType::AccessoryHead || *self == ItemType::AccessoryFace || *self == ItemType::AccessoryBody || *self == ItemType::AccessoryHand
 	}
 }
 

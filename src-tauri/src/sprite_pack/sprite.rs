@@ -209,7 +209,7 @@ fn save_pixel_data(sprites: &mut [Sprite]) -> Vec<u8> {
 			}
 		}
 		if !overlap_found {
-			if data.len() > 0 {
+			if !data.is_empty() {
 				index += 1;
 				offset = index * byte_len;
 			}

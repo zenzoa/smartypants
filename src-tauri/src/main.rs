@@ -164,7 +164,7 @@ fn main() {
 
 		.setup(|app| {
 			let handle = app.app_handle();
-			get_themes(&handle).unwrap();
+			get_themes(handle).unwrap();
 
 			let font_state: State<FontState> = app.state();
 			if let Ok(small_font_path) = app.path().resolve("resources/fontsprites/font_small_jp.png", BaseDirectory::Resource) {
