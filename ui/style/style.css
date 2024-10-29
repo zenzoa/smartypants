@@ -52,6 +52,8 @@
 	--main-font: "Noto Sans Mono";
 
 	--toolbar-display: flex;
+
+	--border-radius: 8px;
 }
 
 * {
@@ -107,7 +109,7 @@ select,
 button.text,
 button.icon,
 button.toggle::before {
-	border-radius: 8px;
+	border-radius: var(--border-radius);
 	box-shadow: -2px 2px 0 0 var(--button-shadow);
 	background-color: var(--button-bg);
 	color: var(--button-fg)
@@ -249,7 +251,7 @@ select:focus + .select-arrow {
 }
 
 input {
-	border-radius: 8px;
+	border-radius: var(--border-radius);
 	border: 1px solid var(--input-border);
 	box-shadow: 0 2px 0 var(--input-shadow) inset;
 	padding: 8px 16px;
@@ -295,14 +297,14 @@ label .fill {
 	margin: 8px;
 	margin-bottom: 0;
 	padding: 8px;
-	border-radius: 8px;
+	border-radius: var(--border-radius);
 	background-color: var(--toolbar-bg);
 }
 
 #toolbar .vertical-divider {
 	width: 4px;
 	height: 4px;
-	border-radius: 8px;
+	border-radius: var(--border-radius);
 	background-color: var(--button-bg);
 	display: block;
 }
@@ -363,7 +365,7 @@ label .fill {
 	margin: 8px;
 	margin-left: 0;
 	padding: 16px;
-	border-radius: 8px;
+	border-radius: var(--border-radius);
 	background-color: var(--main-bg);
 	color: var(--main-fg);
 }
@@ -385,7 +387,7 @@ label .fill {
 }
 
 table {
-	border-radius: 8px;
+	border-radius: var(--border-radius);
 	border-spacing: 0;
 	font-family: inherit;
 }
@@ -659,6 +661,8 @@ input.invalid + .string-preview {
 	width: 128px;
 	height: 128px;
 	position: relative;
+	border: 1px solid var(--table-border);
+	border-radius: var(--border-radius);
 }
 
 .frame-preview-layer {

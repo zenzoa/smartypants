@@ -26,14 +26,14 @@ class EditFrameDialog extends EditDialog {
 
 	static submit(groupIndex, frameIndex, frame) {
 		let invalid = false
-		frame.Explicit.forEach((layer, layerIndex) => {
-			if (document.getElementById(`edit-x-${layerIndex}`).classList.contains('invalid') ||
-				document.getElementById(`edit-y-${layerIndex}`).classList.contains('invalid') ||
-				document.getElementById(`edit-image-id-${layerIndex}`).classList.contains('invalid') ||
-				document.getElementById(`edit-subimage-index-${layerIndex}`).classList.contains('invalid') ||
-				document.getElementById(`edit-unknown1-${layerIndex}`).classList.contains('invalid') ||
-				document.getElementById(`edit-unknown2-${layerIndex}`).classList.contains('invalid') ||
-				document.getElementById(`edit-unknown3-${layerIndex}`).classList.contains('invalid')
+		frame.Explicit.forEach((_, layerIndex) => {
+			if (!document.getElementById(`edit-x-${layerIndex}`).checkValidity() ||
+				!document.getElementById(`edit-y-${layerIndex}`).checkValidity() ||
+				!document.getElementById(`edit-image-id-${layerIndex}`).checkValidity() ||
+				!document.getElementById(`edit-subimage-index-${layerIndex}`).checkValidity() ||
+				!document.getElementById(`edit-unknown1-${layerIndex}`).checkValidity() ||
+				!document.getElementById(`edit-unknown2-${layerIndex}`).checkValidity() ||
+				!document.getElementById(`edit-unknown3-${layerIndex}`).checkValidity()
 			) {
 				invalid = true
 			}

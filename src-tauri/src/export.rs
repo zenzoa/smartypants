@@ -210,7 +210,7 @@ pub fn export_images(handle: AppHandle) {
 
 			if let Some(path) = file_result {
 				show_spinner(&handle);
-				if let Err(why) = export_images_to(&image_state, &path) {
+				if let Err(why) = export_images_to(&handle, &image_state, &path) {
 					show_error_message(why);
 				}
 				hide_spinner(&handle);
@@ -219,21 +219,13 @@ pub fn export_images(handle: AppHandle) {
 	});
 }
 
-pub fn export_images_to(image_state: &ImageState, path: &Path) -> Result<(), Box<dyn Error>> {
+pub fn export_images_to(handle: &AppHandle, image_state: &ImageState, path: &Path) -> Result<(), Box<dyn Error>> {
 	let base_name = path.file_stem().unwrap().to_string_lossy();
-
 	let image_count = image_state.images.lock().unwrap().len();
 	for i in 0..image_count {
-		let subimage_count = image_state.images.lock().unwrap().get(i).ok_or("")?.len();
-		for j in 0..subimage_count {
-			let img_path = path.with_file_name(&format!("{}-{}-{}", base_name, i, j)).with_extension("png");
-			image_state.images.lock().unwrap()
-				.get(i).ok_or("image not found")?
-				.get(j).ok_or("subimage not found")?
-				.save(img_path)?;
-		}
+		let image_path = path.with_file_name(&format!("{}-{}", base_name, i)).with_extension("png");
+		export_image_spritesheet_to(handle, i, &image_path)?;
 	}
-
 	Ok(())
 }
 
@@ -273,7 +265,7 @@ fn export_image_spritesheet_to(handle: &AppHandle, image_index: usize, path: &Pa
 	let sprite_pack = sprite_pack_guard.as_ref().ok_or("No sprite pack found")?;
 	let image_def = sprite_pack.image_defs.get(image_index)
 		.ok_or(format!("Unable to find image definition {}", image_index))?;
-	let spritesheet = match image_def.to_spritesheet(&sprite_pack.sprites, &sprite_pack.palettes) {
+	let spritesheet = match image_def.to_spritesheet(&sprite_pack.palettes) {
 		Ok(spritesheet) => spritesheet,
 		Err(why) => return Err(format!("Image Def {}: {}", image_index, why).into())
 	};

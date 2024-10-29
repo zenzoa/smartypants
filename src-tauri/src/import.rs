@@ -245,8 +245,8 @@ fn import_image_spritesheet_from(handle: &AppHandle, image_index: usize, path: &
 	let image_def = sprite_pack.image_defs.get_mut(image_index)
 		.ok_or(format!("Can't find image def for image {}", image_index))?;
 
-	let expected_width = image_def.subimage_width * image_def.subimage_count as u32;
-	let expected_height = image_def.subimage_height;
+	let expected_width = image_def.width * image_def.subimage_defs.len() as u32;
+	let expected_height = image_def.height;
 	if spritesheet.width() != expected_width || spritesheet.height() != expected_height {
 		return Err(format!("Spritesheet does not match expected dimensions: {}x{}", expected_width, expected_height).into());
 	}

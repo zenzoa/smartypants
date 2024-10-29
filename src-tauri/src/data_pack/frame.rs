@@ -83,9 +83,6 @@ pub fn get_frame_layers(data: &DataView) -> Vec<FrameLayer> {
 			i += 2;
 			if i < data.len() {
 				layer.unknown1 = data.get_u16(i);
-				if layer.unknown1 != 0 {
-					println!("unknown1: {} {}", layer.unknown1, layer.unknown1 as i16)
-				}
 			}
 		}
 
@@ -93,9 +90,6 @@ pub fn get_frame_layers(data: &DataView) -> Vec<FrameLayer> {
 			i += 2;
 			if i < data.len() {
 				layer.unknown2 = data.get_u16(i);
-				if layer.unknown2 != 0 {
-					println!("unknown2: {} {}", layer.unknown2, layer.unknown2 as i16)
-				}
 			}
 		}
 
@@ -103,9 +97,6 @@ pub fn get_frame_layers(data: &DataView) -> Vec<FrameLayer> {
 			i += 2;
 			if i < data.len() {
 				layer.unknown3 = data.get_u16(i);
-				if layer.unknown3 != 0 {
-					println!("unknown3: {} {}", layer.unknown3, layer.unknown3 as i16)
-				}
 			}
 		}
 

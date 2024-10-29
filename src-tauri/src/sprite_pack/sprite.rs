@@ -1,10 +1,12 @@
 use std::error::Error;
 use image::RgbaImage;
 
+use serde::{ Serialize, Deserialize };
+
 use crate::data_view::{ DataView, BitWriter, words_to_bytes };
 use super::palette::Color;
 
-#[derive(Clone, serde::Serialize)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct Sprite {
 	pub pixel_data_index: u16,
 	pub pixel_data_offset: usize,
@@ -130,7 +132,7 @@ pub fn save_sprites(sprites: &mut [Sprite]) -> Result<(Vec<u8>, Vec<u8>), Box<dy
 
 	let pixel_data = save_pixel_data(sprites);
 
-	for sprite in sprites.iter_mut() {
+	for sprite in sprites {
 		sprite_defs.push(sprite.pixel_data_index);
 		sprite_defs.push(sprite.offset_x as u16);
 		sprite_defs.push(sprite.offset_y as u16);

@@ -7,15 +7,14 @@ pub mod image_def;
 pub mod palette;
 pub mod sprite;
 
-use image_def::{ ImageDef, get_image_defs, save_image_defs, calc_subimage_counts };
+use image_def::{ ImageDef, get_image_defs, save_image_defs };
 use palette::{ Color, get_palettes, save_palettes, generate_palettes };
 use sprite::{ Sprite, get_sprites };
 
 #[derive(Clone, serde::Serialize)]
 pub struct SpritePack {
 	pub image_defs: Vec<ImageDef>,
-	pub palettes: Vec<Color>,
-	pub sprites: Vec<Sprite>
+	pub palettes: Vec<Color>
 }
 
 impl SpritePack {
@@ -24,10 +23,6 @@ impl SpritePack {
 		let sprite_defs_offset = data.get_u32(4) as usize;
 		let palettes_offset = data.get_u32(8) as usize;
 		let pixel_data_offset = data.get_u32(12) as usize;
-
-		let mut image_defs = get_image_defs(
-			&data.chunk(image_defs_offset, sprite_defs_offset-image_defs_offset)
-		)?;
 
 		let palettes = get_palettes(
 			&data.data[palettes_offset..pixel_data_offset]
@@ -38,17 +33,20 @@ impl SpritePack {
 			&data.chunk(pixel_data_offset, data.len()-pixel_data_offset)
 		)?;
 
-		calc_subimage_counts(&mut image_defs, sprites.len());
+		let image_defs = get_image_defs(
+			&data.chunk(image_defs_offset, sprite_defs_offset-image_defs_offset),
+			&sprites
+		)?;
 
-		let sprite_pack = Self { image_defs, palettes, sprites };
+		let sprite_pack = Self { image_defs, palettes };
 
 		Ok(sprite_pack)
 	}
 
 	pub fn as_bytes(&mut self) -> Result<Vec<u8>, Box<dyn Error>> {
-		let image_def_data = save_image_defs(&self.image_defs)?;
+		let (image_def_data, mut sprites) = save_image_defs(&self.image_defs)?;
 		let mut palette_data = save_palettes(&self.palettes)?;
-		let (sprite_def_data, pixel_data) = sprite::save_sprites(&mut self.sprites)?;
+		let (sprite_def_data, pixel_data) = sprite::save_sprites(&mut sprites)?;
 
 		let image_defs_offset = 16;
 		let sprite_defs_offset = image_defs_offset + image_def_data.len();
@@ -78,24 +76,18 @@ impl SpritePack {
 
 	pub fn get_image_data(&mut self) -> Result<Vec<Vec<RgbaImage>>, Box<dyn Error>> {
 		let palettes = &self.palettes;
-		let sprites = &self.sprites;
 
 		let mut images = Vec::new();
 
 		for (i, image_def) in self.image_defs.iter_mut().enumerate() {
-			let subimages = match image_def.to_images(sprites, palettes) {
+			let subimages = match image_def.to_images(palettes) {
 				Ok(subimages) => subimages,
 				Err(why) => return Err(format!("Image Def {}: {}", i, why).into())
 			};
 			image_def.colors_used = get_colors_in_images(&subimages);
-			image_def.subimage_width = subimages.first().unwrap().width();
-			image_def.subimage_height = subimages.first().unwrap().height();
+			image_def.width = subimages.first().unwrap().width();
+			image_def.height = subimages.first().unwrap().height();
 			images.push(subimages);
-
-			let first_sprite = sprites.get(image_def.first_sprite_index as usize)
-				.ok_or("Unable to find first sprite for image def")?;
-			image_def.offset_x = first_sprite.offset_x;
-			image_def.offset_y = first_sprite.offset_y;
 		}
 
 		Ok(images)
@@ -131,12 +123,12 @@ impl SpritePack {
 			}
 
 			let palette = &self.palettes[image_def.first_palette_index as usize * 4..];
-			let sprites_per_subimage = image_def.width_in_sprites as usize * image_def.height_in_sprites as usize;
-			for (j, subimage) in subimages.iter().enumerate() {
+			for (j, subimage_def) in image_def.subimage_defs.iter_mut().enumerate() {
+				let subimage = subimages.get(j).ok_or(format!("Unable to find subimage {} in image {}", j, i))?;
 				let sprite_images = divide_image(subimage, image_def.width_in_sprites as u32, image_def.height_in_sprites as u32);
-				for (k, sprite_image) in sprite_images.iter().enumerate() {
-					let sprite_index = image_def.first_sprite_index as usize + j*sprites_per_subimage + k;
-					if let Err(why) = self.sprites[sprite_index].update_from_image(sprite_image, palette, bpp) {
+				for (k, sprite) in subimage_def.sprites.iter_mut().enumerate() {
+					let sprite_image = sprite_images.get(k).ok_or(format!("Unable to find sprite {} in image {}, subimage {}", k, i, j))?;
+					if let Err(why) = sprite.update_from_image(sprite_image, palette, bpp) {
 						return Err(format!("Sprite {}-{}: {}", i, j, why).into());
 					}
 				}

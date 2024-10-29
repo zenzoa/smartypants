@@ -11,8 +11,7 @@ const setupSprites = () => {
 			thead([tr([
 				th('ID'),
 				th('Sub-Images'),
-				th('X-Offset'),
-				th('Y-Offset'),
+				th('Dimensions'),
 				cardData.lock_colors ? th('First Palette ID') : '',
 				cardData.lock_colors ? th('Max Colors') : '',
 				th('Actions')
@@ -33,13 +32,10 @@ const updateImageDef = (i, newImageDef) => {
 const renderImageDef = (i, imageDef) => {
 	return tr({id: `image-${i}`}, [
 		th(i),
-		td(Array(imageDef.subimage_count).fill(0).map((_, j) =>
-			displayImage(i, j, true)
-		)),
-		td(imageDef.offset_x),
-		td(imageDef.offset_y),
+		td(imageDef.subimage_defs.map((_, j) => displayImage(i, j, true))),
+		td(`${imageDef.width}×${imageDef.height}`),
 		cardData.lock_colors ? td([linkToPalette(imageDef.first_palette_index)]) : '',
-		cardData.lock_colors ? td(bppToMaxColors[cardData.sprite_pack.sprites[imageDef.first_sprite_index].bits_per_pixel]) : '',
+		cardData.lock_colors ? td(bppToMaxColors[imageDef.subimage_defs[0].sprites[0].bits_per_pixel]) : '',
 		td([
 			div({className:'button-row'}, [
 				button({
@@ -62,20 +58,4 @@ const renderImageDef = (i, imageDef) => {
 const viewSprites = () => {
 	selectSection('sprites')
 	contents.append(sections.sprites)
-}
-
-const editImageFirstPalette = (i) => {
-	const image_def = cardData.sprite_pack.image_defs[i]
-	EditDialog.openNumberEditor(
-		`Edit Image ${i}: First Palette`,
-		'First Palette',
-		image_def.first_palette_index,
-		(newValue) => {
-			image_def.first_palette_index = newValue
-			tauri_invoke('update_image_def', { index: i, firstPaletteIndex: newValue })
-			EditDialog.close()
-		},
-		0,
-		Math.floor(cardData.sprite_pack.palettes.length / 4) - 1
-	)
 }

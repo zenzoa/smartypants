@@ -100,6 +100,14 @@ class EditDialog {
 		)
 	}
 
+	static addCheckbox(title, name, value) {
+		const checkbox = button({ id: `edit-${name}`, className: value ? 'toggle on' : 'toggle off' })
+		document.getElementById('edit-dialog-body').append(
+			label({ id: `label-${name}` }, [ span(title), checkbox ])
+		)
+		return checkbox
+	}
+
 	static updateStringPreview(name) {
 		const inputEl = document.getElementById(`edit-${name}`)
 		const smallPreviewEl = document.getElementById(`${name}-preview-small`)
