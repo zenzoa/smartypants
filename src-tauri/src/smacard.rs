@@ -5,10 +5,11 @@ use md5::{ Md5, Digest };
 
 use tauri::{ AppHandle, State, Manager, Emitter };
 
-use crate::{ DataState, ImageState, BinSize };
+use crate::{ DataState, ImageState, BinSize, update_window_title };
 use crate::data_view::{ DataView, bytes_to_words };
 use crate::data_pack::{ DataPack, get_data_pack, save_data_pack };
 use crate::sprite_pack::SpritePack;
+use crate::file::set_file_modified;
 
 #[derive(Clone, serde::Serialize)]
 pub struct CardHeader {
@@ -276,6 +277,8 @@ pub fn clear_device_ids(handle: AppHandle) {
 	let mut header_opt = data_state.card_header.lock().unwrap();
 	if let Some(header) = header_opt.as_mut() {
 		header.device_ids = [0, 0, 0];
+		set_file_modified(&handle, true);
+		update_window_title(&handle);
 		handle.emit("update_card_header", header.clone()).unwrap();
 	}
 }
