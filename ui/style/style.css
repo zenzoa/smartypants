@@ -657,16 +657,21 @@ input.invalid + .string-preview {
 	background-color: var(--preview-bg);
 }
 
-.frame-preview {
+.preview {
 	width: 128px;
 	height: 128px;
 	position: relative;
 	border: 1px solid var(--table-border);
 	border-radius: var(--border-radius);
+	overflow: hidden;
 }
 
-.frame-preview-layer {
+.preview-layer {
 	position: absolute;
+}
+
+.preview + table {
+	margin-top: 12px;
 }
 
 .spinner {

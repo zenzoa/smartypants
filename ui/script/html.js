@@ -88,19 +88,23 @@ const linkToFrame = (frameId) => {
 }
 
 const linkToImage = (imageId) => {
-	const link = button(formatEntityId(imageId))
-	link.addEventListener('click', () => {
-		viewSprites()
-		const imageEl = document.getElementById(`image-${imageId.entity_id}`)
-		if (imageEl != null) {
-			imageEl.scrollIntoView()
-		}
-	})
-	return [link]
+	if (cardData.card_header == null || imageId.card_id === cardData.card_header.card_id) {
+		const link = button(formatEntityId(imageId))
+		link.addEventListener('click', () => {
+			viewSprites()
+			const imageEl = document.getElementById(`image-${imageId.entity_id}`)
+			if (imageEl != null) {
+				imageEl.scrollIntoView()
+			}
+		})
+		return [link]
+	} else {
+		return [div(formatEntityId(imageId))]
+	}
 }
 
 const linkToSubimage = (imageId, subimageIndex) => {
-	if (imageId.card_id != null) {
+	if (cardData.card_header == null || imageId.card_id === cardData.card_header.card_id) {
 		const link = button(formatEntityId(imageId))
 		link.addEventListener('click', () => {
 			viewSprites()
@@ -111,7 +115,7 @@ const linkToSubimage = (imageId, subimageIndex) => {
 		})
 		return [link]
 	} else {
-		return '-'
+		return [div(formatEntityId(imageId))]
 	}
 }
 
@@ -139,7 +143,7 @@ const displayImage = (imageId, subimageIndex, showTooltip) => {
 }
 
 const displayImageWithLink = (imageId, subimageIndex) => {
-	if (imageId != null && subimageIndex != null && (!cardData.card_header || imageId.card_id == cardData.card_header.card_id)) {
+	if (imageId != null && subimageIndex != null && (cardData.card_header == null || imageId.card_id === cardData.card_header.card_id)) {
 		const img = displayImage(imageId.entity_id, subimageIndex)
 		const link = button([img])
 		link.addEventListener('click', () => {

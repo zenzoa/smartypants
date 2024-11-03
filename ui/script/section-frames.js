@@ -30,7 +30,7 @@ const setupFrames = () => {
 								let x = 64 + subimageDef.offset_x + frameLayer.x
 								let y = 64 + subimageDef.offset_y + frameLayer.y
 								previewLayers.push(img({
-									className: 'frame-preview-layer',
+									className: 'preview-layer',
 									style: `left: ${x}px; top: ${y}px`,
 									src: convertFileSrc(`${timestamp}-${frameLayer.image_id.entity_id}-${frameLayer.subimage_index}`, 'getimage')
 								}))
@@ -63,7 +63,7 @@ const setupFrames = () => {
 					if (k === 0) {
 						cells = cells.concat([
 							td({ rowspan: frame.Explicit.length }, [
-								div({ className: 'frame-preview' }, previewLayers)
+								div({ className: 'preview' }, previewLayers)
 							]),
 							td({ rowspan: frame.Explicit.length, className: isLast ? 'bottom-right-cell' : '' }, [
 								editButton
