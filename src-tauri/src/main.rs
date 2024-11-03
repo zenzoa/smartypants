@@ -344,11 +344,10 @@ fn set_lock_colors(handle: &AppHandle, new_value: Option<bool>) {
 		if let Some(MenuItemKind::Submenu(config_menu)) = menu.get("config") {
 			if let Some(MenuItemKind::Check(lock_colors_menu_item)) = config_menu.get("lock_colors") {
 				lock_colors_menu_item.set_checked(*lock_colors).unwrap();
+				handle.emit("update_lock_colors", *lock_colors).unwrap();
 			}
 		}
 	}
-
-	handle.emit("update_lock_colors", *lock_colors).unwrap();
 }
 
 fn set_card_size(handle: &AppHandle, new_value: BinSize) {

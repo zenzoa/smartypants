@@ -172,8 +172,8 @@ window.addEventListener('load', () => {
 	})
 
 	tauri_listen('update_lock_colors', event => {
-		cardData.lock_colors = event.payload
 		if (cardData != null) {
+			cardData.lock_colors = event.payload
 			sections.sprites = setupSprites()
 			if (currentSection === 'sprites') {
 				viewSprites()
