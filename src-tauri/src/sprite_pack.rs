@@ -102,24 +102,14 @@ impl SpritePack {
 			let subimages = images.get(i)
 				.ok_or(format!("Image corresponding to image def {} not found", i))?;
 
-			let mut bpp = None;
-
 			if !lock_colors {
 				if let Err(why) = image_def.update_first_palette_index(&self.palettes) {
 					return Err(format!("Image Def {}: {}", i, why).into());
 				}
 				let color_count = get_colors_in_images(subimages).len();
-				bpp = Some(if color_count <= 4 {
-					2
-				} else if color_count <= 16 {
-					4
-				} else if color_count <= 64 {
-					6
-				} else if color_count <= 256 {
-					8
-				} else {
-					return Err(format!("Too many colors used ({})", color_count).into())
-				});
+				if color_count > 256 {
+					return Err(format!("Too many colors used ({})", color_count).into());
+				}
 			}
 
 			let palette = &self.palettes[image_def.first_palette_index as usize * 4..];
@@ -128,7 +118,7 @@ impl SpritePack {
 				let sprite_images = divide_image(subimage, image_def.width_in_sprites as u32, image_def.height_in_sprites as u32);
 				for (k, sprite) in subimage_def.sprites.iter_mut().enumerate() {
 					let sprite_image = sprite_images.get(k).ok_or(format!("Unable to find sprite {} in image {}, subimage {}", k, i, j))?;
-					if let Err(why) = sprite.update_from_image(sprite_image, palette, bpp) {
+					if let Err(why) = sprite.update_from_image(sprite_image, palette) {
 						return Err(format!("Sprite {}-{}: {}", i, j, why).into());
 					}
 				}

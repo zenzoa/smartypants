@@ -35,7 +35,7 @@ impl Sprite {
 		img
 	}
 
-	pub fn update_from_image(&mut self, img: &RgbaImage, colors: &[Color], bpp: Option<u8>) -> Result<(), Box<dyn Error>> {
+	pub fn update_from_image(&mut self, img: &RgbaImage, colors: &[Color]) -> Result<(), Box<dyn Error>> {
 		if img.width() != self.width as u32 || img.height() != self.height as u32 {
 			return Err(format!("Image is not the right dimensions for this sprite: {}x{} instead of {}x{}", img.width(), img.height(), self.width, self.height).into());
 		}
@@ -49,10 +49,6 @@ impl Sprite {
 				largest_color_index = color_index;
 			}
 			new_pixels.push(color_index as u16);
-		}
-
-		if let Some(new_bpp) = bpp {
-			self.bits_per_pixel = new_bpp;
 		}
 
 		self.pixels = new_pixels;
@@ -187,13 +183,17 @@ pub fn save_sprites(sprites: &mut [Sprite]) -> Result<(Vec<u8>, Vec<u8>), Box<dy
 fn save_pixel_data(sprites: &mut [Sprite]) -> Vec<u8> {
 	let mut data = Vec::new();
 
-	let mut sorted_sprites = sprites.iter_mut().collect::<Vec<&mut Sprite>>();
-	sorted_sprites.sort_by(|a, b| {
-		a.pixels.len().cmp(&b.pixels.len())
-	});
-	sorted_sprites.reverse();
-
-	for sprite in sorted_sprites {
+	for sprite in sprites {
+		let max_index = *sprite.pixels.iter().max().unwrap();
+		sprite.bits_per_pixel = if max_index < 4 {
+			2
+		} else if max_index < 16 {
+			4
+		} else if max_index < 64 {
+			6
+		} else {
+			8
+		};
 		let pixel_data = sprite.get_pixel_data();
 		let byte_len = pixel_data.len();
 		let mut index = 0;
