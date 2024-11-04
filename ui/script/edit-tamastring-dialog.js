@@ -19,13 +19,13 @@ class EditTamaStringDialog extends EditDialog {
 	}
 
 	static submit(i, tamaString) {
-		if (!document.getElementById('edit-value').classList.contains('invalid')) {
+		if (EditDialog.checkStrValue('value')) {
 			const newTamastring = {
 				id: tamaString.id,
-				unknown1: parseInt(document.getElementById('edit-unknown1').value),
-				unknown2: parseInt(document.getElementById('edit-unknown2').value),
-				unknown3: parseInt(document.getElementById('edit-unknown3').value),
-				value: { data: [], string: document.getElementById('edit-value').value }
+				unknown1: EditDialog.getIntValue('unknown1'),
+				unknown2: EditDialog.getIntValue('unknown2'),
+				unknown3: EditDialog.getIntValue('unknown3'),
+				value: EditDialog.getStrValue('value')
 			}
 
 			tauri_invoke('update_tamastring', { index: i, newTamastring }).then(result => {

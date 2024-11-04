@@ -2,8 +2,6 @@ class EditItemDialog extends EditDialog {
 	static open(i, item) {
 		document.getElementById('edit-dialog-title').innerText = `Edit Item ${i}`
 
-		const maxImageId = cardData.sprite_pack.image_defs.length - 1
-
 		EditDialog.addDropdown('Type', 'item-type', item.item_type, [
 			{ title: 'Meal', value: 'Meal' },
 			{ title: 'Snack', value: 'Snack' },
@@ -16,9 +14,9 @@ class EditItemDialog extends EditDialog {
 			{ title: 'Game', value: 'Game' }
 		])
 		EditDialog.addStrInput('Name', 'name', item.name.string, 9)
-		EditDialog.addIntInput('Image ID', 'image-id', item.image_id ? item.image_id.entity_id : 0, 0, maxImageId)
-		EditDialog.addIntInput('Worn Image ID', 'worn-image-id', item.worn_image_id ? item.worn_image_id.entity_id : 0, 0, maxImageId)
-		EditDialog.addIntInput('Close Image ID', 'close-image-id', item.close_image_id ? item.close_image_id.entity_id : 0, 0, maxImageId)
+		EditDialog.addIdInput('Image ID', 'image-id', item.image_id)
+		EditDialog.addIdInput('Worn Image ID', 'worn-image-id', item.worn_image_id)
+		EditDialog.addIdInput('Close Image ID', 'close-image-id', item.close_image_id)
 		EditDialog.addIntInput('Animation ID ?', 'animation-id', item.animation_id ? item.animation_id.entity_id : 0, 0, U16_MAX)
 		EditDialog.addIntInput('Price', 'price', item.price, 0, U16_MAX)
 		EditDialog.addIntInput('Unkown 1', 'unknown1', item.unknown1, 0, U16_MAX)
@@ -85,51 +83,51 @@ class EditItemDialog extends EditDialog {
 	}
 
 	static submit(i, item) {
-		if (!document.getElementById('edit-name').classList.contains('invalid')) {
+		if (EditDialog.checkStrValue('name') &&
+			EditDialog.checkIdValue('image-id') &&
+			EditDialog.checkIdValue('worn-image-id') &&
+			EditDialog.checkIdValue('close-image-id') &&
+			EditDialog.checkIntValue('animation-id') &&
+			EditDialog.checkIntValue('price') &&
+			EditDialog.checkIntValue('unknown1') &&
+			EditDialog.checkIntValue('unknown2') &&
+			EditDialog.checkIntValue('unknown3')
+		) {
 			const newItem = {
 				id: item.id,
-				item_type: document.getElementById('edit-item-type').value,
-				name: { data: [], string: document.getElementById('edit-name').value },
+				item_type: EditDialog.getDropdownValue('item-type'),
+				name: EditDialog.getStrValue('name'),
 				image_id: null,
 				worn_image_id: null,
 				close_image_id: null,
 				animation_id: null,
-				price: parseInt(document.getElementById('edit-price').value),
-				unknown1: parseInt(document.getElementById('edit-unknown1').value),
-				unknown2: parseInt(document.getElementById('edit-unknown2').value),
-				unknown3: parseInt(document.getElementById('edit-unknown3').value),
+				price: EditDialog.getIntValue('price'),
+				unknown1: EditDialog.getIntValue('unknown1'),
+				unknown2: EditDialog.getIntValue('unknown2'),
+				unknown3: EditDialog.getIntValue('unknown3'),
 				unlocked_character: null,
 				game_type: null
 			}
 
 			if (newItem.item_type === 'Game') {
-				newItem.game_type = document.getElementById('edit-game-type').value;
+				newItem.game_type = EditDialog.getDropdownValue('game-type')
 
 			} else {
-				newItem.image_id = {
-					card_id: newItem.id.card_id,
-					entity_id: parseInt(document.getElementById('edit-image-id').value)
-				}
+				newItem.image_id = EditDialog.getIdValue('image-id')
 
 				if (newItem.item_type === 'Meal' || newItem.item_type === 'Snack' || newItem.item_type === 'Toy') {
-					let newUnlockedCharacter = parseInt(document.getElementById('edit-unlocked-character').value)
+					let newUnlockedCharacter = EditDialog.getIntValue('unlocked-character')
 					if (newUnlockedCharacter > 0) newItem.unlocked_character = newUnlockedCharacter
 				}
 
 				if (newItem.item_type === 'Toy') {
 					newItem.animation_id = {
 						card_id: newItem.id.card_id,
-						entity_id: parseInt(document.getElementById('edit-animation-id').value)
+						entity_id: EditDialog.getIntValue('animation-id')
 					}
 				} else if (newItem.item_type.startsWith('Accessory')) {
-					newItem.worn_image_id = {
-						card_id: newItem.id.card_id,
-						entity_id: parseInt(document.getElementById('edit-worn-image-id').value)
-					}
-					newItem.close_image_id = {
-						card_id: newItem.id.card_id,
-						entity_id: parseInt(document.getElementById('edit-close-image-id').value)
-					}
+					newItem.worn_image_id = EditDialog.getIdValue('worn-image-id')
+					newItem.close_image_id = EditDialog.getIdValue('close-image-id')
 				}
 			}
 

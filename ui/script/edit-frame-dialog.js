@@ -6,7 +6,7 @@ class EditFrameDialog extends EditDialog {
 			EditDialog.addSectionTitle(`Layer ${layerIndex}: ${layer.layer_type}`)
 			EditDialog.addIntInput('X Offset', `x-${layerIndex}`, layer.x, -128, 128)
 			EditDialog.addIntInput('Y Offset', `y-${layerIndex}`, layer.y, -128, 128)
-			EditDialog.addIntInput('Image ID', `image-id-${layerIndex}`, layer.image_id.entity_id, 0, U16_MAX)
+			EditDialog.addIdInput('Image ID', `image-id-${layerIndex}`, layer.image_id)
 			EditDialog.addIntInput('Subimage Index', `subimage-index-${layerIndex}`, layer.subimage_index, 0, U16_MAX)
 			EditDialog.addIntInput('Unknown 1', `unknown1-${layerIndex}`, layer.unknown1, 0, U16_MAX)
 			EditDialog.addIntInput('Unknown 2', `unknown2-${layerIndex}`, layer.unknown2, 0, U16_MAX)
@@ -27,32 +27,31 @@ class EditFrameDialog extends EditDialog {
 	static submit(groupIndex, frameIndex, frame) {
 		let invalid = false
 		frame.Explicit.forEach((_, layerIndex) => {
-			if (!document.getElementById(`edit-x-${layerIndex}`).checkValidity() ||
-				!document.getElementById(`edit-y-${layerIndex}`).checkValidity() ||
-				!document.getElementById(`edit-image-id-${layerIndex}`).checkValidity() ||
-				!document.getElementById(`edit-subimage-index-${layerIndex}`).checkValidity() ||
-				!document.getElementById(`edit-unknown1-${layerIndex}`).checkValidity() ||
-				!document.getElementById(`edit-unknown2-${layerIndex}`).checkValidity() ||
-				!document.getElementById(`edit-unknown3-${layerIndex}`).checkValidity()
-			) {
+			if (!(
+				EditDialog.checkIntValue(`x-${layerIndex}`) &&
+				EditDialog.checkIntValue(`y-${layerIndex}`) &&
+				EditDialog.checkIdValue(`image-id-${layerIndex}`) &&
+				EditDialog.checkIntValue(`subimage-index-${layerIndex}`) &&
+				EditDialog.checkIntValue(`unknown1-${layerIndex}`) &&
+				EditDialog.checkIntValue(`unknown2-${layerIndex}`) &&
+				EditDialog.checkIntValue(`unknown3-${layerIndex}`)
+			)) {
 				invalid = true
 			}
 		})
+
 		if (!invalid) {
 			const newFrame = {
 				Explicit: frame.Explicit.map((layer, layerIndex) => {
 					return {
 						layer_type: layer.layer_type,
-						x: parseInt(document.getElementById(`edit-x-${layerIndex}`).value),
-						y: parseInt(document.getElementById(`edit-y-${layerIndex}`).value),
-						image_id: {
-							card_id: layer.image_id.card_id,
-							entity_id: parseInt(document.getElementById(`edit-image-id-${layerIndex}`).value)
-						},
-						subimage_index: parseInt(document.getElementById(`edit-subimage-index-${layerIndex}`).value),
-						unknown1: parseInt(document.getElementById(`edit-unknown1-${layerIndex}`).value),
-						unknown2: parseInt(document.getElementById(`edit-unknown2-${layerIndex}`).value),
-						unknown3: parseInt(document.getElementById(`edit-unknown3-${layerIndex}`).value)
+						x: EditDialog.getIntValue(`x-${layerIndex}`),
+						y: EditDialog.getIntValue(`y-${layerIndex}`),
+						image_id: EditDialog.getIdValue(`image-id-${layerIndex}`),
+						subimage_index: EditDialog.getIntValue(`subimage-index-${layerIndex}`),
+						unknown1: EditDialog.getIntValue(`unknown1-${layerIndex}`),
+						unknown2: EditDialog.getIntValue(`unknown2-${layerIndex}`),
+						unknown3: EditDialog.getIntValue(`unknown3-${layerIndex}`)
 					}
 				})
 			}

@@ -19,7 +19,7 @@ class EditSpriteDialog extends EditDialog {
 		}
 
 		if (imageDef.subimage_defs.length > 1) {
-			EditDialog.addCheckbox('Uniform Offsets', `uniform-offsets`, uniformOffsets)
+			EditDialog.addCheckbox('Uniform Offsets', 'uniform-offsets', uniformOffsets)
 				.addEventListener('click', () => {
 					EditDialog.close()
 					EditSpriteDialog.open(i, imageDef, !uniformOffsets)

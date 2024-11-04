@@ -38,15 +38,16 @@ const setupScenes = () => {
 				th('? 6'),
 				th('? 7'),
 				th('? 8'),
-				th('? 9'),
-				th('? 10'),
-				th('? 11'),
-				th('? 12')
+				th('Flag 1'),
+				th('Flag 2'),
+				th('Flag 3'),
+				th('Flag 4'),
+				th('Actions')
 			])]),
-			tbody(scene.layers.map((layer, i) => tr({}, [
-				th(i),
-				td(layer.x != null ? layer.x : '-'),
-				td(layer.y != null ? layer.y : '-'),
+			tbody(scene.layers.map((layer, j) => tr({}, [
+				th(j),
+				td(layer.x),
+				td(layer.y),
 				td(layer.image_id != null ? linkToImage(layer.image_id) : '-'),
 				td(layer.subimage_index),
 				td(layer.unknown1),
@@ -60,7 +61,13 @@ const setupScenes = () => {
 				td(layer.flag1 ? '✔' :  '-'),
 				td(layer.flag2 ? '✔' :  '-'),
 				td(layer.flag3 ? '✔' :  '-'),
-				td(layer.flag4 ? '✔' :  '-')
+				td(layer.flag4 ? '✔' :  '-'),
+				td([
+					button({
+						title: 'Edit Scene Layer', className: 'icon',
+						onclick: () => EditSceneLayerDialog.open(i, j, layer)
+					}, EDIT_ICON)
+				])
 			])))
 		]))
 	})

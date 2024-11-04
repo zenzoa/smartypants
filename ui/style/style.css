@@ -568,6 +568,14 @@ hr {
 	flex-basis: 200px;
 }
 
+#edit-dialog label.entity-id-input input:first-of-type {
+	flex-basis: 70px;
+}
+
+#edit-dialog label.entity-id-input input:last-of-type {
+	flex-basis: 118px;
+}
+
 .string-preview-container {
 	display: flex;
 	margin-top: 12px;
@@ -661,13 +669,18 @@ input.invalid + .string-preview {
 	width: 128px;
 	height: 128px;
 	position: relative;
-	border: 1px solid var(--table-border);
+	border: 1px solid var(--table-header-border);
 	border-radius: var(--border-radius);
-	overflow: hidden;
+}
+
+table .preview {
+	border: 1px solid var(--table-border);
 }
 
 .preview-layer {
 	position: absolute;
+	margin-top: -1px;
+	margin-left: -1px;
 }
 
 .preview + table {

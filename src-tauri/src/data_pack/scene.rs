@@ -1,14 +1,20 @@
 use std::error::Error;
 
-use super::EntityId;
-use crate::data_view::DataView;
+use serde::{ Serialize, Deserialize };
 
-#[derive(Clone, serde::Serialize)]
+use tauri::{ AppHandle, Manager, State };
+
+use super::EntityId;
+use crate::{ DataState, update_window_title };
+use crate::data_view::DataView;
+use crate::file::set_file_modified;
+
+#[derive(Clone, Serialize, Deserialize)]
 pub struct Scene {
 	pub layers: Vec<SceneLayer>
 }
 
-#[derive(Debug, Clone, serde::Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SceneLayer {
 	pub x: i16,
 	pub y: i16,
@@ -295,4 +301,23 @@ pub fn save_scenes(scenes: &[Scene]) -> Result<(Vec<u8>, Vec<u8>, Vec<u8>), Box<
 	scene_offsets.extend_from_slice(&(layer_offsets.len() as u16 / 2).to_le_bytes());
 
 	Ok((scene_offsets, layer_offsets, layer_data))
+}
+
+#[tauri::command]
+pub fn update_scene_layer(handle: AppHandle, scene_index: usize, layer_index: usize, new_layer: SceneLayer) -> Option<SceneLayer> {
+	let data_state: State<DataState> = handle.state();
+
+	let mut data_pack_opt = data_state.data_pack.lock().unwrap();
+	if let Some(data_pack) = data_pack_opt.as_mut() {
+		if let Some(scene) = data_pack.scenes.get_mut(scene_index) {
+			if let Some(layer) = scene.layers.get_mut(layer_index) {
+				*layer = new_layer;
+				set_file_modified(&handle, true);
+				update_window_title(&handle);
+				return Some(layer.clone());
+			}
+		}
+	}
+
+	None
 }

@@ -41,6 +41,17 @@ class EditDialog {
 		EditDialog.updateStringPreview(name)
 	}
 
+	static checkStrValue(name) {
+		return !document.getElementById(`edit-${name}`).classList.contains('invalid')
+	}
+
+	static getStrValue(name) {
+		return {
+			data: [],
+			string: document.getElementById(`edit-${name}`).value
+		}
+	}
+
 	static addBigStrInput(title, name, value) {
 		document.getElementById('edit-dialog-body').append(
 			label({ id: `label-${name}` }, [
@@ -71,13 +82,12 @@ class EditDialog {
 		)
 	}
 
-	static addHexInput(title, name, value) {
-		document.getElementById('edit-dialog-body').append(
-			label({ id: `label-${name}` }, [
-				span(title),
-				input({ id: `edit-${name}`, pattern: '#[0-9a-fA-F]+', value: `#${formatHexCode(value)}` })
-			])
-		)
+	static checkIntValue(name) {
+		return document.getElementById(`edit-${name}`).checkValidity()
+	}
+
+	static getIntValue(name) {
+		return parseInt(document.getElementById(`edit-${name}`).value)
 	}
 
 	static addDropdown(title, name, value, list) {
@@ -100,12 +110,57 @@ class EditDialog {
 		)
 	}
 
+	static getDropdownValue(name) {
+		return document.getElementById(`edit-${name}`).value
+	}
+
 	static addCheckbox(title, name, value) {
 		const checkbox = button({ id: `edit-${name}`, className: value ? 'toggle on' : 'toggle off' })
+
+		checkbox.addEventListener('click', () => {
+			if (checkbox.className === 'toggle on') {
+				checkbox.className = 'toggle off'
+			} else {
+				checkbox.className = 'toggle on'
+			}
+		})
+
 		document.getElementById('edit-dialog-body').append(
 			label({ id: `label-${name}` }, [ span(title), checkbox ])
 		)
+
 		return checkbox
+	}
+
+	static getCheckboxValue(name) {
+		return document.getElementById(`edit-${name}`).classList.contains('on')
+	}
+
+	static addIdInput(title, name, id) {
+		const cardId = id == null ? -1 : (id.card_id == null ? -1 : id.card_id)
+		const entityId = id == null ? -1 : id.entity_id
+		document.getElementById('edit-dialog-body').append(
+			label({ id: `label-${name}`, className: 'entity-id-input' }, [
+				span(title),
+				input({ id: `edit-${name}-card-id`, type: 'number', step: 1, min: -1, max: U16_MAX, value: cardId }),
+				input({ id: `edit-${name}-entity-id`, type: 'number', step: 1, min: -1, max: U16_MAX, value: entityId })
+			])
+		)
+	}
+
+	static checkIdValue(name) {
+		return (
+			document.getElementById(`edit-${name}-card-id`).checkValidity() &&
+			document.getElementById(`edit-${name}-entity-id`).checkValidity()
+		)
+	}
+
+	static getIdValue(name) {
+		let card_id = parseInt(document.getElementById(`edit-${name}-card-id`).value)
+		const entity_id = parseInt(document.getElementById(`edit-${name}-entity-id`).value)
+		if (card_id < 0) card_id = null
+		if (entity_id < 0) return null
+		return { card_id, entity_id }
 	}
 
 	static updateStringPreview(name) {

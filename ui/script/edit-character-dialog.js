@@ -2,14 +2,11 @@ class EditCharacterDialog extends EditDialog {
 	static open(i, character) {
 		document.getElementById('edit-dialog-title').innerText = `Edit Character ${i}`
 
-		const maxImageId = cardData.sprite_pack.image_defs.length - 1
-		const maxCompositionId = cardData.data_pack.frame_groups.length - 1
-
 		// EditDialog.addIntInput('Character Type', 'character-type', character.character_type, 0, U16_MAX)
 		EditDialog.addStrInput('Name', 'name', character.name.string, 9)
-		EditDialog.addIntInput('Profile Image ID', 'profile-image-id', character.profile_image_id ? character.profile_image_id.entity_id : 0, 0, maxImageId)
-		EditDialog.addIntInput('Icon Image ID', 'icon-image-id', character.icon_image_id ? character.icon_image_id.entity_id : 0, 0, maxImageId)
-		EditDialog.addIntInput('Frame Group ID', 'composition-id', character.composition_id ? character.composition_id.entity_id : 0, 0, maxCompositionId)
+		EditDialog.addIdInput('Profile Image ID', 'profile-image-id', character.profile_image_id)
+		EditDialog.addIdInput('Icon Image ID', 'icon-image-id', character.icon_image_id)
+		EditDialog.addIntInput('Frame Group ID', 'composition-id', character.composition_id == null ? -1 : character.composition_id.entity_id, -1, U16_MAX)
 		// EditDialog.addIntInput('Unknown ID', 'unknown1', character.unknown1 ? character.unknown1.entity_id : 0, 0, U16_MAX)
 		EditDialog.addStrInput('Pronoun', 'pronoun', character.pronoun.string, 5)
 		EditDialog.addStrInput('Statement Ending', 'statement', character.statement.string, 5)
@@ -39,41 +36,46 @@ class EditCharacterDialog extends EditDialog {
 	}
 
 	static submit(i, character) {
-		if (!document.getElementById('edit-name').classList.contains('invalid') &&
-			!document.getElementById('edit-pronoun').classList.contains('invalid') &&
-			!document.getElementById('edit-statement').classList.contains('invalid') &&
-			!document.getElementById('edit-question1').classList.contains('invalid') &&
-			!document.getElementById('edit-question2').classList.contains('invalid')
+		if (EditDialog.checkStrValue('name') &&
+			EditDialog.checkIdValue('profile-image-id') &&
+			EditDialog.checkIdValue('icon-image-id') &&
+			EditDialog.checkIntValue('composition-id') &&
+			EditDialog.checkStrValue('pronoun') &&
+			EditDialog.checkStrValue('statement') &&
+			EditDialog.checkStrValue('question1') &&
+			EditDialog.checkStrValue('question2') &&
+			EditDialog.checkIntValue('unknown2') &&
+			EditDialog.checkIntValue('unknown3') &&
+			EditDialog.checkIntValue('unknown4') &&
+			EditDialog.checkIntValue('unknown5') &&
+			EditDialog.checkIntValue('unknown6') &&
+			EditDialog.checkIntValue('unknown7')
 		) {
+			const compositionEntityId = EditDialog.getIntValue('composition-id')
+
 			const newCharacter = {
 				id: character.id,
 				character_type: character.character_type,
-				name: { data: [], string: document.getElementById('edit-name').value },
-				profile_image_id: {
+				name: EditDialog.getStrValue('name'),
+				profile_image_id: EditDialog.getIdValue('profile-image-id'),
+				icon_image_id: EditDialog.getIdValue('icon-image-id'),
+				composition_id: compositionEntityId < 0 ? null : {
 					card_id: character.id.card_id,
-					entity_id: parseInt(document.getElementById('edit-profile-image-id').value)
-				},
-				icon_image_id: {
-					card_id: character.id.card_id,
-					entity_id: parseInt(document.getElementById('edit-icon-image-id').value)
-				},
-				composition_id: {
-					card_id: character.id.card_id,
-					entity_id: parseInt(document.getElementById('edit-composition-id').value)
+					entity_id: compositionEntityId
 				},
 				unknown1: character.unknown1,
-				pronoun: { data: [], string: document.getElementById('edit-pronoun').value },
-				statement: { data: [], string: document.getElementById('edit-statement').value },
-				question1: { data: [], string: document.getElementById('edit-question1').value },
-				question2: { data: [], string: document.getElementById('edit-question2').value },
-				unknown2: parseInt(document.getElementById('edit-unknown2').value),
-				unknown3: parseInt(document.getElementById('edit-unknown3').value),
+				pronoun: EditDialog.getStrValue('pronoun'),
+				statement: EditDialog.getStrValue('statement'),
+				question1: EditDialog.getStrValue('question1'),
+				question2: EditDialog.getStrValue('question2'),
+				unknown2: EditDialog.getIntValue('unknown2'),
+				unknown3: EditDialog.getIntValue('unknown3'),
 				global_id: character.global_id,
-				unknown4: parseInt(document.getElementById('edit-unknown4').value),
-				unknown5: parseInt(document.getElementById('edit-unknown5').value),
-				unknown6: parseInt(document.getElementById('edit-unknown6').value),
-				unknown7: parseInt(document.getElementById('edit-unknown7').value),
-				gender: document.getElementById('edit-gender').value
+				unknown4: EditDialog.getIntValue('unknown4'),
+				unknown5: EditDialog.getIntValue('unknown5'),
+				unknown6: EditDialog.getIntValue('unknown6'),
+				unknown7: EditDialog.getIntValue('unknown7'),
+				gender: EditDialog.getDropdownValue('gender')
 			}
 
 			tauri_invoke('update_character', { index: i, newCharacter }).then(result => {

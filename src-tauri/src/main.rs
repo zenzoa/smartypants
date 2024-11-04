@@ -85,6 +85,7 @@ fn main() {
 			data_pack::character::update_character,
 			data_pack::tamastring::update_tamastring,
 			data_pack::frame::update_frame,
+			data_pack::scene::update_scene_layer,
 			sprite_pack::image_def::update_image_def,
 			firmware::update_menu_string,
 			smacard::clear_device_ids,

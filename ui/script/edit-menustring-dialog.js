@@ -16,7 +16,7 @@ class EditMenuStringDialog extends EditDialog {
 	}
 
 	static submit(i, menuString) {
-		if (!document.getElementById('edit-value').classList.contains('invalid')) {
+		if (EditDialog.checkStrValue('value')) {
 			const newMenuString = document.getElementById('edit-value').value
 
 			tauri_invoke('update_menu_string', { index: i, newMenuString }).then(result => {
