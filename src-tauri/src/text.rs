@@ -289,6 +289,7 @@ pub fn set_to_preset_encoding(handle: AppHandle, name: &str) {
 					}
 
 					let char_codes = &font_state.char_codes.lock().unwrap();
+					handle.emit("update_char_codes", (*char_codes).clone()).unwrap();
 					re_decode_strings(&handle, char_codes);
 				},
 

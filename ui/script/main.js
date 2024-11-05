@@ -201,6 +201,9 @@ window.addEventListener('load', () => {
 
 	tauri_listen('update_char_codes', event => {
 		textEncoding = event.payload.slice(1, 257)
+	})
+
+	tauri_listen('open_encoding_dialog', event => {
 		EditEncodingDialog.open()
 	})
 

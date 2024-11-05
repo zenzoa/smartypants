@@ -308,6 +308,7 @@ pub fn import_encoding(handle: AppHandle) {
 						let font_state: State<FontState> = handle.state();
 						let char_codes = font_state.char_codes.lock().unwrap();
 						handle.emit("update_char_codes", char_codes.clone()).unwrap();
+						handle.emit("open_encoding_dialog", ()).unwrap();
 						re_decode_strings(&handle, &char_codes)
 					},
 					Err(why) => show_error_message(why)
