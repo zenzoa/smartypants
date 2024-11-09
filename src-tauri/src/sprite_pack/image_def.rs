@@ -1,86 +1,89 @@
 use std::error::Error;
-
 use image::{ RgbaImage, GenericImage };
 use serde::{ Serialize, Deserialize };
-use tauri::{ AppHandle, Manager, State };
 
-use super::Sprite;
+use super::sprite::Sprite;
 use super::palette::Color;
-use crate::{ DataState, update_window_title };
 use crate::data_view::DataView;
-use crate::file::set_file_modified;
 
-#[derive(Clone, Serialize, Deserialize)]
+
+#[derive(Clone)]
 pub struct ImageDef {
+	pub first_sprite_index: u16,
 	pub width_in_sprites: u8,
 	pub height_in_sprites: u8,
-	pub first_palette_index: u16,
+	pub first_palette_index: usize,
+}
+
+#[derive(Clone)]
+pub struct ImageSet {
 	pub width: u32,
 	pub height: u32,
-	pub subimage_defs: Vec<SubImageDef>,
-	pub colors_used: Vec<Color>
+	pub width_in_sprites: u32,
+	pub height_in_sprites: u32,
+	pub subimages: Vec<SubImage>
+}
+
+#[derive(Clone)]
+pub struct SubImage {
+	pub offset_x: i32,
+	pub offset_y: i32,
+	pub color_data: Vec<Color>
 }
 
 #[derive(Clone, Serialize, Deserialize)]
-pub struct SubImageDef {
-	pub offset_x: i16,
-	pub offset_y: i16,
-	pub sprites: Vec<Sprite>
+pub struct ImageSummary {
+	pub width: u32,
+	pub height: u32,
+	pub subimages: Vec<SubImageSummary>
 }
 
-impl ImageDef {
-	pub fn to_images(&self, palettes: &[Color]) -> Result<Vec<RgbaImage>, Box<dyn Error>> {
-		let first_color_index = self.first_palette_index as usize * 4;
-		let colors = &palettes[first_color_index..];
+#[derive(Clone, Serialize, Deserialize)]
+pub struct SubImageSummary {
+	pub offset_x: i32,
+	pub offset_y: i32,
+}
 
-		let mut subimages = Vec::new();
-		for subimage_def in &self.subimage_defs {
-			let mut subimage = RgbaImage::new(self.width, self.height);
-			for (i, sprite) in subimage_def.sprites.iter().enumerate() {
-				let sprite_img = sprite.to_image(colors);
-				let x = (i as u32 % self.width_in_sprites as u32) * sprite.width as u32;
-				let y = (i as u32 / self.width_in_sprites as u32) * sprite.height as u32;
-				subimage.copy_from(&sprite_img, x, y)?;
-			}
-			subimages.push(subimage);
+impl ImageSet {
+	pub fn to_summary(&self) -> ImageSummary {
+		ImageSummary {
+			width: self.width,
+			height: self.height,
+			subimages: self.subimages.iter().map(|s|
+				SubImageSummary { offset_x: s.offset_x, offset_y: s.offset_y }
+			).collect()
 		}
-
-		Ok(subimages)
 	}
 
-	pub fn to_spritesheet(&self, palettes: &[Color]) -> Result<RgbaImage, Box<dyn Error>> {
-		let subimages = self.to_images(palettes)?;
-		let spritesheet_width = self.width * self.subimage_defs.len() as u32;
+	pub fn to_images(&self) -> Result<Vec<RgbaImage>, Box<dyn Error>> {
+		let mut imgs = Vec::new();
+		for subimage in &self.subimages {
+			let mut image_buffer = Vec::new();
+			for pixel in &subimage.color_data {
+				image_buffer = [image_buffer, pixel.as_vec()].concat();
+			}
+			let img = RgbaImage::from_vec(self.width, self.height, image_buffer).ok_or("Unable to convert image definition to image")?;
+			imgs.push(img);
+		}
+
+		Ok(imgs)
+	}
+
+	pub fn to_spritesheet(&self) -> Result<RgbaImage, Box<dyn Error>> {
+		let imgs = self.to_images()?;
+		let spritesheet_width = self.width * self.subimages.len() as u32;
 		let mut spritesheet = RgbaImage::new(spritesheet_width, self.height);
 		let mut x = 0;
-		for subimage in subimages {
-			spritesheet.copy_from(&subimage, x, 0)?;
-			x += subimage.width();
+		for img in imgs {
+			spritesheet.copy_from(&img, x, 0)?;
+			x += img.width();
 		}
 		Ok(spritesheet)
 	}
-
-	pub fn update_first_palette_index(&mut self, colors: &[Color]) -> Result<(), Box<dyn Error>> {
-		let mut i = 0;
-		let mut palette_found = false;
-		while i < colors.len() {
-			if colors[i..].starts_with(&self.colors_used) {
-				palette_found = true;
-				self.first_palette_index = i as u16 / 4;
-				break;
-			}
-			i += 4;
-		}
-		if palette_found {
-			Ok(())
-		} else {
-			Err("Unable to find first palette index".into())
-		}
-	}
 }
 
-pub fn get_image_defs(data: &DataView, sprites: &[Sprite]) -> Result<Vec<ImageDef>, Box<dyn Error>> {
-	let mut image_defs = Vec::new();
+pub fn get_image_sets(data: &DataView, sprites: &[Sprite], all_colors: &[Color]) -> Result<Vec<ImageSet>, Box<dyn Error>> {
+	let mut image_sets = Vec::new();
 
 	let mut i = 0;
 	while i + 6 <= data.len() {
@@ -91,105 +94,181 @@ pub fn get_image_defs(data: &DataView, sprites: &[Sprite]) -> Result<Vec<ImageDe
 			sprites.len()
 		};
 
-		let width_in_sprites = data.get_u8(i + 2);
-		let height_in_sprites = data.get_u8(i + 3);
+		let width_in_sprites = data.get_u8(i + 2) as u32;
+		let height_in_sprites = data.get_u8(i + 3) as u32;
 
-		let width = width_in_sprites as u32 * sprites[first_sprite_index].width as u32;
-		let height = height_in_sprites as u32 * sprites[first_sprite_index].height as u32;
+		let first_sprite = sprites.get(first_sprite_index).ok_or("Sprite index not found")?;
+		let width = width_in_sprites * first_sprite.width;
+		let height = height_in_sprites * first_sprite.height;
 
-		let first_palette_index = data.get_u16(i + 4);
+		let first_color_index = data.get_u16(i + 4) as usize * 4;
+		let colors = all_colors[first_color_index..].to_vec();
 
-		let sprites_per_subimage = width_in_sprites as usize * height_in_sprites as usize;
+		let subimage_size = width * height;
+		let sprites_per_subimage = (width_in_sprites * height_in_sprites) as usize;
 		let subimage_count = (next_sprite_index - first_sprite_index) / sprites_per_subimage;
-		let mut subimage_defs = Vec::new();
+		let mut subimages = Vec::new();
+
 		for j in 0..subimage_count {
+			let mut color_data = vec![Color::new(0, 0, 0, 0); subimage_size as usize];
+
 			let subimage_first_sprite = first_sprite_index + (j * sprites_per_subimage);
 			let subimage_sprites = sprites[subimage_first_sprite..subimage_first_sprite+sprites_per_subimage].to_vec();
-			let mut min_x = 128;
-			let mut min_y = 128;
-			for sprite in &subimage_sprites {
-				let half_width = sprite.width as i16 / 2;
-				let half_height = sprite.height as i16 / 2;
-				min_x = min_x.min(sprite.offset_x - half_width);
-				min_y = min_y.min(sprite.offset_y - half_height);
+
+			let mut offset_x = 128;
+			let mut offset_y = 128;
+
+			for (m, sprite) in subimage_sprites.iter().enumerate() {
+				offset_x = offset_x.min(sprite.offset_x - (sprite.width as i32 / 2));
+				offset_y = offset_y.min(sprite.offset_y - (sprite.height as i32 / 2));
+				let col = m % width_in_sprites as usize;
+				let row = m / width_in_sprites as usize;
+				for (n, pixel) in sprite.pixels.iter().enumerate() {
+					let x = (n % sprite.width as usize) + (col * sprite.width as usize);
+					let y = (n / sprite.width as usize) + (row * sprite.height as usize);
+					color_data[x + (y * width as usize)] = colors[*pixel as usize];
+				}
 			}
-			subimage_defs.push(SubImageDef {
-				offset_x: min_x,
-				offset_y: min_y,
-				sprites: subimage_sprites
+
+			subimages.push(SubImage {
+				offset_x,
+				offset_y,
+				color_data
 			})
 		}
 
-		image_defs.push(ImageDef {
-			width_in_sprites,
-			height_in_sprites,
-			first_palette_index,
+		image_sets.push(ImageSet {
 			width,
 			height,
-			subimage_defs,
-			colors_used: Vec::new()
+			width_in_sprites,
+			height_in_sprites,
+			subimages
 		});
 
 		i += 6;
 	}
 
-	Ok(image_defs)
+	Ok(image_sets)
 }
 
-pub fn save_image_defs(image_defs: &[ImageDef]) -> Result<(Vec<u8>, Vec<Sprite>), Box<dyn Error>> {
-	let mut data: Vec<u8> = Vec::new();
+pub fn save_image_sets(image_sets: &[ImageSet]) -> Result<(Vec<u8>, Vec<Sprite>, Vec<Color>), Box<dyn Error>> {
+	let mut data = Vec::new();
 	let mut sprites = Vec::new();
+	let mut palettes: Vec<Vec<Color>> = Vec::new();
+
+	let mut image_defs = Vec::new();
+
+	for image_set in image_sets {
+		// get colors used in image
+		let mut colors = Vec::new();
+		for subimage in &image_set.subimages {
+			for color in &subimage.color_data {
+				if !colors.contains(color) {
+					colors.push(*color);
+				}
+			}
+		}
+		colors.sort();
+
+		// look for existing color palette
+		let mut palette_exists = false;
+		let mut palette_index = 0;
+		for (i, palette) in palettes.iter_mut().enumerate() {
+			if palette.starts_with(&colors) {
+				palette_exists = true;
+				palette_index = i;
+				break;
+			} else if colors.starts_with(palette) {
+				palette.clone_from(&colors);
+				palette_exists = true;
+				palette_index = i;
+				break;
+			}
+		}
+
+		// if none found, add new color palette
+		if !palette_exists {
+			palettes.push(colors.clone());
+			palette_index = palettes.len() - 1;
+		}
+
+		// save image def info for later
+		image_defs.push(ImageDef {
+			first_sprite_index: sprites.len() as u16,
+			width_in_sprites: image_set.width_in_sprites as u8,
+			height_in_sprites: image_set.height_in_sprites as u8,
+			first_palette_index: palette_index
+		});
+
+		let sprite_width = image_set.width / image_set.width_in_sprites;
+		let sprite_height = image_set.height / image_set.height_in_sprites;
+
+		// determine bits per pixel (aka color depth)
+		let bpp = if colors.len() < 4 {
+			2
+		} else if colors.len() < 16 {
+			4
+		} else if colors.len() < 64 {
+			6
+		} else {
+			8
+		};
+
+		// add sprites
+		for subimage in &image_set.subimages {
+			for row in 0..image_set.height_in_sprites {
+				for col in 0..image_set.width_in_sprites {
+					let mut pixels = Vec::new();
+					for y in 0..sprite_height {
+						for x in 0..sprite_width {
+							let sprite_x = x + (col * sprite_width);
+							let sprite_y = y + (row * sprite_height);
+							let color = subimage.color_data[(sprite_x + (sprite_y * image_set.width)) as usize];
+							let pixel_index = colors.iter().position(|&c| c == color).ok_or("Color not found")? as u32;
+							pixels.push(pixel_index);
+						}
+					}
+
+					sprites.push(Sprite {
+						width: sprite_width,
+						height: sprite_height,
+						bpp,
+						offset_x: subimage.offset_x + (col * sprite_width) as i32,
+						offset_y: subimage.offset_y + (row * sprite_height) as i32,
+						pixels
+					})
+				}
+			}
+		}
+	}
+
+	// fill out palettes so they're all multiples of 4
+	let mut current_palette_index = 0;
+	let mut palette_indexes = Vec::new();
+	for palette in palettes.iter_mut() {
+		while palette.len() % 4 != 0 {
+			palette.push(Color::new(0, 0, 0, 0));
+		}
+		palette_indexes.push(current_palette_index);
+		current_palette_index += palette.len() / 4;
+	}
 
 	for image_def in image_defs {
-		let first_sprite_index = sprites.len() as u16;
-		for bytes in u16::to_le_bytes(first_sprite_index) {
+		// determine first_palette_index for each image_def
+		let real_first_palette_index = palette_indexes[image_def.first_palette_index] as u16;
+
+		// write image def data
+		for bytes in u16::to_le_bytes(image_def.first_sprite_index) {
 			data.push(bytes);
 		}
 		data.push(image_def.width_in_sprites);
 		data.push(image_def.height_in_sprites);
-		for bytes in u16::to_le_bytes(image_def.first_palette_index) {
+		for bytes in u16::to_le_bytes(real_first_palette_index) {
 			data.push(bytes);
 		}
-
-		for subimage_def in &image_def.subimage_defs {
-			sprites = [sprites, subimage_def.sprites.clone()].concat();
-		}
 	}
 
-	Ok((data, sprites))
-}
+	let all_colors = palettes.into_iter().flatten().collect();
 
-#[tauri::command]
-pub fn update_image_def(handle: AppHandle, index: usize, offsets_x: Vec<i16>, offsets_y: Vec<i16>, first_palette_index: Option<u16>) -> Option<ImageDef> {
-	let data_state: State<DataState> = handle.state();
-
-	let mut sprite_pack_opt = data_state.sprite_pack.lock().unwrap();
-	if let Some(sprite_pack) = sprite_pack_opt.as_mut() {
-		if let Some(image_def) = sprite_pack.image_defs.get_mut(index) {
-			for (j, subimage_def) in image_def.subimage_defs.iter_mut().enumerate() {
-				if let Some(offset_x) = offsets_x.get(j) {
-					if let Some(offset_y) = offsets_y.get(j) {
-						let dx = *offset_x - subimage_def.offset_x;
-						let dy = *offset_y - subimage_def.offset_y;
-						for sprite in subimage_def.sprites.iter_mut() {
-							sprite.offset_x += dx;
-							sprite.offset_y += dy;
-						}
-						subimage_def.offset_x = *offset_x;
-						subimage_def.offset_y = *offset_y;
-					}
-				}
-			}
-
-			if let Some(first_palette_index) = first_palette_index {
-				image_def.first_palette_index = first_palette_index;
-			}
-
-			set_file_modified(&handle, true);
-			update_window_title(&handle);
-			return Some(image_def.clone());
-		}
-	}
-
-	None
+	Ok((data, sprites, all_colors))
 }

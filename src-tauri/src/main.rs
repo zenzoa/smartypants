@@ -32,7 +32,7 @@ use import::import_encoding;
 use export::export_encoding;
 use config::{ ConfigState, load_config, get_themes, set_theme, set_toolbar_visibility };
 
-#[derive(Default, serde::Serialize)]
+#[derive(Default)]
 pub struct DataState {
 	pub bin_type: Mutex<Option<BinType>>,
 	pub bin_size: Mutex<Option<BinSize>>,
@@ -41,7 +41,6 @@ pub struct DataState {
 	pub sprite_pack: Mutex<Option<SpritePack>>,
 	pub menu_strings: Mutex<Option<Vec<Text>>>,
 	pub use_patch_header: Mutex<bool>,
-	pub lock_colors: Mutex<bool>,
 	pub original_data: Mutex<Option<Vec<u8>>>,
 }
 
@@ -86,7 +85,6 @@ fn main() {
 			data_pack::tamastring::update_tamastring,
 			data_pack::frame::update_frame,
 			data_pack::scene::update_scene_layer,
-			sprite_pack::image_def::update_image_def,
 			firmware::update_menu_string,
 			smacard::clear_device_ids,
 			text::validate_string,
@@ -148,7 +146,6 @@ fn main() {
 
 					&PredefinedMenuItem::separator(handle)?,
 
-					&CheckMenuItem::with_id(handle, "lock_colors", "Lock Colors", true, false, None::<&str>)?,
 				])?,
 
 				&Submenu::with_id_and_items(handle, "view", "View", true, &[
@@ -207,8 +204,6 @@ fn main() {
 					"card_size_128kb" => set_card_size(&handle, BinSize::Card128KB),
 					"card_size_1mb" => set_card_size(&handle, BinSize::Card1MB),
 					"card_size_2mb" => set_card_size(&handle, BinSize::Card2MB),
-
-					"lock_colors" => set_lock_colors(&handle, None),
 
 					"show_toolbar" => set_toolbar_visibility(&handle, None),
 
@@ -333,21 +328,6 @@ pub fn update_window_title(handle: &AppHandle) {
 	match file_name {
 		Some(file_name) => window.set_title(&format!("Smarty Pants - {}{}", file_name, modified_indicator)).unwrap(),
 		None => window.set_title("Smarty Pants").unwrap()
-	}
-}
-
-fn set_lock_colors(handle: &AppHandle, new_value: Option<bool>) {
-	let data_state: State<DataState> = handle.state();
-	let mut lock_colors = data_state.lock_colors.lock().unwrap();
-	*lock_colors = new_value.unwrap_or(!*lock_colors);
-
-	if let Some(menu) = handle.menu() {
-		if let Some(MenuItemKind::Submenu(config_menu)) = menu.get("config") {
-			if let Some(MenuItemKind::Check(lock_colors_menu_item)) = config_menu.get("lock_colors") {
-				lock_colors_menu_item.set_checked(*lock_colors).unwrap();
-				handle.emit("update_lock_colors", *lock_colors).unwrap();
-			}
-		}
 	}
 }
 

@@ -1,17 +1,19 @@
 use std::error::Error;
 use std::num::Wrapping;
 
+use serde::Serialize;
+
 use md5::{ Md5, Digest };
 
 use tauri::{ AppHandle, State, Manager, Emitter };
 
-use crate::{ DataState, ImageState, BinSize, update_window_title };
+use crate::{ DataState, BinSize, update_window_title };
 use crate::data_view::{ DataView, bytes_to_words };
 use crate::data_pack::{ DataPack, get_data_pack, save_data_pack };
 use crate::sprite_pack::SpritePack;
 use crate::file::set_file_modified;
 
-#[derive(Clone, serde::Serialize)]
+#[derive(Clone, Serialize)]
 pub struct CardHeader {
 	sector_count: u16,
 	checksum: u16,
@@ -27,7 +29,7 @@ pub struct CardHeader {
 	md5: [u8; 16]
 }
 
-#[derive(Clone, serde::Serialize)]
+#[derive(Clone, Serialize)]
 pub enum CardType {
 	TamaSmaCard,
 	PromoTreasure,
@@ -35,7 +37,7 @@ pub enum CardType {
 	Unknown
 }
 
-#[derive(Clone, serde::Serialize)]
+#[derive(Clone)]
 pub struct TamaSmaCard {
 	pub header: CardHeader,
 	pub data_pack: DataPack,
@@ -148,7 +150,6 @@ pub fn read_card_packs(handle: &AppHandle, data: &DataView) -> Result<(DataPack,
 
 pub fn save_card(handle: &AppHandle) -> Result<Vec<u8>, Box<dyn Error>> {
 	let data_state: State<DataState> = handle.state();
-	let image_state: State<ImageState> = handle.state();
 
 	let data_pack_offset = 68;
 	let data_pack_opt = data_state.data_pack.lock().unwrap();
@@ -158,8 +159,6 @@ pub fn save_card(handle: &AppHandle) -> Result<Vec<u8>, Box<dyn Error>> {
 
 	let mut sprite_pack_opt = data_state.sprite_pack.lock().unwrap();
 	let sprite_pack = sprite_pack_opt.as_mut().ok_or("Unable to save Sma Card: missing sprite pack")?;
-	let images = image_state.images.lock().unwrap();
-	sprite_pack.update_image_data(&images, *data_state.lock_colors.lock().unwrap())?;
 	let sprite_pack_data = sprite_pack.as_bytes()?;
 
 	let mut sprite_pack_offset = data_pack_offset + data_pack_data.len();

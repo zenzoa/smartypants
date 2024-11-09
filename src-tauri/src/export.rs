@@ -263,9 +263,9 @@ fn export_image_spritesheet_to(handle: &AppHandle, image_index: usize, path: &Pa
 	let data_state: State<DataState> = handle.state();
 	let sprite_pack_guard = data_state.sprite_pack.lock().unwrap();
 	let sprite_pack = sprite_pack_guard.as_ref().ok_or("No sprite pack found")?;
-	let image_def = sprite_pack.image_defs.get(image_index)
+	let image_set = sprite_pack.image_sets.get(image_index)
 		.ok_or(format!("Unable to find image definition {}", image_index))?;
-	let spritesheet = match image_def.to_spritesheet(&sprite_pack.palettes) {
+	let spritesheet = match image_set.to_spritesheet() {
 		Ok(spritesheet) => spritesheet,
 		Err(why) => return Err(format!("Image Def {}: {}", image_index, why).into())
 	};

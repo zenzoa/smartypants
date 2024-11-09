@@ -4,7 +4,7 @@ use std::error::Error;
 use tauri::{ AppHandle, State, Manager };
 use tauri::path::BaseDirectory;
 
-use crate::{ DataState, ImageState, update_window_title };
+use crate::{ DataState, update_window_title };
 use crate::data_view::{ DataView, words_to_bytes };
 use crate::data_pack::{ DataPack, get_data_pack, save_data_pack };
 use crate::sprite_pack::SpritePack;
@@ -14,7 +14,7 @@ use crate::file::set_file_modified;
 const FIRMWARE_DATA_PACK_SIZE: usize = 0x730000 - 0x6CE000;
 const PATCH_HEADER_START: [u8; 8] = [0x4F, 0x86, 0xA0, 0x86, 0x0A, 0xFE, 0x84, 0x30];
 
-#[derive(Clone, serde::Serialize)]
+#[derive(Clone)]
 pub struct Firmware {
 	pub data_pack: DataPack,
 	pub sprite_pack: SpritePack,
@@ -46,7 +46,6 @@ pub fn read_firmware(handle: &AppHandle, data: &DataView) -> Result<Firmware, Bo
 
 pub fn save_firmware(handle: &AppHandle, original_data: &[u8]) -> Result<Vec<u8>, Box<dyn Error>> {
 	let data_state: State<DataState> = handle.state();
-	let image_state: State<ImageState> = handle.state();
 
 	let mut new_data = DataView::new(original_data);
 
@@ -80,8 +79,6 @@ pub fn save_firmware(handle: &AppHandle, original_data: &[u8]) -> Result<Vec<u8>
 	}
 
 	if let Some(sprite_pack) = data_state.sprite_pack.lock().unwrap().as_mut() {
-		let images = image_state.images.lock().unwrap();
-		sprite_pack.update_image_data(&images, *data_state.lock_colors.lock().unwrap())?;
 		let sprite_pack_data = sprite_pack.as_bytes()?;
 		let end_of_sprite_pack = sprite_pack_start + sprite_pack_data.len();
 		new_data.data.splice(sprite_pack_start..end_of_sprite_pack, sprite_pack_data);

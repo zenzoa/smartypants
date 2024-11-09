@@ -23,12 +23,12 @@ const setupFrames = () => {
 				let previewLayers = []
 				frame.Explicit.forEach(frameLayer => {
 					if (!specialLayers.includes(frameLayer.image_id.entity_id)) {
-						let imageDef = cardData.sprite_pack.image_defs[frameLayer.image_id.entity_id]
-						if (imageDef != null) {
-							let subimageDef = imageDef.subimage_defs[frameLayer.subimage_index]
-							if (subimageDef != null) {
-								let x = 64 + subimageDef.offset_x + frameLayer.x
-								let y = 64 + subimageDef.offset_y + frameLayer.y
+						let imageSet = cardData.image_sets[frameLayer.image_id.entity_id]
+						if (imageSet != null) {
+							let subimage = imageSet.subimages[frameLayer.subimage_index]
+							if (subimage != null) {
+								let x = 64 + subimage.offset_x + frameLayer.x
+								let y = 64 + subimage.offset_y + frameLayer.y
 								previewLayers.push(img({
 									className: 'preview-layer',
 									style: `left: ${x}px; top: ${y}px`,

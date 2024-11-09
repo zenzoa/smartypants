@@ -12,30 +12,26 @@ const setupSprites = () => {
 				th('ID'),
 				th('Sub-Images'),
 				th('Dimensions'),
-				cardData.lock_colors ? th('First Palette ID') : '',
-				cardData.lock_colors ? th('Max Colors') : '',
 				th('Actions')
 			])]),
-			tbody(cardData.sprite_pack.image_defs.map((imageDef, i) =>
-				renderImageDef(i, imageDef)
+			tbody(cardData.image_sets.map((imageSet, i) =>
+				renderImageSet(i, imageSet)
 			))
 		])
 	])
 }
 
-const updateImageDef = (i, newImageDef) => {
-	cardData.sprite_pack.image_defs[i] = newImageDef
+const updateImageSet = (i, newImageSet) => {
+	cardData.image_sets[i] = newImageSet
 	const imageEl = document.getElementById(`image-${i}`)
-	imageEl.replaceWith(renderImageDef(i, newImageDef))
+	imageEl.replaceWith(renderImageSet(i, newImageSet))
 }
 
-const renderImageDef = (i, imageDef) => {
+const renderImageSet = (i, imageSet) => {
 	return tr({id: `image-${i}`}, [
 		th(i),
-		td(imageDef.subimage_defs.map((_, j) => displayImage(i, j, true))),
-		td(`${imageDef.width}×${imageDef.height}`),
-		cardData.lock_colors ? td([linkToPalette(imageDef.first_palette_index)]) : '',
-		cardData.lock_colors ? td(bppToMaxColors[imageDef.subimage_defs[0].sprites[0].bits_per_pixel]) : '',
+		td(imageSet.subimages.map((_, j) => displayImage(i, j, true))),
+		td(`${imageSet.width}×${imageSet.height}`),
 		td([
 			div({className:'button-row'}, [
 				button({
@@ -48,7 +44,7 @@ const renderImageDef = (i, imageDef) => {
 				}, EXPORT_ICON),
 				button({
 					className: 'icon', title: 'Edit Image Definition',
-					onclick: () => EditSpriteDialog.open(i, imageDef)
+					onclick: () => EditSpriteDialog.open(i, imageSet)
 				}, EDIT_ICON)
 			])
 		])

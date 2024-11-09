@@ -85,7 +85,7 @@ window.addEventListener('load', () => {
 			button({id: 'view-tamaStrings-button', onclick: viewTamaStrings},
 				`Dialog Strings <span class="tag">${cardData.data_pack.tamastrings.length}</span>`),
 			button({id: 'view-sprites-button', onclick: viewSprites},
-				`Images <span class="tag">${cardData.sprite_pack.image_defs.length}</span>`),
+				`Images <span class="tag">${cardData.image_sets.length}</span>`),
 			button({id: 'view-frames-button', onclick: viewFrames},
 				`Frames <span class="tag">${cardData.data_pack.frame_groups.length}</span>`),
 			button({id: 'view-scenes-button', onclick: viewScenes},
@@ -151,14 +151,14 @@ window.addEventListener('load', () => {
 		}
 	})
 
-	tauri_listen('update_image_def', event => {
-		updateImageDef(event.payload[0], event.payload[1])
+	tauri_listen('update_image_set', event => {
+		updateImageSet(event.payload[0], event.payload[1])
 	})
 
 	tauri_listen('update_image', event => {
 		timestamp = Date.now()
 		const imageIndex = event.payload
-		const subimageCount = cardData.sprite_pack.image_defs[imageIndex].subimage_defs.length
+		const subimageCount = cardData.image_sets[imageIndex].subimages.length
 		for (let i=0; i < subimageCount; i++) {
 			const subimageEl = document.getElementById(`subimage-${imageIndex}-${i}`)
 			subimageEl.src = convertFileSrc(`${timestamp}-${imageIndex}-${i}`, 'getimage')
@@ -169,16 +169,6 @@ window.addEventListener('load', () => {
 		sections.characters = setupCharacters()
 		sections.animations = setupAnimations()
 		sections.frames = setupFrames()
-	})
-
-	tauri_listen('update_lock_colors', event => {
-		if (cardData != null) {
-			cardData.lock_colors = event.payload
-			sections.sprites = setupSprites()
-			if (currentSection === 'sprites') {
-				viewSprites()
-			}
-		}
 	})
 
 	tauri_listen('update_encoding_language', event => {

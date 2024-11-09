@@ -11,7 +11,6 @@ use tauri::async_runtime::spawn;
 use rfd::{ FileDialog, MessageButtons, MessageDialog, MessageDialogResult };
 
 use crate::{ DataState, BinType, ImageState, show_error_message, show_spinner, hide_spinner };
-use crate::sprite_pack::get_colors_in_image;
 use crate::sprite_pack::palette::Color;
 use crate::text::{ FontState, CharEncoding, EncodingLanguage, re_decode_strings, refresh_encoding_menu };
 use crate::file::{ FileState, set_file_modified };
@@ -236,41 +235,29 @@ fn import_image_spritesheet_from(handle: &AppHandle, image_index: usize, path: &
 	let font_state: State<FontState> = handle.state();
 	let image_state: State<ImageState> = handle.state();
 
-	let mut images = image_state.images.lock().unwrap();
-	let subimages = images.get_mut(image_index)
-		.ok_or(format!("Can't find subimages for image {}", image_index))?;
-
 	let mut sprite_pack_opt = data_state.sprite_pack.lock().unwrap();
 	let sprite_pack = sprite_pack_opt.as_mut().ok_or("Can't find sprite pack")?;
-	let image_def = sprite_pack.image_defs.get_mut(image_index)
+	let image_set = sprite_pack.image_sets.get_mut(image_index)
 		.ok_or(format!("Can't find image def for image {}", image_index))?;
 
-	let expected_width = image_def.width * image_def.subimage_defs.len() as u32;
-	let expected_height = image_def.height;
+	let expected_width = image_set.width * image_set.subimages.len() as u32;
+	let expected_height = image_set.height;
 	if spritesheet.width() != expected_width || spritesheet.height() != expected_height {
 		return Err(format!("Spritesheet does not match expected dimensions: {}x{}", expected_width, expected_height).into());
 	}
 
-	let colors_in_spritesheet = get_colors_in_image(&spritesheet.to_rgba8());
-	if colors_in_spritesheet.len() > 16 {
-		return Err(format!("Spritesheet uses too many colors (the maximum is 16): {}", colors_in_spritesheet.len()).into());
-	}
-	if *data_state.lock_colors.lock().unwrap() {
-		if image_def.colors_used != colors_in_spritesheet {
-			return Err("Spritesheet uses colors not in original image. Try unlocking colors first.".into());
-		}
-	} else {
-		image_def.colors_used = colors_in_spritesheet;
-	}
+	let mut images = image_state.images.lock().unwrap();
+	let subimages = images.get_mut(image_index)
+		.ok_or(format!("Can't find subimages for image {}", image_index))?;
 
-	let mut x = 0;
-	for subimage in subimages.iter_mut() {
-		let mut new_subimage = spritesheet.view(x, 0, subimage.width(), subimage.height()).to_image();
-		for pixel in new_subimage.pixels_mut() {
-			*pixel = Color::from_rgba(pixel).as_rgba();
+	for (i, subimage) in image_set.subimages.iter_mut().enumerate() {
+		let x = i as u32 * image_set.width;
+		let img = spritesheet.view(x, 0, image_set.width, image_set.height).to_image();
+		let pixels = img.pixels();
+		subimage.color_data = pixels.map(Color::from_rgba).collect();
+		if let Some(subimage_img) = subimages.get_mut(i) {
+			*subimage_img = img;
 		}
-		*subimage = new_subimage;
-		x += subimage.width();
 	}
 
 	if let Some(BinType::Firmware) = *data_state.bin_type.lock().unwrap() {

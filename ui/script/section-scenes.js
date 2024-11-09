@@ -5,12 +5,12 @@ const setupScenes = () => {
 		let previewLayers = []
 		scene.layers.forEach(layer => {
 			if (layer.image_id != null && (cardData.card_header == null || layer.image_id.card_id === cardData.card_header.card_id)) {
-				let imageDef = cardData.sprite_pack.image_defs[layer.image_id.entity_id]
-				if (imageDef != null) {
-					let subimageDef = imageDef.subimage_defs[layer.subimage_index]
-					if (subimageDef != null) {
-						let x = subimageDef.offset_x + layer.x
-						let y = subimageDef.offset_y + layer.y
+				let imageSet = cardData.image_sets[layer.image_id.entity_id]
+				if (imageSet != null) {
+					let subimage = imageSet.subimages[layer.subimage_index]
+					if (subimage != null) {
+						let x = subimage.offset_x + layer.x
+						let y = subimage.offset_y + layer.y
 						previewLayers.push(img({
 							className: 'preview-layer',
 							style: `left: ${x}px; top: ${y}px`,
