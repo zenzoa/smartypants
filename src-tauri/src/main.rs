@@ -85,6 +85,7 @@ fn main() {
 			data_pack::tamastring::update_tamastring,
 			data_pack::frame::update_frame,
 			data_pack::scene::update_scene_layer,
+			sprite_pack::image_def::update_image_set,
 			firmware::update_menu_string,
 			smacard::clear_device_ids,
 			text::validate_string,
@@ -143,9 +144,6 @@ fn main() {
 						&CheckMenuItem::with_id(handle, "card_size_1mb", "1MB", true, false, None::<&str>)?,
 						&CheckMenuItem::with_id(handle, "card_size_2mb", "2MB", true, false, None::<&str>)?,
 					])?,
-
-					&PredefinedMenuItem::separator(handle)?,
-
 				])?,
 
 				&Submenu::with_id_and_items(handle, "view", "View", true, &[

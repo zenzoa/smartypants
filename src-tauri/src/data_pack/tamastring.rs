@@ -1,7 +1,5 @@
 use std::error::Error;
-
 use serde::{ Serialize, Deserialize };
-
 use tauri::{ AppHandle, Manager, State };
 
 use super::EntityId;

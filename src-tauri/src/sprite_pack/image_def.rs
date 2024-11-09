@@ -1,11 +1,13 @@
 use std::error::Error;
 use image::{ RgbaImage, GenericImage };
 use serde::{ Serialize, Deserialize };
+use tauri::{ AppHandle, Manager, State };
 
 use super::sprite::Sprite;
 use super::palette::Color;
 use crate::data_view::DataView;
-
+use crate::file::set_file_modified;
+use crate::{ DataState, update_window_title };
 
 #[derive(Clone)]
 pub struct ImageDef {
@@ -229,12 +231,15 @@ pub fn save_image_sets(image_sets: &[ImageSet]) -> Result<(Vec<u8>, Vec<Sprite>,
 						}
 					}
 
+					let offset_x_mod = (sprite_width / 2) + (col * sprite_width);
+					let offset_y_mod = (sprite_height / 2) + (row * sprite_height);
+
 					sprites.push(Sprite {
 						width: sprite_width,
 						height: sprite_height,
 						bpp,
-						offset_x: subimage.offset_x + (col * sprite_width) as i32,
-						offset_y: subimage.offset_y + (row * sprite_height) as i32,
+						offset_x: subimage.offset_x + offset_x_mod as i32,
+						offset_y: subimage.offset_y + offset_y_mod as i32,
 						pixels
 					})
 				}
@@ -271,4 +276,28 @@ pub fn save_image_sets(image_sets: &[ImageSet]) -> Result<(Vec<u8>, Vec<Sprite>,
 	let all_colors = palettes.into_iter().flatten().collect();
 
 	Ok((data, sprites, all_colors))
+}
+
+#[tauri::command]
+pub fn update_image_set(handle: AppHandle, index: usize, offsets_x: Vec<i32>, offsets_y: Vec<i32>) -> Option<ImageSummary> {
+	let data_state: State<DataState> = handle.state();
+
+	let mut sprite_pack_opt = data_state.sprite_pack.lock().unwrap();
+	if let Some(sprite_pack) = sprite_pack_opt.as_mut() {
+		if let Some(image_set) = sprite_pack.image_sets.get_mut(index) {
+			for (i, subimage) in image_set.subimages.iter_mut().enumerate() {
+				if let Some(offset_x) = offsets_x.get(i) {
+					subimage.offset_x = *offset_x;
+				}
+				if let Some(offset_y) = offsets_y.get(i) {
+					subimage.offset_y = *offset_y;
+				}
+			}
+			set_file_modified(&handle, true);
+			update_window_title(&handle);
+			return Some(image_set.to_summary());
+		}
+	}
+
+	None
 }
