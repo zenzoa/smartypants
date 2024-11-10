@@ -206,11 +206,11 @@ pub fn save_image_sets(image_sets: &[ImageSet]) -> Result<(Vec<u8>, Vec<Sprite>,
 		let sprite_height = image_set.height / image_set.height_in_sprites;
 
 		// determine bits per pixel (aka color depth)
-		let bpp = if colors.len() < 4 {
+		let bpp = if colors.len() <= 4 {
 			2
-		} else if colors.len() < 16 {
+		} else if colors.len() <= 16 {
 			4
-		} else if colors.len() < 64 {
+		} else if colors.len() <= 64 {
 			6
 		} else {
 			8
