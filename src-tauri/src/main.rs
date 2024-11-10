@@ -70,12 +70,12 @@ fn main() {
 			open_bin,
 			save_bin,
 			save_bin_as,
-			export::export_data,
 			export::export_strings,
 			export::export_images,
 			export::export_image_spritesheet,
 			export::export_encoding,
 			import::import_strings,
+			import::import_images,
 			import::import_image_spritesheet,
 			import::import_encoding,
 			try_quit,
@@ -113,6 +113,7 @@ fn main() {
 
 					&Submenu::with_id_and_items(handle, "import", "Import", true, &[
 						&MenuItem::with_id(handle, "import_strings", "Import Strings", true, None::<&str>)?,
+						&MenuItem::with_id(handle, "import_images", "Import Images", true, None::<&str>)?,
 					])?,
 
 					&Submenu::with_id_and_items(handle, "export", "Export", true, &[
@@ -184,8 +185,8 @@ fn main() {
 					"save_as" => save_bin_as(handle),
 
 					"import_strings" => import::import_strings(handle),
+					"import_images" => import::import_images(handle),
 
-					"export_data" => export::export_data(handle),
 					"export_strings" => export::export_strings(handle),
 					"export_images" => export::export_images(handle),
 

@@ -44,6 +44,9 @@ window.addEventListener('load', () => {
 	document.getElementById('import-strings-button')
 		.addEventListener('click', () => tauri_invoke('import_strings'))
 
+	document.getElementById('import-images-button')
+		.addEventListener('click', () => tauri_invoke('import_images'))
+
 	document.getElementById('export-strings-button')
 		.addEventListener('click', () => tauri_invoke('export_strings'))
 
@@ -169,6 +172,18 @@ window.addEventListener('load', () => {
 		sections.characters = setupCharacters()
 		sections.animations = setupAnimations()
 		sections.frames = setupFrames()
+	})
+
+	tauri_listen('update_images', event => {
+		timestamp = Date.now()
+		sections.sprites = setupSprites()
+		sections.particleEmitters = setupParticleEmitters()
+		sections.scenes = setupScenes()
+		sections.items = setupItems()
+		sections.characters = setupCharacters()
+		sections.animations = setupAnimations()
+		sections.frames = setupFrames()
+		viewSprites()
 	})
 
 	tauri_listen('update_encoding_language', event => {

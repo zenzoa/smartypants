@@ -13,54 +13,6 @@ use crate::text::FontState;
 use crate::file::FileState;
 
 #[tauri::command]
-pub fn export_data(handle: AppHandle) {
-	spawn(async move {
-		let file_state: State<FileState> = handle.state();
-		let data_state: State<DataState> = handle.state();
-
-		let no_data = data_state.data_pack.lock().unwrap().is_none();
-		if no_data {
-			show_error_message("No data to export".into());
-
-		} else {
-			let mut file_dialog = FileDialog::new()
-				.add_filter("JSON", &["json"]);
-
-			if let Some(base_path) = file_state.base_path.lock().unwrap().as_ref() {
-				file_dialog = file_dialog.set_directory(base_path);
-			}
-
-			if let Some(file_path) = file_state.file_path.lock().unwrap().as_ref() {
-				if let Some(file_stem) = file_path.file_stem() {
-					file_dialog = file_dialog.set_file_name(format!("{}.json", file_stem.to_string_lossy()));
-				}
-			}
-
-			let file_result = file_dialog.save_file();
-
-			if let Some(path) = file_result {
-				show_spinner(&handle);
-				if let Err(why) = export_data_to(&data_state, &path) {
-					show_error_message(why);
-				}
-				hide_spinner(&handle);
-			}
-		}
-	});
-}
-
-pub fn export_data_to(data_state: &DataState, path: &PathBuf) -> Result<(), Box<dyn Error>> {
-	if let Some(data_pack) = data_state.data_pack.lock().unwrap().as_ref() {
-		let serialized = serde_json::to_string(&data_pack)?;
-		let mut file = File::create(path)?;
-		file.write_all(serialized.as_bytes())?;
-		Ok(())
-	} else {
-		Err("No data to export".into())
-	}
-}
-
-#[tauri::command]
 pub fn export_strings(handle: AppHandle) {
 	spawn(async move {
 		let file_state: State<FileState> = handle.state();

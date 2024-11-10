@@ -2,6 +2,8 @@ use std::error::Error;
 use std::fs;
 use std::path::PathBuf;
 
+use regex::Regex;
+
 use image::ImageReader;
 use image::GenericImageView;
 
@@ -206,6 +208,48 @@ pub fn import_strings_from(handle: &AppHandle, path: &PathBuf) -> Result<(), Box
 }
 
 #[tauri::command]
+pub fn import_images(handle: AppHandle) {
+	spawn(async move {
+		let file_state: State<FileState> = handle.state();
+
+		let mut file_dialog = FileDialog::new();
+
+		if let Some(base_path) = file_state.base_path.lock().unwrap().as_ref() {
+			file_dialog = file_dialog.set_directory(base_path);
+		}
+
+		let file_result = file_dialog.pick_folder();
+
+		if let Some(path) = file_result {
+			show_spinner(&handle);
+			match import_images_from(&handle, &path) {
+				Ok(()) => handle.emit("update_images", ()).unwrap(),
+				Err(why) => show_error_message(why)
+			}
+			hide_spinner(&handle);
+		}
+	});
+}
+
+fn import_images_from(handle: &AppHandle, path: &PathBuf) -> Result<(), Box<dyn Error>> {
+	let re = Regex::new(r".+-(\d+).[Pp][Nn][Gg]$")?;
+	for entry in path.read_dir()? {
+		let entry = entry?;
+		let entry_path = entry.path();
+		if let Some(filename) = entry_path.file_name() {
+			if let Some(caps) = re.captures(&filename.to_string_lossy()) {
+				if let Some(image_index_str) = caps.get(1) {
+					if let Ok(image_index) = usize::from_str_radix(image_index_str.as_str(), 10) {
+						import_image_spritesheet_from(&handle, image_index, &entry_path)?;
+					}
+				}
+			}
+		}
+	}
+	Ok(())
+}
+
+#[tauri::command]
 pub fn import_image_spritesheet(handle: AppHandle, image_index: usize) {
 	spawn(async move {
 		let file_state: State<FileState> = handle.state();
@@ -221,8 +265,9 @@ pub fn import_image_spritesheet(handle: AppHandle, image_index: usize) {
 
 		if let Some(path) = file_result {
 			show_spinner(&handle);
-			if let Err(why) = import_image_spritesheet_from(&handle, image_index, &path) {
-				show_error_message(why);
+			match import_image_spritesheet_from(&handle, image_index, &path) {
+				Ok(()) => handle.emit("update_image", image_index).unwrap(),
+				Err(why) => show_error_message(why)
 			}
 			hide_spinner(&handle);
 		}
@@ -267,8 +312,6 @@ fn import_image_spritesheet_from(handle: &AppHandle, image_index: usize, path: &
 			_ => {}
 		}
 	}
-
-	handle.emit("update_image", image_index).unwrap();
 
 	Ok(())
 }
