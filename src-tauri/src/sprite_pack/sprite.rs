@@ -12,6 +12,7 @@ pub struct SpriteDef {
 	pub bpp: u8,
 	pub width: u8,
 	pub height: u8,
+	pub is_quadrupled: bool
 }
 
 #[derive(Clone, Serialize, Deserialize)]
@@ -21,6 +22,7 @@ pub struct Sprite {
 	pub bpp: u32,
 	pub offset_x: i32,
 	pub offset_y: i32,
+	pub is_quadrupled: bool,
 	pub pixels: Vec<u32>
 }
 
@@ -35,13 +37,17 @@ pub fn get_sprites(data: &DataView, all_pixel_data: &DataView) -> Result<Vec<Spr
 		let props = data.get_u16(i + 6);
 
 		let bpp = [2, 4, 6, 8][(props & 0x0003) as usize];
-		let _is_flipped = (props & 0x000c) >> 2;			// unused on Smart
-		let width = [8, 16, 32, 64][((props & 0x0030) >> 4) as usize];
-		let height = [8, 16, 32, 64][((props & 0x00c0) >> 6) as usize];
+		let _is_flipped = (props & 0x000c) >> 2;				// unused on Smart
+		let mut width = [8, 16, 32, 64][((props & 0x0030) >> 4) as usize];
+		let mut height = [8, 16, 32, 64][((props & 0x00c0) >> 6) as usize];
 		let _palette_bank = (props & 0x0f00) >> 8;			// unused on Smart
 		let _draw_depth = (props & 0x3000) >> 12;			// unused on Smart
 		let _blend_enabled = ((props & 0x4000) >> 14) > 0;	// unused on Smart
-		let _is_quadrupled = ((props & 0x8000) >> 15) > 0;	// unused on Smart
+		let is_quadrupled = ((props & 0x8000) >> 15) > 0;
+		if is_quadrupled {
+			width *= 4;
+			height *= 4;
+		}
 
 		let byte_count = width * height * bpp / 8;
 		let pixel_data_offset = pixel_data_index * byte_count;
@@ -61,6 +67,7 @@ pub fn get_sprites(data: &DataView, all_pixel_data: &DataView) -> Result<Vec<Spr
 			bpp: bpp as u32,
 			offset_x,
 			offset_y,
+			is_quadrupled,
 			pixels
 		});
 
@@ -108,8 +115,13 @@ pub fn save_sprites(sprite_defs: &[SpriteDef]) -> Result<Vec<u8>, Box<dyn Error>
 			64 => 3,
 			_ => return Err("Invalid height".into())
 		} << 6;
+		let is_quadrupled = if sprite_def.is_quadrupled {
+			1 << 15
+		} else {
+			0
+		};
 
-		let props = bpp | width | height;
+		let props = bpp | width | height | is_quadrupled;
 		for bytes in u16::to_le_bytes(props) {
 			data.push(bytes);
 		}
@@ -177,7 +189,8 @@ pub fn save_pixel_data(sprites: &[Sprite]) -> (Vec<u8>, Vec<SpriteDef>) {
 			offset_y: sprite.offset_y as i16,
 			bpp: sprite.bpp as u8,
 			width: sprite.width as u8,
-			height: sprite.height as u8
+			height: sprite.height as u8,
+			is_quadrupled: sprite.is_quadrupled
 		})
 	}
 
