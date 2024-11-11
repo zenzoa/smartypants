@@ -50,6 +50,17 @@ pub struct Character {
 	pub gender: Gender
 }
 
+impl Character {
+	pub fn set_card_id(&mut self, old_card_id: u8, new_card_id: u8) {
+		self.id.set_card_id(old_card_id, new_card_id);
+		self.profile_image_id.set_card_id(old_card_id, new_card_id);
+		self.icon_image_id.set_card_id(old_card_id, new_card_id);
+		self.composition_id.set_card_id(old_card_id, new_card_id);
+		self.unknown1.set_card_id(old_card_id, new_card_id);
+		self.global_id.set_card_id(old_card_id, new_card_id);
+	}
+}
+
 pub fn get_characters(handle: &AppHandle, data: &DataView) -> Vec<Character> {
 	let mut characters = Vec::new();
 

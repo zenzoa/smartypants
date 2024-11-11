@@ -27,6 +27,24 @@ pub struct Item {
 	pub game_type: Option<GameType>
 }
 
+impl Item {
+	pub fn set_card_id(&mut self, old_card_id: u8, new_card_id: u8) {
+		self.id.set_card_id(old_card_id, new_card_id);
+		if let Some(image_id) = &mut self.image_id {
+			image_id.set_card_id(old_card_id, new_card_id);
+		}
+		if let Some(worn_image_id) = &mut self.worn_image_id {
+			worn_image_id.set_card_id(old_card_id, new_card_id);
+		}
+		if let Some(close_image_id) = &mut self.close_image_id {
+			close_image_id.set_card_id(old_card_id, new_card_id);
+		}
+		if let Some(animation_id) = &mut self.animation_id {
+			animation_id.set_card_id(old_card_id, new_card_id);
+		}
+	}
+}
+
 #[derive(Clone, PartialEq, Serialize, Deserialize)]
 pub enum ItemType {
 	Unknown,

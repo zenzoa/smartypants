@@ -88,6 +88,8 @@ fn main() {
 			sprite_pack::image_def::update_image_set,
 			firmware::update_menu_string,
 			smacard::clear_device_ids,
+			smacard::update_card_id,
+			smacard::update_build_date,
 			text::validate_string,
 			text::decode_string_js,
 			text::get_default_char_codes,

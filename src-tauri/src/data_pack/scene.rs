@@ -14,6 +14,16 @@ pub struct Scene {
 	pub layers: Vec<SceneLayer>
 }
 
+impl Scene {
+	pub fn set_card_id(&mut self, old_card_id: u8, new_card_id: u8) {
+		for layer in self.layers.iter_mut() {
+			if let Some(image_id) = &mut layer.image_id {
+				image_id.set_card_id(old_card_id, new_card_id);
+			}
+		}
+	}
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SceneLayer {
 	pub x: i16,

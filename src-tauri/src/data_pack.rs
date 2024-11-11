@@ -44,9 +44,15 @@ impl EntityId {
 			None => self.entity_id
 		}
 	}
+
+	pub fn set_card_id(&mut self, old_card_id: u8, new_card_id: u8) {
+		if self.card_id.is_some_and(|id| id == old_card_id){
+			self.card_id = Some(new_card_id);
+		}
+	}
 }
 
-#[derive(Clone, serde::Serialize)]
+#[derive(Clone, Serialize)]
 pub struct DataPack {
 	pub table1: Vec<Vec<u16>>,
 	pub particle_emitters: Vec<particle_emitter::ParticleEmitter>,
@@ -58,6 +64,27 @@ pub struct DataPack {
 	pub graphics_nodes: Vec<graphics_node::GraphicsNode>,
 	pub frame_groups: Vec<frame::FrameGroup>,
 	pub card_id: u16
+}
+
+impl DataPack {
+	pub fn set_card_id(&mut self, old_card_id: u8, new_card_id: u8) {
+		self.card_id = new_card_id as u16;
+		for scene in self.scenes.iter_mut() {
+			scene.set_card_id(old_card_id, new_card_id);
+		}
+		for tamastring in self.tamastrings.iter_mut() {
+			tamastring.set_card_id(old_card_id, new_card_id);
+		}
+		for item in self.items.iter_mut() {
+			item.set_card_id(old_card_id, new_card_id);
+		}
+		for character in self.characters.iter_mut() {
+			character.set_card_id(old_card_id, new_card_id);
+		}
+		for frame_group in self.frame_groups.iter_mut() {
+			frame_group.set_card_id(old_card_id, new_card_id);
+		}
+	}
 }
 
 pub fn get_data_pack(handle: &AppHandle, data: &DataView) -> Result<DataPack, Box<dyn Error>> {

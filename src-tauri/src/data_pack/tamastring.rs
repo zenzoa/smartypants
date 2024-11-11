@@ -31,6 +31,10 @@ impl TamaString {
 		data.push(0);
 		data
 	}
+
+	pub fn set_card_id(&mut self, old_card_id: u8, new_card_id: u8) {
+		self.id.set_card_id(old_card_id, new_card_id);
+	}
 }
 
 pub fn get_tamastrings(handle: &AppHandle, data: &DataView) -> Vec<TamaString> {

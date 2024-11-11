@@ -6,8 +6,9 @@ use serde::Serialize;
 use md5::{ Md5, Digest };
 
 use tauri::{ AppHandle, State, Manager, Emitter };
+use tauri::async_runtime::spawn;
 
-use crate::{ DataState, BinSize, update_window_title };
+use crate::{ DataState, BinSize, update_window_title, show_spinner, hide_spinner };
 use crate::data_view::{ DataView, bytes_to_words };
 use crate::data_pack::{ DataPack, get_data_pack, save_data_pack };
 use crate::sprite_pack::SpritePack;
@@ -276,6 +277,45 @@ pub fn clear_device_ids(handle: AppHandle) {
 	let mut header_opt = data_state.card_header.lock().unwrap();
 	if let Some(header) = header_opt.as_mut() {
 		header.device_ids = [0, 0, 0];
+		set_file_modified(&handle, true);
+		update_window_title(&handle);
+		handle.emit("update_card_header", header.clone()).unwrap();
+	}
+}
+
+#[tauri::command]
+pub fn update_card_id(handle: AppHandle, new_card_id: u8) {
+	show_spinner(&handle);
+	spawn(async move {
+		let data_state: State<DataState> = handle.state();
+
+		let mut header_opt = data_state.card_header.lock().unwrap();
+		if let Some(header) = header_opt.as_mut() {
+			header.card_id = new_card_id as u16;
+		}
+
+		let mut data_pack_opt = data_state.data_pack.lock().unwrap();
+		if let Some(data_pack) = data_pack_opt.as_mut() {
+			let old_card_id = data_pack.card_id as u8;
+			data_pack.set_card_id(old_card_id, new_card_id);
+			handle.emit("update_data_pack", data_pack.clone()).unwrap();
+		}
+
+		set_file_modified(&handle, true);
+		update_window_title(&handle);
+		hide_spinner(&handle);
+	});
+}
+
+#[tauri::command]
+pub fn update_build_date(handle: AppHandle, new_year: u16, new_month: u16, new_day: u16, new_revision: u16) {
+	let data_state: State<DataState> = handle.state();
+	let mut header_opt = data_state.card_header.lock().unwrap();
+	if let Some(header) = header_opt.as_mut() {
+		header.year = new_year;
+		header.month = new_month;
+		header.day = new_day;
+		header.revision = new_revision;
 		set_file_modified(&handle, true);
 		update_window_title(&handle);
 		handle.emit("update_card_header", header.clone()).unwrap();

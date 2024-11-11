@@ -111,6 +111,26 @@ window.addEventListener('load', () => {
 		viewHeader()
 	})
 
+	tauri_listen('update_data_pack', event => {
+		if (event.payload != null) {
+			cardData.data_pack = event.payload
+			if (cardData.card_header != null) {
+				cardData.card_header.card_id = cardData.data_pack.card_id
+				sections.header = setupHeader()
+			}
+			sections.table1 = setupTable1()
+			sections.particleEmitters = setupParticleEmitters()
+			sections.scenes = setupScenes()
+			sections.tamaStrings = setupTamaStrings()
+			sections.table9 = setupTable9()
+			sections.items = setupItems()
+			sections.characters = setupCharacters()
+			sections.animations = setupAnimations()
+			sections.frames = setupFrames()
+			viewHeader()
+		}
+	})
+
 	tauri_listen('refresh_tab', () => {
 		selectSection(currentSection)
 		contents.append(sections[currentSection])

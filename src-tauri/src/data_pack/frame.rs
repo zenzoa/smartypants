@@ -45,6 +45,20 @@ pub struct FrameGroup {
 	pub frames: Vec<Frame>
 }
 
+impl FrameGroup {
+	pub fn set_card_id(&mut self, old_card_id: u8, new_card_id: u8) {
+		for frame in self.frames.iter_mut() {
+			if let Frame::Explicit(layers) = frame {
+				for layer in layers.iter_mut() {
+					if let Some(image_id) = &mut layer.image_id {
+						image_id.set_card_id(old_card_id, new_card_id);
+					}
+				}
+			}
+		}
+	}
+}
+
 pub fn get_frame_layers(data: &DataView) -> Vec<FrameLayer> {
 	let mut frame_layers = Vec::new();
 
