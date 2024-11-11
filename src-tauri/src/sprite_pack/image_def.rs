@@ -261,9 +261,6 @@ pub fn save_image_sets(image_sets: &[ImageSet]) -> Result<(Vec<u8>, Vec<Sprite>,
 
 		// add sprites
 		let new_sprites = image_set.to_sprites(&colors, bpp)?;
-		if image_set.width == 24 && image_set.height == 24 {
-			println!("new_sprites: {}", new_sprites.len())
-		}
 		sprites = [sprites, new_sprites].concat();
 	}
 
