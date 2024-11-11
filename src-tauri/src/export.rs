@@ -14,39 +14,39 @@ use crate::file::FileState;
 
 #[tauri::command]
 pub fn export_strings(handle: AppHandle) {
-	spawn(async move {
-		let file_state: State<FileState> = handle.state();
-		let data_state: State<DataState> = handle.state();
+	let file_state: State<FileState> = handle.state();
+	let data_state: State<DataState> = handle.state();
 
-		let no_data = data_state.data_pack.lock().unwrap().is_none();
-		if no_data {
-			show_error_message("No data to export".into());
+	let no_data = data_state.data_pack.lock().unwrap().is_none();
+	if no_data {
+		show_error_message("No data to export".into());
 
-		} else {
-			let mut file_dialog = FileDialog::new()
-				.add_filter("CSV", &["csv"]);
+	} else {
+		let mut file_dialog = FileDialog::new()
+			.add_filter("CSV", &["csv"]);
 
-			if let Some(base_path) = file_state.base_path.lock().unwrap().as_ref() {
-				file_dialog = file_dialog.set_directory(base_path);
+		if let Some(base_path) = file_state.base_path.lock().unwrap().as_ref() {
+			file_dialog = file_dialog.set_directory(base_path);
+		}
+
+		if let Some(file_path) = file_state.file_path.lock().unwrap().as_ref() {
+			if let Some(file_stem) = file_path.file_stem() {
+				file_dialog = file_dialog.set_file_name(format!("{}.csv", file_stem.to_string_lossy()));
 			}
+		}
 
-			if let Some(file_path) = file_state.file_path.lock().unwrap().as_ref() {
-				if let Some(file_stem) = file_path.file_stem() {
-					file_dialog = file_dialog.set_file_name(format!("{}.csv", file_stem.to_string_lossy()));
-				}
-			}
+		let file_result = file_dialog.save_file();
 
-			let file_result = file_dialog.save_file();
-
-			if let Some(path) = file_result {
-				show_spinner(&handle);
+		if let Some(path) = file_result {
+			show_spinner(&handle);
+			spawn(async move {
 				if let Err(why) = export_strings_to(&handle, &path) {
 					show_error_message(why);
 				}
 				hide_spinner(&handle);
-			}
+			});
 		}
-	});
+	}
 }
 
 pub fn export_strings_to(handle: &AppHandle, path: &PathBuf) -> Result<(), Box<dyn Error>> {
@@ -137,38 +137,39 @@ pub fn export_strings_to(handle: &AppHandle, path: &PathBuf) -> Result<(), Box<d
 
 #[tauri::command]
 pub fn export_images(handle: AppHandle) {
-	spawn(async move {
-		let file_state: State<FileState> = handle.state();
-		let image_state: State<ImageState> = handle.state();
+	let file_state: State<FileState> = handle.state();
+	let image_state: State<ImageState> = handle.state();
 
-		if image_state.images.lock().unwrap().is_empty() || image_state.images.lock().unwrap()[0].is_empty() {
-			show_error_message("No images to export".into());
+	if image_state.images.lock().unwrap().is_empty() || image_state.images.lock().unwrap()[0].is_empty() {
+		show_error_message("No images to export".into());
 
-		} else {
-			let mut file_dialog = FileDialog::new()
-				.add_filter("PNG image", &["png"]);
+	} else {
+		let mut file_dialog = FileDialog::new()
+			.add_filter("PNG image", &["png"]);
 
-			if let Some(base_path) = file_state.base_path.lock().unwrap().as_ref() {
-				file_dialog = file_dialog.set_directory(base_path);
+		if let Some(base_path) = file_state.base_path.lock().unwrap().as_ref() {
+			file_dialog = file_dialog.set_directory(base_path);
+		}
+
+		if let Some(file_path) = file_state.file_path.lock().unwrap().as_ref() {
+			if let Some(file_stem) = file_path.file_stem() {
+				file_dialog = file_dialog.set_file_name(format!("{}.png", file_stem.to_string_lossy()));
 			}
+		}
 
-			if let Some(file_path) = file_state.file_path.lock().unwrap().as_ref() {
-				if let Some(file_stem) = file_path.file_stem() {
-					file_dialog = file_dialog.set_file_name(format!("{}.png", file_stem.to_string_lossy()));
-				}
-			}
+		let file_result = file_dialog.save_file();
 
-			let file_result = file_dialog.save_file();
-
-			if let Some(path) = file_result {
-				show_spinner(&handle);
+		if let Some(path) = file_result {
+			show_spinner(&handle);
+			spawn(async move {
+				let image_state: State<ImageState> = handle.state();
 				if let Err(why) = export_images_to(&handle, &image_state, &path) {
 					show_error_message(why);
 				}
 				hide_spinner(&handle);
-			}
+			});
 		}
-	});
+	}
 }
 
 pub fn export_images_to(handle: &AppHandle, image_state: &ImageState, path: &Path) -> Result<(), Box<dyn Error>> {
@@ -183,32 +184,32 @@ pub fn export_images_to(handle: &AppHandle, image_state: &ImageState, path: &Pat
 
 #[tauri::command]
 pub fn export_image_spritesheet(handle: AppHandle, image_index: usize) {
-	spawn(async move {
-		let file_state: State<FileState> = handle.state();
+	let file_state: State<FileState> = handle.state();
 
-		let mut file_dialog = FileDialog::new()
-			.add_filter("PNG image", &["png"]);
+	let mut file_dialog = FileDialog::new()
+		.add_filter("PNG image", &["png"]);
 
-		if let Some(base_path) = file_state.base_path.lock().unwrap().as_ref() {
-			file_dialog = file_dialog.set_directory(base_path);
+	if let Some(base_path) = file_state.base_path.lock().unwrap().as_ref() {
+		file_dialog = file_dialog.set_directory(base_path);
+	}
+
+	if let Some(file_path) = file_state.file_path.lock().unwrap().as_ref() {
+		if let Some(file_stem) = file_path.file_stem() {
+			file_dialog = file_dialog.set_file_name(format!("{}-{}.png", file_stem.to_string_lossy(), image_index));
 		}
+	}
 
-		if let Some(file_path) = file_state.file_path.lock().unwrap().as_ref() {
-			if let Some(file_stem) = file_path.file_stem() {
-				file_dialog = file_dialog.set_file_name(format!("{}-{}.png", file_stem.to_string_lossy(), image_index));
-			}
-		}
+	let file_result = file_dialog.save_file();
 
-		let file_result = file_dialog.save_file();
-
-		if let Some(path) = file_result {
-			show_spinner(&handle);
+	if let Some(path) = file_result {
+		show_spinner(&handle);
+		spawn(async move {
 			if let Err(why) = export_image_spritesheet_to(&handle, image_index, &path) {
 				show_error_message(why);
 			}
 			hide_spinner(&handle);
-		}
-	});
+		});
+	}
 }
 
 fn export_image_spritesheet_to(handle: &AppHandle, image_index: usize, path: &Path) -> Result<(), Box<dyn Error>> {
@@ -227,27 +228,27 @@ fn export_image_spritesheet_to(handle: &AppHandle, image_index: usize, path: &Pa
 
 #[tauri::command]
 pub fn export_encoding(handle: AppHandle) {
-	spawn(async move {
-		let file_state: State<FileState> = handle.state();
-		let font_state: State<FontState> = handle.state();
+	let file_state: State<FileState> = handle.state();
 
-		let mut file_dialog = FileDialog::new()
-			.add_filter("JSON", &["json"]);
+	let mut file_dialog = FileDialog::new()
+		.add_filter("JSON", &["json"]);
 
-		if let Some(base_path) = file_state.base_path.lock().unwrap().as_ref() {
-			file_dialog = file_dialog.set_directory(base_path);
-		}
+	if let Some(base_path) = file_state.base_path.lock().unwrap().as_ref() {
+		file_dialog = file_dialog.set_directory(base_path);
+	}
 
-		let file_result = file_dialog.save_file();
+	let file_result = file_dialog.save_file();
 
-		if let Some(path) = file_result {
-			show_spinner(&handle);
+	if let Some(path) = file_result {
+		show_spinner(&handle);
+		spawn(async move {
+			let font_state: State<FontState> = handle.state();
 			if let Err(why) = export_encoding_to(&font_state, &path) {
 				show_error_message(why);
 			}
 			hide_spinner(&handle);
-		}
-	});
+		});
+	}
 }
 
 fn export_encoding_to(font_state: &FontState, path: &PathBuf) -> Result<(), Box<dyn Error>> {

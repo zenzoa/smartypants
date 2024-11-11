@@ -44,34 +44,34 @@ enum StringType {
 
 #[tauri::command]
 pub fn import_strings(handle: AppHandle) {
-	spawn(async move {
-		let file_state: State<FileState> = handle.state();
-		let data_state: State<DataState> = handle.state();
+	let file_state: State<FileState> = handle.state();
+	let data_state: State<DataState> = handle.state();
 
-		let no_data = data_state.data_pack.lock().unwrap().is_none();
-		if no_data {
-			show_error_message("Open a BIN file to edit first".into());
+	let no_data = data_state.data_pack.lock().unwrap().is_none();
+	if no_data {
+		show_error_message("Open a BIN file to edit first".into());
 
-		} else {
-			let mut file_dialog = FileDialog::new()
-				.add_filter("CSV", &["csv"]);
+	} else {
+		let mut file_dialog = FileDialog::new()
+			.add_filter("CSV", &["csv"]);
 
-			if let Some(base_path) = file_state.base_path.lock().unwrap().as_ref() {
-				file_dialog = file_dialog.set_directory(base_path);
-			}
+		if let Some(base_path) = file_state.base_path.lock().unwrap().as_ref() {
+			file_dialog = file_dialog.set_directory(base_path);
+		}
 
-			let file_result = file_dialog.pick_file();
+		let file_result = file_dialog.pick_file();
 
-			if let Some(path) = file_result {
-				show_spinner(&handle);
+		if let Some(path) = file_result {
+			show_spinner(&handle);
+			spawn(async move {
 				match import_strings_from(&handle, &path) {
 					Ok(()) => set_file_modified(&handle, true),
 					Err(why) => show_error_message(why)
 				}
 				hide_spinner(&handle);
-			}
+			});
 		}
-	});
+	}
 }
 
 pub fn import_strings_from(handle: &AppHandle, path: &PathBuf) -> Result<(), Box<dyn Error>> {
@@ -209,26 +209,26 @@ pub fn import_strings_from(handle: &AppHandle, path: &PathBuf) -> Result<(), Box
 
 #[tauri::command]
 pub fn import_images(handle: AppHandle) {
-	spawn(async move {
-		let file_state: State<FileState> = handle.state();
+	let file_state: State<FileState> = handle.state();
 
-		let mut file_dialog = FileDialog::new();
+	let mut file_dialog = FileDialog::new();
 
-		if let Some(base_path) = file_state.base_path.lock().unwrap().as_ref() {
-			file_dialog = file_dialog.set_directory(base_path);
-		}
+	if let Some(base_path) = file_state.base_path.lock().unwrap().as_ref() {
+		file_dialog = file_dialog.set_directory(base_path);
+	}
 
-		let file_result = file_dialog.pick_folder();
+	let file_result = file_dialog.pick_folder();
 
-		if let Some(path) = file_result {
-			show_spinner(&handle);
+	if let Some(path) = file_result {
+		show_spinner(&handle);
+		spawn(async move {
 			match import_images_from(&handle, &path) {
 				Ok(()) => handle.emit("update_images", ()).unwrap(),
 				Err(why) => show_error_message(why)
 			}
 			hide_spinner(&handle);
-		}
-	});
+		});
+	}
 }
 
 fn import_images_from(handle: &AppHandle, path: &PathBuf) -> Result<(), Box<dyn Error>> {
@@ -251,27 +251,27 @@ fn import_images_from(handle: &AppHandle, path: &PathBuf) -> Result<(), Box<dyn 
 
 #[tauri::command]
 pub fn import_image_spritesheet(handle: AppHandle, image_index: usize) {
-	spawn(async move {
-		let file_state: State<FileState> = handle.state();
+	let file_state: State<FileState> = handle.state();
 
-		let mut file_dialog = FileDialog::new()
-			.add_filter("PNG", &["png"]);
+	let mut file_dialog = FileDialog::new()
+		.add_filter("PNG", &["png"]);
 
-		if let Some(base_path) = file_state.base_path.lock().unwrap().as_ref() {
-			file_dialog = file_dialog.set_directory(base_path);
-		}
+	if let Some(base_path) = file_state.base_path.lock().unwrap().as_ref() {
+		file_dialog = file_dialog.set_directory(base_path);
+	}
 
-		let file_result = file_dialog.pick_file();
+	let file_result = file_dialog.pick_file();
 
-		if let Some(path) = file_result {
-			show_spinner(&handle);
+	if let Some(path) = file_result {
+		show_spinner(&handle);
+		spawn(async move {
 			match import_image_spritesheet_from(&handle, image_index, &path) {
 				Ok(()) => handle.emit("update_image", image_index).unwrap(),
 				Err(why) => show_error_message(why)
 			}
 			hide_spinner(&handle);
-		}
-	});
+		});
+	}
 }
 
 fn import_image_spritesheet_from(handle: &AppHandle, image_index: usize, path: &PathBuf) -> Result<(), Box<dyn Error>> {
@@ -331,8 +331,8 @@ pub fn import_encoding(handle: AppHandle) {
 		let file_result = file_dialog.pick_file();
 
 		if let Some(path) = file_result {
+			show_spinner(&handle);
 			spawn(async move {
-				show_spinner(&handle);
 				match import_encoding_from(&handle, &path) {
 					Ok(()) => {
 						let font_state: State<FontState> = handle.state();

@@ -40,20 +40,22 @@ struct FrontendData {
 #[tauri::command]
 pub fn open_bin(handle: AppHandle) {
 	if continue_if_modified(&handle) {
-		spawn(async move {
-			let file_state: State<FileState> = handle.state();
-			let data_state: State<DataState> = handle.state();
-			let image_state: State<ImageState> = handle.state();
-			let font_state: State<FontState> = handle.state();
+		let file_state: State<FileState> = handle.state();
 
-			let mut file_dialog = FileDialog::new()
-				.add_filter("firmware dump", &["bin"]);
-			if let Some(base_path) = file_state.base_path.lock().unwrap().as_ref() {
-				file_dialog = file_dialog.set_directory(base_path);
-			}
+		let mut file_dialog = FileDialog::new()
+			.add_filter("firmware dump", &["bin"]);
+		if let Some(base_path) = file_state.base_path.lock().unwrap().as_ref() {
+			file_dialog = file_dialog.set_directory(base_path);
+		}
 
-			if let Some(path) = file_dialog.pick_file() {
-				show_spinner(&handle);
+		if let Some(path) = file_dialog.pick_file() {
+			show_spinner(&handle);
+
+			spawn(async move {
+				let file_state: State<FileState> = handle.state();
+				let data_state: State<DataState> = handle.state();
+				let image_state: State<ImageState> = handle.state();
+				let font_state: State<FontState> = handle.state();
 
 				let raw_data = fs::read(&path).unwrap();
 				*data_state.original_data.lock().unwrap() = Some(raw_data.clone());
@@ -145,12 +147,12 @@ pub fn open_bin(handle: AppHandle) {
 				hide_spinner(&handle);
 
 				update_window_title(&handle);
-			}
-		});
+			});
+		}
 	}
 }
 
-fn send_data_to_frontend(handle: &AppHandle) {
+pub fn send_data_to_frontend(handle: &AppHandle) {
 	let data_state: State<DataState> = handle.state();
 	let font_state: State<FontState> = handle.state();
 
@@ -170,6 +172,7 @@ fn send_data_to_frontend(handle: &AppHandle) {
 		menu_strings: data_state.menu_strings.lock().unwrap().clone(),
 		use_patch_header: *data_state.use_patch_header.lock().unwrap()
 	};
+
 	handle.emit("update_data", frontend_data).unwrap();
 }
 
@@ -186,11 +189,13 @@ pub fn save_bin(handle: AppHandle) {
 		match file_path_opt {
 			Some(file_path) => {
 				show_spinner(&handle);
-				if let Err(why) = save(&handle, &file_path) {
-					show_error_message(why);
-					update_window_title(&handle);
-				}
-				hide_spinner(&handle);
+				spawn(async move {
+					if let Err(why) = save(&handle, &file_path) {
+						show_error_message(why);
+						update_window_title(&handle);
+					}
+					hide_spinner(&handle);
+				});
 			},
 			None => save_bin_as(handle)
 		}
@@ -199,29 +204,31 @@ pub fn save_bin(handle: AppHandle) {
 
 #[tauri::command]
 pub fn save_bin_as(handle: AppHandle) {
-	spawn(async move {
-		let file_state: State<FileState> = handle.state();
-		let data_state: State<DataState> = handle.state();
-		let no_data = data_state.data_pack.lock().unwrap().is_none();
-		if no_data {
-			show_error_message("No data to save".into());
+	let file_state: State<FileState> = handle.state();
+	let data_state: State<DataState> = handle.state();
 
-		} else {
-			let mut file_dialog = FileDialog::new()
-				.add_filter("tama smart data dump", &["bin"]);
+	let no_data = data_state.data_pack.lock().unwrap().is_none();
+	if no_data {
+		show_error_message("No data to save".into());
 
-			if let Some(base_path) = file_state.base_path.lock().unwrap().as_ref() {
-				file_dialog = file_dialog.set_directory(base_path);
+	} else {
+		let mut file_dialog = FileDialog::new()
+			.add_filter("tama smart data dump", &["bin"]);
+
+		if let Some(base_path) = file_state.base_path.lock().unwrap().as_ref() {
+			file_dialog = file_dialog.set_directory(base_path);
+		}
+
+		if let Some(file_path) = file_state.file_path.lock().unwrap().as_ref() {
+			if let Some(file_stem) = file_path.file_stem() {
+				file_dialog = file_dialog.set_file_name(format!("{}-copy.bin", file_stem.to_string_lossy()));
 			}
+		}
 
-			if let Some(file_path) = file_state.file_path.lock().unwrap().as_ref() {
-				if let Some(file_stem) = file_path.file_stem() {
-					file_dialog = file_dialog.set_file_name(format!("{}-copy.bin", file_stem.to_string_lossy()));
-				}
-			}
-
-			if let Some(path) = file_dialog.save_file() {
-				show_spinner(&handle);
+		if let Some(path) = file_dialog.save_file() {
+			show_spinner(&handle);
+			spawn(async move {
+				let file_state: State<FileState> = handle.state();
 				match save(&handle, &path) {
 					Ok(()) => {
 						*file_state.file_path.lock().unwrap() = Some(path.to_path_buf());
@@ -231,9 +238,9 @@ pub fn save_bin_as(handle: AppHandle) {
 					Err(why) => show_error_message(why)
 				}
 				hide_spinner(&handle);
-			}
+			});
 		}
-	});
+	}
 }
 
 pub fn save(handle: &AppHandle, path: &PathBuf) -> Result<(), Box<dyn Error>> {
