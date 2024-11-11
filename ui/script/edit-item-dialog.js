@@ -2,34 +2,34 @@ class EditItemDialog extends EditDialog {
 	static open(i, item) {
 		document.getElementById('edit-dialog-title').innerText = `Edit Item ${i}`
 
-		EditDialog.addDropdown('Type', 'item-type', item.item_type, [
-			{ title: 'Meal', value: 'Meal' },
-			{ title: 'Snack', value: 'Snack' },
-			{ title: 'Toy', value: 'Toy' },
-			{ title: 'Accessory/Head', value: 'AccessoryHead' },
-			{ title: 'Accessory/Face', value: 'AccessoryFace' },
-			{ title: 'Accessory/Body', value: 'AccessoryBody' },
-			{ title: 'Accessory/Hand', value: 'AccessoryHand' },
-			{ title: 'Room', value: 'Room' },
-			{ title: 'Game', value: 'Game' }
-		])
+		// EditDialog.addDropdown('Type', 'item-type', item.item_type, [
+		// 	{ title: 'Meal', value: 'Meal' },
+		// 	{ title: 'Snack', value: 'Snack' },
+		// 	{ title: 'Toy', value: 'Toy' },
+		// 	{ title: 'Accessory/Head', value: 'AccessoryHead' },
+		// 	{ title: 'Accessory/Face', value: 'AccessoryFace' },
+		// 	{ title: 'Accessory/Body', value: 'AccessoryBody' },
+		// 	{ title: 'Accessory/Hand', value: 'AccessoryHand' },
+		// 	{ title: 'Room', value: 'Room' },
+		// 	{ title: 'Game', value: 'Game' }
+		// ])
 		EditDialog.addStrInput('Name', 'name', item.name.string, 9)
 		EditDialog.addIdInput('Image ID', 'image-id', item.image_id)
 		EditDialog.addIdInput('Worn Image ID', 'worn-image-id', item.worn_image_id)
 		EditDialog.addIdInput('Close Image ID', 'close-image-id', item.close_image_id)
-		EditDialog.addIntInput('Animation ID ?', 'animation-id', item.animation_id ? item.animation_id.entity_id : 0, 0, U16_MAX)
+		EditDialog.addIntInput('Animation ID?', 'animation-id', item.animation_id ? item.animation_id.entity_id : 0, 0, U16_MAX)
 		EditDialog.addIntInput('Price', 'price', item.price, 0, U16_MAX)
-		EditDialog.addIntInput('Unkown 1', 'unknown1', item.unknown1, 0, U16_MAX)
-		EditDialog.addIntInput('Unkown 2', 'unknown2', item.unknown2, 0, U16_MAX)
+		EditDialog.addIntInput('Fullness Increase?', 'unknown1', item.unknown1, 0, U16_MAX)
+		EditDialog.addIntInput('Happiness Increase?', 'unknown2', item.unknown2, 0, U16_MAX)
 		EditDialog.addIntInput('Unkown 3', 'unknown3', item.unknown3, 0, U16_MAX)
-		EditDialog.addDropdown('Game Type', 'game-type', item.game_type, [
-			{ title: 'GuessingGame', value: 'GuessingGame' },
-			{ title: 'TimingGame', value: 'TimingGame' },
-			{ title: 'MemoryGame', value: 'MemoryGame' },
-			{ title: 'DodgingGame', value: 'DodgingGame' },
-			{ title: 'ShakingGame', value: 'ShakingGame' },
-			{ title: 'SwipingGame', value: 'SwipingGame' }
-		])
+		// EditDialog.addDropdown('Game Type', 'game-type', item.game_type, [
+		// 	{ title: 'GuessingGame', value: 'GuessingGame' },
+		// 	{ title: 'TimingGame', value: 'TimingGame' },
+		// 	{ title: 'MemoryGame', value: 'MemoryGame' },
+		// 	{ title: 'DodgingGame', value: 'DodgingGame' },
+		// 	{ title: 'ShakingGame', value: 'ShakingGame' },
+		// 	{ title: 'SwipingGame', value: 'SwipingGame' }
+		// ])
 		EditDialog.addDropdown('Unlocked Character', 'unlocked-character', item.unlocked_character,
 			[{ title: '-', value: 0 }].concat(
 				cardData.data_pack.characters
@@ -41,8 +41,8 @@ class EditItemDialog extends EditDialog {
 		)
 
 		EditItemDialog.updateItemType(item.item_type, i, item)
-		document.getElementById('edit-item-type')
-			.addEventListener('change', (event) => EditItemDialog.updateItemType(event.target.value, i, item))
+		// document.getElementById('edit-item-type')
+		// 	.addEventListener('change', (event) => EditItemDialog.updateItemType(event.target.value, i, item))
 
 		document.getElementById('edit-dialog-actions').append(
 			button({ id: 'edit-cancel-button', className: 'text', title: 'Cancel', onclick: EditItemDialog.close }, 'Cancel'),
@@ -56,7 +56,7 @@ class EditItemDialog extends EditDialog {
 	}
 
 	static updateItemType(item_type, i, item) {
-		document.getElementById('label-game-type').classList.add('hidden')
+		// document.getElementById('label-game-type').classList.add('hidden')
 		document.getElementById('label-image-id').classList.add('hidden')
 		document.getElementById('label-worn-image-id').classList.add('hidden')
 		document.getElementById('label-close-image-id').classList.add('hidden')
@@ -64,7 +64,7 @@ class EditItemDialog extends EditDialog {
 		document.getElementById('label-unlocked-character').classList.add('hidden')
 
 		if (item_type === 'Game') {
-			document.getElementById('label-game-type').classList.remove('hidden')
+			// document.getElementById('label-game-type').classList.remove('hidden')
 
 		} else {
 			document.getElementById('label-image-id').classList.remove('hidden')
@@ -95,7 +95,8 @@ class EditItemDialog extends EditDialog {
 		) {
 			const newItem = {
 				id: item.id,
-				item_type: EditDialog.getDropdownValue('item-type'),
+				// item_type: EditDialog.getDropdownValue('item-type'),
+				item_type: newItem.item_type,
 				name: EditDialog.getStrValue('name'),
 				image_id: null,
 				worn_image_id: null,
@@ -110,7 +111,8 @@ class EditItemDialog extends EditDialog {
 			}
 
 			if (newItem.item_type === 'Game') {
-				newItem.game_type = EditDialog.getDropdownValue('game-type')
+				// newItem.game_type = EditDialog.getDropdownValue('game-type')
+				newItem.game_type = item.game_type
 
 			} else {
 				newItem.image_id = EditDialog.getIdValue('image-id')
