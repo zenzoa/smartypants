@@ -84,7 +84,7 @@ impl ImageSet {
 		Ok(spritesheet)
 	}
 
-	pub fn to_sprites(&self, colors: &[Color], bpp: u32) -> Result<Vec<Sprite>, Box<dyn Error>> {
+	pub fn to_sprites(&self, colors: &[Color], bpp: u32, sprite_index: usize) -> Result<Vec<Sprite>, Box<dyn Error>> {
 		let mut sprites = Vec::new();
 
 		let sprite_width = self.width / self.width_in_sprites;
@@ -108,6 +108,7 @@ impl ImageSet {
 					let offset_y_mod = (sprite_height / 2) + (row * sprite_height);
 
 					sprites.push(Sprite {
+						index: sprite_index + sprites.len(),
 						width: if self.is_quadrupled { sprite_width / 4 } else { sprite_width },
 						height: if self.is_quadrupled { sprite_height / 4 } else { sprite_height },
 						bpp,
@@ -197,10 +198,9 @@ pub fn get_image_sets(data: &DataView, sprites: &[Sprite], all_colors: &[Color])
 
 pub fn save_image_sets(image_sets: &[ImageSet]) -> Result<(Vec<u8>, Vec<Sprite>, Vec<Color>), Box<dyn Error>> {
 	let mut data = Vec::new();
+	let mut image_defs = Vec::new();
 	let mut sprites = Vec::new();
 	let mut palettes: Vec<Palette> = Vec::new();
-
-	let mut image_defs = Vec::new();
 
 	for image_set in image_sets {
 		// get colors used in image
@@ -240,14 +240,6 @@ pub fn save_image_sets(image_sets: &[ImageSet]) -> Result<(Vec<u8>, Vec<Sprite>,
 			});
 		}
 
-		// save image def info for later
-		image_defs.push(ImageDef {
-			first_sprite_index: sprites.len() as u16,
-			width_in_sprites: image_set.width_in_sprites as u8,
-			height_in_sprites: image_set.height_in_sprites as u8,
-			first_palette_index: palette_index
-		});
-
 		// determine bits per pixel (aka color depth)
 		let bpp = if colors.len() <= 4 {
 			2
@@ -260,17 +252,31 @@ pub fn save_image_sets(image_sets: &[ImageSet]) -> Result<(Vec<u8>, Vec<Sprite>,
 		};
 
 		// add sprites
-		let new_sprites = image_set.to_sprites(&colors, bpp)?;
-		sprites = [sprites, new_sprites].concat();
+		let sprite_index = sprites.len();
+		sprites = [sprites, image_set.to_sprites(&colors, bpp, sprite_index)?].concat();
+
+		// save image def info for later
+		image_defs.push(ImageDef {
+			first_sprite_index: sprite_index as u16,
+			width_in_sprites: image_set.width_in_sprites as u8,
+			height_in_sprites: image_set.height_in_sprites as u8,
+			first_palette_index: palette_index
+		});
 	}
 
 	// fill out palettes so they're all multiples of 4
-	palettes.sort();
-	let mut current_palette_index = 0;
 	for palette in palettes.iter_mut() {
 		while palette.len() % 4 != 0 {
 			palette.colors.push(Color::new(0, 0, 0, 0));
 		}
+	}
+
+	// sort palettes, smallest to largest
+	palettes.sort();
+
+	// get palette indexes
+	let mut current_palette_index = 0;
+	for palette in palettes.iter_mut() {
 		palette.real_index = current_palette_index;
 		current_palette_index += palette.len() / 4;
 	}

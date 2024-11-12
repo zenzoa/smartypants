@@ -52,9 +52,9 @@ impl SpritePack {
 		let image_defs_offset = 16;
 		let sprites_offset = image_defs_offset + image_def_data.len();
 		let palettes_offset = sprites_offset + sprite_data.len();
-		let mut pixel_data_offset = palettes_offset + palette_data.len();
 
-		while pixel_data_offset % 32 != 0 {
+		let mut pixel_data_offset = palettes_offset + palette_data.len();
+		while pixel_data_offset % 16 != 0 {
 			pixel_data_offset += 1;
 		}
 		let padded_palette_size = pixel_data_offset - palettes_offset;

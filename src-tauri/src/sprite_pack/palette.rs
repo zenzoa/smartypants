@@ -115,7 +115,13 @@ impl PartialEq for Palette {
 
 impl Ord for Palette {
 	fn cmp(&self, other: &Self) -> Ordering {
-		self.as_bytes().cmp(&other.as_bytes())
+		if self.as_bytes().len() < other.as_bytes().len() {
+			Ordering::Less
+		} else if self.as_bytes().len() > other.as_bytes().len() {
+			Ordering::Greater
+		} else {
+			self.as_bytes().cmp(&other.as_bytes())
+		}
 	}
 }
 
