@@ -453,6 +453,18 @@ table + div {
 	margin-top: 20px;
 }
 
+.subimage-list {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+}
+
+.subimage-block {
+	padding: 8px;
+	border: 1px solid var(--table-border);
+	border-radius: 8px;
+}
+
 hr {
 	border: none;
 	border-bottom: 1px solid var(--table-border);

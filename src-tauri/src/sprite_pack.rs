@@ -8,12 +8,13 @@ pub mod palette;
 pub mod sprite;
 
 use image_def::{ ImageSet, get_image_sets, save_image_sets };
-use palette::{ get_palettes, save_palettes };
+use palette::{ Color, get_palettes, save_palettes };
 use sprite::{ get_sprites, save_sprites, save_pixel_data };
 
 #[derive(Clone)]
 pub struct SpritePack {
-	pub image_sets: Vec<ImageSet>
+	pub image_sets: Vec<ImageSet>,
+	pub colors: Vec<Color>
 }
 
 impl SpritePack {
@@ -38,7 +39,7 @@ impl SpritePack {
 			&colors
 		)?;
 
-		let sprite_pack = Self { image_sets };
+		let sprite_pack = Self { image_sets, colors };
 
 		Ok(sprite_pack)
 	}
@@ -78,7 +79,10 @@ impl SpritePack {
 	pub fn get_image_data(&self) -> Result<Vec<Vec<RgbaImage>>, Box<dyn Error>> {
 		let mut images = Vec::new();
 		for image_set in &self.image_sets {
-			let subimages = image_set.to_images()?;
+			let mut subimages = Vec::new();
+			for i in 0..image_set.palettes.len() {
+				subimages = [subimages, image_set.to_images(i)?].concat();
+			}
 			images.push(subimages);
 		}
 		Ok(images)

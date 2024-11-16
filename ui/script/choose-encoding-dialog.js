@@ -62,12 +62,12 @@ class ChooseEncodingDialog {
 
 		document.getElementById('choose-encoding-edit')
 			.addEventListener('click', () => {
-					document.getElementById('spinner').classList.add('on')
-					setTimeout(() => {
-						EditEncodingDialog.open()
-						document.getElementById('spinner').classList.remove('on')
-					}, 100)
-				})
+				document.getElementById('spinner').classList.add('on')
+				setTimeout(() => {
+					EditEncodingDialog.open()
+					document.getElementById('spinner').classList.remove('on')
+				}, 100)
+			})
 
 		tauri_listen('show_choose_encoding_dialog', () => {
 			ChooseEncodingDialog.open()

@@ -285,30 +285,70 @@ fn import_image_spritesheet_from(handle: &AppHandle, image_index: usize, path: &
 	let image_set = sprite_pack.image_sets.get_mut(image_index)
 		.ok_or(format!("Can't find image def for image {}", image_index))?;
 
-	let expected_width = image_set.width * image_set.subimages.len() as u32;
-	let expected_height = image_set.height;
+	let palette_count = image_set.palettes.len();
+	let subimage_count = image_set.subimages.len();
+
+	// make sure the spritesheet has the expected dimensions
+	let expected_width = image_set.width * subimage_count as u32;
+	let expected_height = image_set.height * palette_count as u32;
 	if spritesheet.width() != expected_width || spritesheet.height() != expected_height {
 		return Err(format!("Spritesheet does not match expected dimensions: {}x{}", expected_width, expected_height).into());
 	}
 
 	let mut images = image_state.images.lock().unwrap();
-	let subimages = images.get_mut(image_index)
+	let subimage_imgs = images.get_mut(image_index)
 		.ok_or(format!("Can't find subimages for image {}", image_index))?;
 
-	for (i, subimage) in image_set.subimages.iter_mut().enumerate() {
-		let x = i as u32 * image_set.width;
-		let img = spritesheet.view(x, 0, image_set.width, image_set.height).to_image();
-		let pixels = img.pixels();
-		subimage.color_data = pixels.map(Color::from_rgba).collect();
-		if let Some(subimage_img) = subimages.get_mut(i) {
-			*subimage_img = img;
+	// get main palette
+	let img = spritesheet.view(0, 0, expected_width, image_set.height).to_image();
+	let mut main_palette = Vec::new();
+	let mut color_indexes = Vec::new();
+	for (i, color) in img.pixels().enumerate() {
+		let color = Color::from_rgba(color);
+		if !main_palette.contains(&color) {
+			main_palette.push(color.clone());
+			color_indexes.push(i);
 		}
 	}
 
+	// get additional palettes
+	image_set.palettes = vec![main_palette];
+	if palette_count > 1 {
+		for i in 1..palette_count {
+			let y = i as u32 * image_set.height;
+			let mut palette = Vec::new();
+			let img = spritesheet.view(0, y, expected_width, image_set.height).to_image();
+			let pixels: Vec<Color> = img.pixels().map(|p| Color::from_rgba(p)).collect();
+			for color_index in &color_indexes {
+				palette.push(pixels[*color_index]);
+			}
+			image_set.palettes.push(palette);
+		}
+	}
+
+	// get pixel data and images
+	for (i, subimage) in image_set.subimages.iter_mut().enumerate() {
+		let x = i as u32 * image_set.width;
+		let img = spritesheet.view(x, 0, image_set.width, image_set.height).to_image();
+		subimage.pixel_data = Vec::new();
+		for color in img.pixels() {
+			let color = Color::from_rgba(color);
+			let pixel = image_set.palettes[0].iter().position(|c| *c == color).ok_or("Can't find color")?;
+			subimage.pixel_data.push(pixel as u32);
+		}
+	}
+
+	// update images
+	let mut new_subimage_imgs = Vec::new();
+	for i in 0..palette_count {
+		new_subimage_imgs = [new_subimage_imgs, image_set.to_images(i)?].concat();
+	}
+	*subimage_imgs = new_subimage_imgs;
+
 	if let Some(BinType::Firmware) = *data_state.bin_type.lock().unwrap() {
 		match image_index {
-			98 => font_state.small_font_images.lock().unwrap().clone_from(subimages),
-			99 => font_state.large_font_images.lock().unwrap().clone_from(subimages),
+			98 => font_state.small_font_images.lock().unwrap().clone_from(subimage_imgs),
+			99 => font_state.large_font_images.lock().unwrap().clone_from(subimage_imgs),
 			_ => {}
 		}
 	}

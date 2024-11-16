@@ -12,6 +12,7 @@ const setupSprites = () => {
 				th('ID'),
 				th('Sub-Images'),
 				th('Dimensions'),
+				th('# Palettes'),
 				th('Actions')
 			])]),
 			tbody(cardData.image_sets.map((imageSet, i) =>
@@ -28,10 +29,26 @@ const updateImageSet = (i, newImageSet) => {
 }
 
 const renderImageSet = (i, imageSet) => {
+	let subimageCellContents = []
+	if (imageSet.palette_count === 1) {
+		subimageCellContents = imageSet.subimages.map((_, j) => displayImage(i, j, true))
+	} else {
+		let subimagesByPalette = [];
+		for (let p = 0; p < imageSet.palette_count; p++) {
+			let subimageOffset = imageSet.subimages.length * p;
+			subimagesByPalette.push(div(
+				{ className: 'subimage-block' },
+				imageSet.subimages.map((_, j) => displayImage(i, j, true, subimageOffset))
+			))
+		}
+		subimageCellContents = [ div({ className: 'subimage-list' }, subimagesByPalette) ]
+	}
+
 	return tr({id: `image-${i}`}, [
 		th(i),
-		td(imageSet.subimages.map((_, j) => displayImage(i, j, true))),
+		td(subimageCellContents),
 		td(`${imageSet.width}×${imageSet.height}`),
+		td(`${imageSet.palette_count}`),
 		td([
 			div({className:'button-row'}, [
 				button({

@@ -103,42 +103,14 @@ const linkToImage = (imageId) => {
 	}
 }
 
-const linkToSubimage = (imageId, subimageIndex) => {
-	if (cardData.card_header == null || imageId.card_id === cardData.card_header.card_id) {
-		const link = button(formatEntityId(imageId))
-		link.addEventListener('click', () => {
-			viewSprites()
-			const subimageEl = document.getElementById(`subimage-${imageId.entity_id}-${subimageIndex}`)
-			if (subimageEl != null) {
-				subimageEl.scrollIntoView()
-			}
-		})
-		return [link]
-	} else {
-		return [div(formatEntityId(imageId))]
-	}
-}
-
-const linkToPalette = (paletteIndex) => {
-	const link = button(paletteIndex)
-	link.addEventListener('click', () => {
-		viewPalettes()
-		const paletteEl = document.getElementById(`palette-${paletteIndex}`)
-		if (paletteEl != null) {
-			paletteEl.scrollIntoView()
-		}
-	})
-	return link
-}
-
-const displayImage = (imageId, subimageIndex, showTooltip) => {
+const displayImage = (imageId, subimageIndex, showTooltip, subimageOffset = 0) => {
 	const img = document.createElement('img')
 	img.className = 'preview-image'
-	img.id = `subimage-${imageId}-${subimageIndex}`
+	img.id = `subimage-${imageId}-${subimageOffset + subimageIndex}`
 	if (showTooltip) {
 		img.title = `${imageId}-${subimageIndex}`
 	}
-	img.src = convertFileSrc(`${timestamp}-${imageId}-${subimageIndex}`, 'getimage')
+	img.src = convertFileSrc(`${timestamp}-${imageId}-${subimageOffset + subimageIndex}`, 'getimage')
 	return img
 }
 

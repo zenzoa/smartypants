@@ -86,51 +86,6 @@ impl PartialOrd for Color {
 	}
 }
 
-#[derive(Eq)]
-pub struct Palette {
-	pub index: usize,
-	pub real_index: usize,
-	pub colors: Vec<Color>
-}
-
-impl Palette {
-	pub fn len(&self) -> usize {
-		self.colors.len()
-	}
-
-	pub fn as_bytes(&self) -> Vec<u8> {
-		let mut bytes = Vec::new();
-		for color in &self.colors {
-			bytes = [bytes, color.as_bytes().to_vec()].concat();
-		}
-		bytes
-	}
-}
-
-impl PartialEq for Palette {
-	fn eq(&self, other: &Self) -> bool {
-		self.as_bytes() == other.as_bytes()
-	}
-}
-
-impl Ord for Palette {
-	fn cmp(&self, other: &Self) -> Ordering {
-		if self.as_bytes().len() < other.as_bytes().len() {
-			Ordering::Less
-		} else if self.as_bytes().len() > other.as_bytes().len() {
-			Ordering::Greater
-		} else {
-			self.as_bytes().cmp(&other.as_bytes())
-		}
-	}
-}
-
-impl PartialOrd for Palette {
-	fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-		Some(self.cmp(other))
-	}
-}
-
 pub fn get_palettes(data: &[u8]) -> Result<Vec<Color>, Box<dyn Error>> {
 	let mut colors = Vec::new();
 	for i in 0..data.len()/2 {
