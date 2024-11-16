@@ -5,7 +5,7 @@ use std::error::Error;
 use std::sync::Mutex;
 use std::io::Cursor;
 
-use tauri::{ Builder, AppHandle, Manager, State, Emitter };
+use tauri::{ Builder, AppHandle, Manager, State, Emitter, RunEvent };
 use tauri::menu::{ Menu, Submenu, MenuItem, PredefinedMenuItem, CheckMenuItem, MenuId, MenuItemKind };
 use tauri::path::BaseDirectory;
 
@@ -65,7 +65,7 @@ pub enum BinSize {
 }
 
 fn main() {
-	Builder::default()
+	let app = Builder::default()
 		.invoke_handler(tauri::generate_handler![
 			open_bin,
 			save_bin,
@@ -284,9 +284,25 @@ fn main() {
 			}
 		})
 
-		.run(tauri::generate_context!())
+		.build(tauri::generate_context!())
 
 		.expect("error while running tauri application");
+
+	app.run(move |handle, event| {
+		match &event {
+			RunEvent::ExitRequested { api, code, .. } => {
+				if !code.is_some_and(|c| c == 99) {
+					api.prevent_exit();
+					try_quit(handle.clone());
+				}
+			},
+			RunEvent::WindowEvent { event: tauri::WindowEvent::CloseRequested { api, .. }, .. } => {
+				api.prevent_close();
+				try_quit(handle.clone());
+			}
+			_ => ()
+		}
+	});
 }
 
 pub fn show_error_message(why: Box<dyn Error>) {
@@ -310,7 +326,7 @@ pub fn hide_spinner(handle: &AppHandle) {
 #[tauri::command]
 fn try_quit(handle: AppHandle) {
 	if continue_if_modified(&handle) {
-		handle.exit(0);
+		handle.exit(99);
 	}
 }
 
