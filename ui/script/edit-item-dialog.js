@@ -96,7 +96,7 @@ class EditItemDialog extends EditDialog {
 			const newItem = {
 				id: item.id,
 				// item_type: EditDialog.getDropdownValue('item-type'),
-				item_type: newItem.item_type,
+				item_type: item.item_type,
 				name: EditDialog.getStrValue('name'),
 				image_id: null,
 				worn_image_id: null,
