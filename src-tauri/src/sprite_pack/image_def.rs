@@ -203,17 +203,22 @@ pub fn get_image_sets(data: &DataView, sprites: &[Sprite], all_colors: &[Color])
 	image_sets.sort_by_key(|i| i.first_palette_index);
 	let palette_indexes: Vec<usize> = image_sets.iter().map(|i| i.first_palette_index).collect();
 	for (i, image_set) in image_sets.iter_mut().enumerate() {
-		if let Some(next_palette_index) = palette_indexes.get(i+1) {
-			let colors_per_palette = image_set.palettes[0].len();
-			let total_color_count = 4 * (*next_palette_index - image_set.first_palette_index);
-			let palette_count = total_color_count / colors_per_palette;
-			if palette_count > 1 {
-				for j in 1..palette_count {
-					let colors_start = (image_set.first_palette_index * 4) + (j * colors_per_palette);
-					let colors_end = colors_start + colors_per_palette;
-					image_set.palettes.push(all_colors[colors_start..colors_end].to_vec());
+		let mut j = 1;
+		while let Some(next_palette_index) = palette_indexes.get(i+j) {
+			if *next_palette_index > image_set.first_palette_index {
+				let colors_per_palette = image_set.palettes[0].len();
+				let total_color_count = 4 * (*next_palette_index - image_set.first_palette_index);
+				let palette_count = total_color_count / colors_per_palette;
+				if palette_count > 1 {
+					for k in 1..palette_count {
+						let colors_start = (image_set.first_palette_index * 4) + (k * colors_per_palette);
+						let colors_end = colors_start + colors_per_palette;
+						image_set.palettes.push(all_colors[colors_start..colors_end].to_vec());
+					}
 				}
+				break;
 			}
+			j += 1;
 		}
 	}
 	image_sets.sort_by_key(|i| i.original_index);
