@@ -561,6 +561,12 @@ hr {
 	border-top: 1px solid var(--table-border);
 }
 
+.dialog-description {
+	margin-top: 12px;
+	margin-left: 132px;
+	font-size: small;
+}
+
 .about-dialog {
 	align-items: center;
 	text-align: center;

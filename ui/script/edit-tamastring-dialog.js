@@ -1,3 +1,15 @@
+const EXPRESSION_DESCRIPTIONS = {
+	542: 'alternate between neutral + happy/smiling faces, arms go up and down',
+	543: 'alternate between sweat/distressed + cry/sad faces',
+	544: 'alternate between bored/unimpressed + frown/upset faces',
+	545: 'blushing, bouncing up and down',
+	546: 'neutral, eyes closed, bouncing up and down',
+	547: 'bored/unimpressed (half-lidded eyes), bouncing up and down',
+	548: 'happy/smiling, bouncing up and down',
+	549: 'neutral stare... then blink',
+	550: 'only neutral stare',
+}
+
 class EditTamaStringDialog extends EditDialog {
 	static open(i, tamaString) {
 		document.getElementById('edit-dialog-title').innerText = `Edit Dialog String ${i}`
@@ -17,10 +29,18 @@ class EditTamaStringDialog extends EditDialog {
 			{ title: 'Q&A', value: 373 },
 			{ title: 'Q&A w/ Image', value: 570 },
 		])
+		EditDialog.addDescription('expression-description', EXPRESSION_DESCRIPTIONS[tamaString.expression] || '-')
 		EditDialog.addIntInput('Raw Expression', 'raw-expression', tamaString.expression, 0, U16_MAX)
+
 		document.getElementById('edit-expression').addEventListener('change', () => {
 			const newExpression = EditDialog.getDropdownValue('expression')
 			document.getElementById('edit-raw-expression').value = newExpression
+			document.getElementById('expression-description').innerText = EXPRESSION_DESCRIPTIONS[newExpression] || '-'
+		})
+		document.getElementById('edit-raw-expression').addEventListener('change', () => {
+			const newExpression = EditDialog.getIntValue('raw-expression')
+			document.getElementById('edit-expression').value = newExpression
+			document.getElementById('expression-description').innerText = EXPRESSION_DESCRIPTIONS[newExpression] || '-'
 		})
 
 		EditDialog.addIntInput('Field 1', 'field1', tamaString.field1, 0, U16_MAX)

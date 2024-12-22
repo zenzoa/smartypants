@@ -25,6 +25,12 @@ class EditDialog {
 		)
 	}
 
+	static addDescription(name, value) {
+		document.getElementById('edit-dialog-body').append(
+			div({ id: name, className: 'dialog-description' }, value)
+		)
+	}
+
 	static addStrInput(title, name, value, maxlength) {
 		document.getElementById('edit-dialog-body').append(
 			label({ id: `label-${name}` }, [
