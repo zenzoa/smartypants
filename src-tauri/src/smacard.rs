@@ -154,12 +154,12 @@ pub fn save_card(handle: &AppHandle) -> Result<Vec<u8>, Box<dyn Error>> {
 
 	let data_pack_offset = 68;
 	let data_pack_opt = data_state.data_pack.lock().unwrap();
-	let data_pack = data_pack_opt.as_ref().ok_or("Unable to save Sma Card: missing data pack")?;
+	let data_pack = data_pack_opt.as_ref().ok_or("Unable to save TamaSma Card: missing data pack")?;
 	let mut data_pack_data = save_data_pack(data_pack, data_pack_offset)?;
 	data_pack_data.extend_from_slice(&[0, 0]);
 
 	let mut sprite_pack_opt = data_state.sprite_pack.lock().unwrap();
-	let sprite_pack = sprite_pack_opt.as_mut().ok_or("Unable to save Sma Card: missing sprite pack")?;
+	let sprite_pack = sprite_pack_opt.as_mut().ok_or("Unable to save TamaSma Card: missing sprite pack")?;
 	let sprite_pack_data = sprite_pack.as_bytes()?;
 
 	let mut sprite_pack_offset = data_pack_offset + data_pack_data.len();
@@ -187,7 +187,7 @@ pub fn save_card(handle: &AppHandle) -> Result<Vec<u8>, Box<dyn Error>> {
 	let pack_data = [pack_summary, data_pack_data, sprite_pack_data].concat();
 
 	let mut header_opt = data_state.card_header.lock().unwrap();
-	let header = header_opt.as_mut().ok_or("Unable to save Sma Card: missing header")?;
+	let header = header_opt.as_mut().ok_or("Unable to save TamaSma Card: missing header")?;
 	header.sector_count = match data_state.bin_size.lock().unwrap().as_ref().ok_or("Undefined card size")? {
 		BinSize::Card128KB => 31,
 		BinSize::Card1MB => 255,
@@ -205,7 +205,7 @@ pub fn save_card(handle: &AppHandle) -> Result<Vec<u8>, Box<dyn Error>> {
 		_ => return Err("Invalid TamaSma card size".into())
 	};
 	if padding_len < data.len() {
-		return Err("Data is too large to fit onto Sma Card".into());
+		return Err("Data is too large to fit onto TamaSma Card".into());
 	}
 	let padding = vec![0_u8; padding_len - data.len()];
 	data.extend_from_slice(&padding);

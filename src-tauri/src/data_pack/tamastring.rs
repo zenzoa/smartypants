@@ -11,9 +11,9 @@ use crate::file::set_file_modified;
 #[derive(Clone, Serialize, Deserialize)]
 pub struct TamaString {
 	pub id: EntityId,
-	pub unknown1: u16,
-	pub unknown2: u16,
-	pub unknown3: u16,
+	pub expression: u16,
+	pub field1: u16,
+	pub field2: u16,
 	pub value: Text
 }
 
@@ -21,9 +21,9 @@ impl TamaString {
 	pub fn to_words(&self) -> Vec<u16> {
 		let mut data: Vec<u16> = vec![
 			self.id.to_word(),
-			self.unknown1,
-			self.unknown2,
-			self.unknown3
+			self.expression,
+			self.field1,
+			self.field2
 		];
 		for word in &self.value.data {
 			data.push(*word);
@@ -47,9 +47,9 @@ pub fn get_tamastrings(handle: &AppHandle, data: &DataView) -> Vec<TamaString> {
 	while i + 10 <= data.len() {
 		let id = EntityId::new(data.get_u16(i));
 
-		let unknown1 = data.get_u16(i+2);
-		let unknown2 = data.get_u16(i+4);
-		let unknown3 = data.get_u16(i+6);
+		let expression = data.get_u16(i+2);
+		let field1 = data.get_u16(i+4);
+		let field2 = data.get_u16(i+6);
 
 		let mut text_data = Vec::new();
 		let mut str_len = 0;
@@ -63,9 +63,9 @@ pub fn get_tamastrings(handle: &AppHandle, data: &DataView) -> Vec<TamaString> {
 
 		strings.push(TamaString {
 			id,
-			unknown1,
-			unknown2,
-			unknown3,
+			expression,
+			field1,
+			field2,
 			value: Text::from_data(char_codes, &text_data)
 		});
 	}
@@ -80,9 +80,9 @@ pub fn save_tamastrings(tamastrings: &[TamaString]) -> Result<(Vec<u8>, Vec<u8>)
 	for tamastring in tamastrings {
 		offsets.push(words.len() as u16);
 		words.push(tamastring.id.to_word());
-		words.push(tamastring.unknown1);
-		words.push(tamastring.unknown2);
-		words.push(tamastring.unknown3);
+		words.push(tamastring.expression);
+		words.push(tamastring.field1);
+		words.push(tamastring.field2);
 		words.extend_from_slice(&tamastring.value.data);
 		words.push(0);
 	}
@@ -101,9 +101,9 @@ pub fn update_tamastring(handle: AppHandle, index: usize, new_tamastring: TamaSt
 	let mut data_pack_opt = data_state.data_pack.lock().unwrap();
 	if let Some(data_pack) = data_pack_opt.as_mut() {
 		if let Some(tamastring) = data_pack.tamastrings.get_mut(index) {
-			tamastring.unknown1 = new_tamastring.unknown1;
-			tamastring.unknown2 = new_tamastring.unknown2;
-			tamastring.unknown3 = new_tamastring.unknown3;
+			tamastring.expression = new_tamastring.expression;
+			tamastring.field1 = new_tamastring.field1;
+			tamastring.field2 = new_tamastring.field2;
 			tamastring.value.set_string(char_codes, &new_tamastring.value.string);
 
 			set_file_modified(&handle, true);

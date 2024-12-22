@@ -2,9 +2,29 @@ class EditTamaStringDialog extends EditDialog {
 	static open(i, tamaString) {
 		document.getElementById('edit-dialog-title').innerText = `Edit Dialog String ${i}`
 
-		EditDialog.addIntInput('Unkown 1', 'unknown1', tamaString.unknown1, 0, U16_MAX)
-		EditDialog.addIntInput('Unkown 2', 'unknown2', tamaString.unknown2, 0, U16_MAX)
-		EditDialog.addIntInput('Unkown 3', 'unknown3', tamaString.unknown3, 0, U16_MAX)
+		EditDialog.addDropdown('Expression', 'expression', tamaString.expression, [
+			{ title: 'Other/Image ID', value: 999 },
+			{ title: '-', value: 0 },
+			{ title: 'Joyful', value: 542 },
+			{ title: 'Cry', value: 543 },
+			{ title: 'Frown', value: 544 },
+			{ title: 'Blush', value: 545 },
+			{ title: 'Eyes Closed', value: 546 },
+			{ title: 'Bored', value: 547 },
+			{ title: 'Smiling', value: 548 },
+			{ title: 'Neutral', value: 549 },
+			{ title: 'Blank', value: 550 },
+			{ title: 'Q&A', value: 373 },
+			{ title: 'Q&A w/ Image', value: 570 },
+		])
+		EditDialog.addIntInput('Raw Expression', 'raw-expression', tamaString.expression, 0, U16_MAX)
+		document.getElementById('edit-expression').addEventListener('change', () => {
+			const newExpression = EditDialog.getDropdownValue('expression')
+			document.getElementById('edit-raw-expression').value = newExpression
+		})
+
+		EditDialog.addIntInput('Field 1', 'field1', tamaString.field1, 0, U16_MAX)
+		EditDialog.addIntInput('Field 2', 'field2', tamaString.field2, 0, U16_MAX)
 		EditDialog.addBigStrInput('Value', 'value', tamaString.value.string)
 
 		document.getElementById('edit-dialog-actions').append(
@@ -22,9 +42,9 @@ class EditTamaStringDialog extends EditDialog {
 		if (EditDialog.checkStrValue('value')) {
 			const newTamastring = {
 				id: tamaString.id,
-				unknown1: EditDialog.getIntValue('unknown1'),
-				unknown2: EditDialog.getIntValue('unknown2'),
-				unknown3: EditDialog.getIntValue('unknown3'),
+				expression: EditDialog.getIntValue('raw-expression'),
+				field1: EditDialog.getIntValue('field1'),
+				field2: EditDialog.getIntValue('field2'),
 				value: EditDialog.getStrValue('value')
 			}
 

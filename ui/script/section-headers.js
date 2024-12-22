@@ -9,7 +9,7 @@ const setupHeader = () => {
 const setupCardHeader = () => {
 	const header = cardData.card_header
 	return div([
-		div({className: 'table-title'}, 'Tamagotchi Sma Card'),
+		div({className: 'table-title'}, 'TamaSma Card'),
 		table([
 			tbody([
 				tr([
