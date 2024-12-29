@@ -226,6 +226,7 @@ window.addEventListener('load', () => {
 	})
 
 	tauri_listen('update_char_codes', event => {
+		timestamp = Date.now()
 		textEncoding = event.payload.slice(1, 257)
 	})
 

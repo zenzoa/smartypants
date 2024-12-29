@@ -4,8 +4,7 @@ use std::path::PathBuf;
 
 use regex::Regex;
 
-use image::ImageReader;
-use image::GenericImageView;
+use image::{ ImageReader, GenericImageView, RgbaImage };
 
 use tauri::{ AppHandle, Manager, State, Emitter };
 use tauri::async_runtime::spawn;
@@ -354,6 +353,23 @@ fn import_image_spritesheet_from(handle: &AppHandle, image_index: usize, path: &
 	}
 
 	Ok(())
+}
+
+pub fn spritesheet_to_images(path: &PathBuf, subimage_count: u32, palette_count: u32) -> Result<Vec<RgbaImage>, Box<dyn Error>> {
+	let spritesheet = ImageReader::open(path)?.decode()?;
+	let mut subimages = Vec::new();
+
+	let subimage_width = spritesheet.width() / subimage_count;
+	let subimage_height = spritesheet.height() / palette_count;
+
+	for y in 0..palette_count {
+		for x in 0..subimage_count {
+			let subimage = spritesheet.view(x * subimage_width, y * subimage_height, subimage_width, subimage_height);
+			subimages.push(subimage.to_image());
+		}
+	}
+
+	Ok(subimages)
 }
 
 #[tauri::command]

@@ -7,13 +7,12 @@ use serde::{ Serialize, Deserialize };
 use tauri::{ AppHandle, Manager, State, Emitter, path::BaseDirectory };
 use tauri::menu::MenuItemKind;
 
-use image::ImageReader;
-use image::{ RgbaImage, GenericImageView };
+use image::RgbaImage;
 
 use rfd::{ MessageButtons, MessageDialog, MessageDialogResult };
 
 use crate::{ DataState, BinType, show_error_message };
-use crate::import::import_encoding_from;
+use crate::import::{ import_encoding_from, spritesheet_to_images };
 
 #[derive(Clone, Serialize, Deserialize)]
 pub struct Text {
@@ -247,14 +246,9 @@ pub fn validate_string(handle: AppHandle, string: &str) -> bool {
 }
 
 pub fn load_font(path: &PathBuf) -> Result<Vec<RgbaImage>, Box<dyn Error>> {
-	let image = ImageReader::open(path)?.decode()?;
-	if image.width() != 4096 || image.height() != 16 {
-		return Err("Font image is not the correct size, 4096x16".into());
-	}
-	let mut subimages: Vec<RgbaImage> = Vec::new();
-	for i in 0..256 {
-		let subimage = image.view(i*16, 0, 16, 16).to_image();
-		subimages.push(subimage);
+	let subimages = spritesheet_to_images(path, 256, 4)?;
+	if subimages[0].width() != 16 || subimages[0].height() != 16 {
+		return Err("Font image is not the correct size, must be 4096x64".into());
 	}
 	Ok(subimages)
 }
@@ -277,13 +271,13 @@ pub fn set_to_preset_encoding(handle: AppHandle, name: &str) {
 
 					if let Some(BinType::SmaCard) = *data_state.bin_type.lock().unwrap() {
 						if let Ok(small_font_path) = handle.path().resolve(format!("resources/fontsprites/font_small_{}.png", name), BaseDirectory::Resource) {
-							if let Ok(small_font) = load_font(&small_font_path) {
-								*font_state.small_font_images.lock().unwrap() = small_font;
+							if let Ok(small_font_images) = load_font(&small_font_path) {
+								font_state.small_font_images.lock().unwrap().clone_from(&small_font_images);
 							}
 						}
 						if let Ok(large_font_path) = handle.path().resolve(format!("resources/fontsprites/font_large_{}.png", name), BaseDirectory::Resource) {
-							if let Ok(large_font) = load_font(&large_font_path) {
-								*font_state.large_font_images.lock().unwrap() = large_font;
+							if let Ok(large_font_images) = load_font(&large_font_path) {
+								font_state.large_font_images.lock().unwrap().clone_from(&large_font_images);
 							}
 						}
 					}
