@@ -36,7 +36,7 @@ class EditDialog {
 			label({ id: `label-${name}` }, [
 				span(title),
 				input({
-					id: `edit-${name}`, value, maxlength,
+					id: `edit-${name}`, value,
 					onkeyup: () => EditDialog.updateStringPreview(name),
 					onchange: (event) => EditDialog.validateString(event, name)
 				}),
