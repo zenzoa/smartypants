@@ -103,15 +103,18 @@ const linkToImage = (imageId) => {
 	}
 }
 
-const displayImage = (imageId, subimageIndex, showTooltip, subimageOffset = 0) => {
+const createImage = (imageId, subimageIndex, subimageOffset = 0) => {
 	const img = document.createElement('img')
-	img.className = 'preview-image'
-	img.id = `subimage-${imageId}-${subimageOffset + subimageIndex}`
-	if (showTooltip) {
-		img.title = `${imageId}-${subimageIndex}`
-	}
+	img.className = `preview-image subimage-${imageId}-${subimageOffset + subimageIndex}`
+	img.title = `Image ${imageId}-${subimageIndex}`
 	img.src = convertFileSrc(`${timestamp}-${imageId}-${subimageOffset + subimageIndex}`, 'getimage')
 	return img
+}
+
+const displayImage = (imageId, subimageIndex, subimageOffset = 0) => {
+	if (spriteImages[imageId] != null) {
+		return spriteImages[imageId][subimageOffset + subimageIndex].cloneNode()
+	}
 }
 
 const displayImageWithLink = (imageId, subimageIndex) => {
@@ -120,7 +123,7 @@ const displayImageWithLink = (imageId, subimageIndex) => {
 		const link = button([img])
 		link.addEventListener('click', () => {
 			viewSprites()
-			const subimageEl = document.getElementById(`subimage-${imageId.entity_id}-${subimageIndex}`)
+			const subimageEl = document.getElementById(`image-${imageId.entity_id}`)
 			if (subimageEl != null) {
 				subimageEl.scrollIntoView()
 			}

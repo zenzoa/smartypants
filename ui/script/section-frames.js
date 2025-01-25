@@ -1,4 +1,51 @@
+let frameCanvases = []
+
+const setupFrameCanvases = () => {
+	const frame_groups = cardData.data_pack.frame_groups
+	frameCanvases = frame_groups.map(frame_group => {
+		return frame_group.frames.map(frame => {
+			if (frame === 'Implicit') {
+				return null
+			} else {
+				const previewCanvas = document.createElement('canvas')
+				previewCanvas.width = 128
+				previewCanvas.height = 128
+				return previewCanvas
+			}
+		})
+	})
+}
+
+const drawFrameCanvases = () => {
+	const frame_groups = cardData.data_pack.frame_groups
+	frame_groups.forEach((frame_group, i) => {
+		frame_group.frames.forEach((frame, j) => {
+			if (frameCanvases[i] && frameCanvases[i][j] && frame.Explicit) {
+				const previewContext = frameCanvases[i][j].getContext('2d')
+				frame.Explicit.forEach(layer => {
+					if (!specialLayers.includes(layer.image_id.entity_id)) {
+						const imageIndex = layer.image_id.entity_id
+						const imageSet = cardData.image_sets[imageIndex]
+						if (imageSet && spriteImages[imageIndex]) {
+							const subimageIndex = layer.subimage_index
+							const subimage = imageSet.subimages[subimageIndex]
+							if (subimage && spriteImages[imageIndex][subimageIndex]) {
+								const x = 64 + subimage.offset_x + layer.x
+								const y = 64 + subimage.offset_y + layer.y
+								previewContext.drawImage(spriteImages[imageIndex][subimageIndex], x, y)
+							}
+						}
+					}
+				})
+			}
+		})
+	})
+}
+
 const setupFrames = () => {
+	setupFrameCanvases()
+	drawFrameCanvases()
+
 	const frame_groups = cardData.data_pack.frame_groups
 	let el = document.createElement('div')
 
@@ -20,25 +67,6 @@ const setupFrames = () => {
 				]))
 
 			} else {
-				let previewLayers = []
-				frame.Explicit.forEach(frameLayer => {
-					if (!specialLayers.includes(frameLayer.image_id.entity_id)) {
-						let imageSet = cardData.image_sets[frameLayer.image_id.entity_id]
-						if (imageSet != null) {
-							let subimage = imageSet.subimages[frameLayer.subimage_index]
-							if (subimage != null) {
-								let x = 64 + subimage.offset_x + frameLayer.x
-								let y = 64 + subimage.offset_y + frameLayer.y
-								previewLayers.push(img({
-									className: 'preview-layer',
-									style: `left: ${x}px; top: ${y}px`,
-									src: convertFileSrc(`${timestamp}-${frameLayer.image_id.entity_id}-${frameLayer.subimage_index}`, 'getimage')
-								}))
-							}
-						}
-					}
-				})
-
 				frame.Explicit.forEach((frameLayer, k) => {
 					let cells = []
 
@@ -63,7 +91,7 @@ const setupFrames = () => {
 					if (k === 0) {
 						cells = cells.concat([
 							td({ rowspan: frame.Explicit.length }, [
-								div({ className: 'preview' }, previewLayers)
+								div({ className: 'preview' }, [ frameCanvases[i][j] ])
 							]),
 							td({ rowspan: frame.Explicit.length, className: isLast ? 'bottom-right-cell' : '' }, [
 								editButton

@@ -62,6 +62,7 @@ window.addEventListener('load', () => {
 		main.replaceChildren()
 
 		sections = {
+			sprites: setupSprites(),
 			header: setupHeader(),
 			table1: setupTable1(),
 			particleEmitters: setupParticleEmitters(),
@@ -72,8 +73,7 @@ window.addEventListener('load', () => {
 			items: setupItems(),
 			characters: setupCharacters(),
 			animations: setupAnimations(),
-			frames: setupFrames(),
-			sprites: setupSprites()
+			frames: setupFrames()
 		}
 
 		const nav = div({id: 'sidebar'}, [
@@ -182,28 +182,20 @@ window.addEventListener('load', () => {
 		timestamp = Date.now()
 		const imageIndex = event.payload
 		const imageSet = cardData.image_sets[imageIndex]
-		const subimageCount = imageSet.subimages.length * imageSet.palette_count
-		for (let i=0; i < subimageCount; i++) {
-			const subimageEl = document.getElementById(`subimage-${imageIndex}-${i}`)
-			subimageEl.src = convertFileSrc(`${timestamp}-${imageIndex}-${i}`, 'getimage')
-		}
+		loadSpriteImage(imageIndex, imageSet)
 		sections.particleEmitters = setupParticleEmitters()
-		sections.scenes = setupScenes()
 		sections.items = setupItems()
 		sections.characters = setupCharacters()
 		sections.animations = setupAnimations()
-		sections.frames = setupFrames()
 	})
 
 	tauri_listen('update_images', event => {
 		timestamp = Date.now()
 		sections.sprites = setupSprites()
 		sections.particleEmitters = setupParticleEmitters()
-		sections.scenes = setupScenes()
 		sections.items = setupItems()
 		sections.characters = setupCharacters()
 		sections.animations = setupAnimations()
-		sections.frames = setupFrames()
 		viewSprites()
 	})
 

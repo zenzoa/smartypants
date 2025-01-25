@@ -684,11 +684,12 @@ input.invalid + .string-preview {
 }
 
 .preview {
-	width: 128px;
-	height: 128px;
+	width: 130px;
+	height: 130px;
 	position: relative;
 	border: 1px solid var(--table-header-border);
 	border-radius: var(--border-radius);
+	overflow: hidden;
 }
 
 table .preview {

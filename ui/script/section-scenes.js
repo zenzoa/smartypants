@@ -1,28 +1,45 @@
-const setupScenes = () => {
-	let el = document.createElement('div')
+let sceneCanvases = []
+
+const setupSceneCanvases = () => {
+	const scenes = cardData.data_pack.scenes
+	sceneCanvases = scenes.map((scene, i) => {
+		const previewCanvas = document.createElement('canvas')
+		previewCanvas.width = 128
+		previewCanvas.height = 128
+		return previewCanvas
+	})
+}
+
+const drawSceneCanvases = () => {
 	const scenes = cardData.data_pack.scenes
 	scenes.forEach((scene, i) => {
-		let previewLayers = []
+		const previewContext = sceneCanvases[i].getContext('2d')
 		scene.layers.forEach(layer => {
 			if (layer.image_id != null && (cardData.card_header == null || layer.image_id.card_id === cardData.card_header.card_id)) {
-				let imageSet = cardData.image_sets[layer.image_id.entity_id]
-				if (imageSet != null) {
-					let subimage = imageSet.subimages[layer.subimage_index]
-					if (subimage != null) {
-						let x = subimage.offset_x + layer.x
-						let y = subimage.offset_y + layer.y
-						previewLayers.push(img({
-							className: 'preview-layer',
-							style: `left: ${x}px; top: ${y}px`,
-							src: convertFileSrc(`${timestamp}-${layer.image_id.entity_id}-${layer.subimage_index}`, 'getimage')
-						}))
+				const imageIndex = layer.image_id.entity_id
+				const imageSet = cardData.image_sets[imageIndex]
+				if (imageSet && spriteImages[imageIndex]) {
+					const subimageIndex = layer.subimage_index
+					const subimage = imageSet.subimages[subimageIndex]
+					if (subimage && spriteImages[imageIndex][subimageIndex]) {
+						const x = subimage.offset_x + layer.x
+						const y = subimage.offset_y + layer.y
+						previewContext.drawImage(spriteImages[imageIndex][subimageIndex], x, y)
 					}
 				}
 			}
 		})
+	})
+}
 
+const setupScenes = () => {
+	setupSceneCanvases()
+	drawSceneCanvases()
+	let el = document.createElement('div')
+	const scenes = cardData.data_pack.scenes
+	scenes.forEach((scene, i) => {
 		el.append(div({ id: `scene-${i}`, className: 'table-title' }, `Scene ${i}`))
-		el.append(div({ className: 'preview' }, previewLayers))
+		el.append(div({ className: 'preview' }, [ sceneCanvases[i] ]))
 		el.append(table([
 			thead([tr([
 				th('-'),
