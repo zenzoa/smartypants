@@ -26,7 +26,7 @@ const renderItem = (i, item) => {
 		th(item.id.entity_id),
 		td(item.item_type),
 		td(item.name.string),
-		td(item.item_type === 'Game' ? '-' : displayImageWithLink(item.image_id, 0)),
+		td(item.item_type === 'Game' ? `Scene: ${item.image_id.entity_id}` : displayImageWithLink(item.image_id, 0)),
 		td(displayImageWithLink(item.worn_image_id, 0)),
 		td(displayImageWithLink(item.close_image_id, 0)),
 		td(item.animation_id != null ? item.animation_id.entity_id : '-'),

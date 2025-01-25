@@ -41,8 +41,6 @@ class EditItemDialog extends EditDialog {
 		)
 
 		EditItemDialog.updateItemType(item.item_type, i, item)
-		// document.getElementById('edit-item-type')
-		// 	.addEventListener('change', (event) => EditItemDialog.updateItemType(event.target.value, i, item))
 
 		document.getElementById('edit-dialog-actions').append(
 			button({ id: 'edit-cancel-button', className: 'text', title: 'Cancel', onclick: EditItemDialog.close }, 'Cancel'),
@@ -56,17 +54,13 @@ class EditItemDialog extends EditDialog {
 	}
 
 	static updateItemType(item_type, i, item) {
-		// document.getElementById('label-game-type').classList.add('hidden')
 		document.getElementById('label-image-id').classList.add('hidden')
 		document.getElementById('label-worn-image-id').classList.add('hidden')
 		document.getElementById('label-close-image-id').classList.add('hidden')
 		document.getElementById('label-animation-id').classList.add('hidden')
 		document.getElementById('label-unlocked-character').classList.add('hidden')
 
-		if (item_type === 'Game') {
-			// document.getElementById('label-game-type').classList.remove('hidden')
-
-		} else {
+		if (item_type !== 'Game') {
 			document.getElementById('label-image-id').classList.remove('hidden')
 
 			if (item_type === 'Meal' || item_type === 'Snack' || item_type === 'Toy') {
@@ -95,7 +89,6 @@ class EditItemDialog extends EditDialog {
 		) {
 			const newItem = {
 				id: item.id,
-				// item_type: EditDialog.getDropdownValue('item-type'),
 				item_type: item.item_type,
 				name: EditDialog.getStrValue('name'),
 				image_id: null,
@@ -110,18 +103,16 @@ class EditItemDialog extends EditDialog {
 				game_type: null
 			}
 
+			newItem.image_id = EditDialog.getIdValue('image-id')
+
 			if (newItem.item_type === 'Game') {
-				// newItem.game_type = EditDialog.getDropdownValue('game-type')
 				newItem.game_type = item.game_type
 
 			} else {
-				newItem.image_id = EditDialog.getIdValue('image-id')
-
 				if (newItem.item_type === 'Meal' || newItem.item_type === 'Snack' || newItem.item_type === 'Toy') {
 					let newUnlockedCharacter = EditDialog.getIntValue('unlocked-character')
 					if (newUnlockedCharacter > 0) newItem.unlocked_character = newUnlockedCharacter
 				}
-
 				if (newItem.item_type === 'Toy') {
 					newItem.animation_id = {
 						card_id: newItem.id.card_id,
