@@ -105,16 +105,22 @@ const linkToImage = (imageId) => {
 
 const createImage = (imageId, subimageIndex, subimageOffset = 0) => {
 	const img = document.createElement('img')
-	img.className = `preview-image subimage-${imageId}-${subimageOffset + subimageIndex}`
+	img.className = `preview-image subimage-${imageId}-${subimageIndex + subimageOffset}`
 	img.title = `Image ${imageId}-${subimageIndex}`
-	img.src = convertFileSrc(`${timestamp}-${imageId}-${subimageOffset + subimageIndex}`, 'getimage')
+	img.src = convertFileSrc(`${timestamp}-${imageId}-${subimageIndex + subimageOffset}`, 'getimage')
 	return img
 }
 
 const displayImage = (imageId, subimageIndex, subimageOffset = 0) => {
 	if (spriteImages[imageId] != null) {
-		return spriteImages[imageId][subimageOffset + subimageIndex].cloneNode()
+		return spriteImages[imageId][subimageIndex + subimageOffset].cloneNode()
 	}
+}
+
+const displayLetter = (fontName, subimageIndex) => {
+	const img = document.createElement('img')
+	img.src = convertFileSrc(`${timestamp}-${fontName}-${subimageIndex}`, 'getimage')
+	return img
 }
 
 const displayImageWithLink = (imageId, subimageIndex) => {

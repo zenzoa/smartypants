@@ -178,8 +178,8 @@ class EditDialog {
 			if (largePreviewEl) largePreviewEl.replaceChildren()
 			result.forEach(i => {
 				if (i <= 256) {
-					if (smallPreviewEl) smallPreviewEl.append(div({ className: 'preview-letter' }, [displayImage('smallfont', i-1)]))
-					if (largePreviewEl) largePreviewEl.append(div({ className: 'preview-letter' }, [displayImage('largefont', i-1)]))
+					if (smallPreviewEl) smallPreviewEl.append(div({ className: 'preview-letter' }, [displayLetter('smallfont', i-1)]))
+					if (largePreviewEl) largePreviewEl.append(div({ className: 'preview-letter' }, [displayLetter('largefont', i-1)]))
 				} else if (i === 61440) { // line break
 					if (smallPreviewEl) smallPreviewEl.append(div({ className: 'preview-line-break' }))
 					if (largePreviewEl) largePreviewEl.append(div({ className: 'preview-line-break' }))
@@ -202,10 +202,13 @@ class EditDialog {
 
 	static validateString(event, name) {
 		tauri_invoke('validate_string', { string: event.target.value }).then(result => {
-			if (result) {
-				document.getElementById(`edit-${name}`).classList.remove('invalid')
-			} else {
-				document.getElementById(`edit-${name}`).classList.add('invalid')
+			const inputEl = document.getElementById(`edit-${name}`)
+			if (inputEl) {
+				if (result) {
+					inputEl.classList.remove('invalid')
+				} else {
+					inputEl.classList.add('invalid')
+				}
 			}
 		})
 	}

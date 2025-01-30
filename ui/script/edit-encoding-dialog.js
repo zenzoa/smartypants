@@ -11,8 +11,8 @@ class EditEncodingDialog {
 				tbody(textEncoding.map(charCode =>
 					tr([
 						th(charCode.data),
-						td([displayImage('smallfont', charCode.data-1)]),
-						td([displayImage('largefont', charCode.data-1)]),
+						td([displayLetter('smallfont', charCode.data-1)]),
+						td([displayLetter('largefont', charCode.data-1)]),
 						td([
 							input({ id: `encoding-${charCode.data}`, value: charCode.text.join(', ') })
 						])
