@@ -90,6 +90,12 @@ pub fn open_bin(handle: AppHandle) {
 									BinSize::Card1MB
 								} else if data.len() <= 0x200000 {
 									BinSize::Card2MB
+								} else if data.len() <= 0x400000 {
+									BinSize::Card4MB
+								} else if data.len() <= 0x800000 {
+									BinSize::Card8MB
+								} else if data.len() <= 0x1000000 {
+									BinSize::Card16MB
 								} else {
 									BinSize::TooBig
 								});

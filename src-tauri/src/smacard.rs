@@ -192,6 +192,9 @@ pub fn save_card(handle: &AppHandle) -> Result<Vec<u8>, Box<dyn Error>> {
 		BinSize::Card128KB => 31,
 		BinSize::Card1MB => 255,
 		BinSize::Card2MB => 511,
+		BinSize::Card4MB => 511, // pretend we're 2MB
+		BinSize::Card8MB => 511, // pretend we're 2MB
+		BinSize::Card16MB => 511, // pretend we're 2MB
 		_ => return Err("Invalid TamaSma card size".into())
 	};
 	let header_data = save_card_header(header)?;
@@ -202,6 +205,9 @@ pub fn save_card(handle: &AppHandle) -> Result<Vec<u8>, Box<dyn Error>> {
 		BinSize::Card128KB => 0x20000 - 16,
 		BinSize::Card1MB => 0x100000 - 16,
 		BinSize::Card2MB => 0x200000 - 16,
+		BinSize::Card4MB => 0x200000 - 16, // pretend we're 2MB
+		BinSize::Card8MB => 0x200000 - 16, // pretend we're 2MB
+		BinSize::Card16MB => 0x200000 - 16, // pretend we're 2MB
 		_ => return Err("Invalid TamaSma card size".into())
 	};
 	if padding_len < data.len() {
@@ -211,6 +217,15 @@ pub fn save_card(handle: &AppHandle) -> Result<Vec<u8>, Box<dyn Error>> {
 	data.extend_from_slice(&padding);
 
 	data.extend_from_slice(&[50, 132, 171, 86, 34, 17, 220, 254, 142, 107, 85, 255, 181, 16, 127, 51]);
+
+	let end_padding_len = match data_state.bin_size.lock().unwrap().as_ref().ok_or("Undefined card size")? {
+		BinSize::Card4MB => 0x200000,
+		BinSize::Card8MB => 0x600000,
+		BinSize::Card16MB => 0xE00000,
+		_ => 0
+	};
+	let end_padding = vec![0xff_u8; end_padding_len];
+	data.extend_from_slice(&end_padding);
 
 	let checksum = calc_checksum(&data[1000..]);
 	data.splice(2..4, checksum.to_le_bytes());

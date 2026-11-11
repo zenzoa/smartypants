@@ -61,6 +61,9 @@ pub enum BinSize {
 	Card128KB,
 	Card1MB,
 	Card2MB,
+	Card4MB,
+	Card8MB,
+	Card16MB,
 	TooBig
 }
 
@@ -146,6 +149,9 @@ fn main() {
 						&CheckMenuItem::with_id(handle, "card_size_128kb", "128KB", true, false, None::<&str>)?,
 						&CheckMenuItem::with_id(handle, "card_size_1mb", "1MB", true, false, None::<&str>)?,
 						&CheckMenuItem::with_id(handle, "card_size_2mb", "2MB", true, false, None::<&str>)?,
+						&CheckMenuItem::with_id(handle, "card_size_4mb", "4MB", true, false, None::<&str>)?,
+						&CheckMenuItem::with_id(handle, "card_size_8mb", "8MB", true, false, None::<&str>)?,
+						&CheckMenuItem::with_id(handle, "card_size_16mb", "16MB", true, false, None::<&str>)?,
 					])?,
 				])?,
 
@@ -205,6 +211,9 @@ fn main() {
 					"card_size_128kb" => set_card_size(&handle, BinSize::Card128KB),
 					"card_size_1mb" => set_card_size(&handle, BinSize::Card1MB),
 					"card_size_2mb" => set_card_size(&handle, BinSize::Card2MB),
+					"card_size_4mb" => set_card_size(&handle, BinSize::Card4MB),
+					"card_size_8mb" => set_card_size(&handle, BinSize::Card8MB),
+					"card_size_16mb" => set_card_size(&handle, BinSize::Card16MB),
 
 					"show_toolbar" => set_toolbar_visibility(&handle, None),
 
@@ -370,6 +379,15 @@ fn update_card_size_menu(handle: &AppHandle) {
 				}
 				if let Some(MenuItemKind::Check(card_size_2mb_item)) = card_size_menu.get("card_size_2mb") {
 					card_size_2mb_item.set_checked(card_size.is_some_and(|v| *v == BinSize::Card2MB)).unwrap();
+				}
+				if let Some(MenuItemKind::Check(card_size_4mb_item)) = card_size_menu.get("card_size_4mb") {
+					card_size_4mb_item.set_checked(card_size.is_some_and(|v| *v == BinSize::Card4MB)).unwrap();
+				}
+				if let Some(MenuItemKind::Check(card_size_8mb_item)) = card_size_menu.get("card_size_8mb") {
+					card_size_8mb_item.set_checked(card_size.is_some_and(|v| *v == BinSize::Card8MB)).unwrap();
+				}
+				if let Some(MenuItemKind::Check(card_size_16mb_item)) = card_size_menu.get("card_size_16mb") {
+					card_size_16mb_item.set_checked(card_size.is_some_and(|v| *v == BinSize::Card16MB)).unwrap();
 				}
 			}
 		}
