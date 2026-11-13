@@ -20,7 +20,6 @@
 				"use": "brownfield"
 			}
 		},
-		"macOSPrivateApi": false,
 		"windows": [
 			{
 				"title": "Smarty Pants",
